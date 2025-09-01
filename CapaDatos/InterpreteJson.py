@@ -25,8 +25,5 @@ class InterpreteJson:
         self.contrasena_pac = pac.get("contrasena")
 
         # XML
-        datos_xml = self.data.get("datosXML", {})
-        self.datos_xml = datos_xml
-        self.conceptos = datos_xml.get("conceptos", [])
-
-        print(self.conceptos)
+        self.jsonData: dict = self.data.get("datosXML", {})
+        self.conceptos: list = self.jsonData.get("conceptos", [])

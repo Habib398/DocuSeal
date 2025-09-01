@@ -21,11 +21,15 @@ async def procesar_json(request: Request):
     except ValueError as e:
         return {"error": str(e)}
 
+
     # Acceso directo a variables
     conceptos_formato = [
         f"Desc: {c.get('descripcion')} - Cant: {c.get('cantidad')} - Precio: {c.get('precioUnitario')}"
         for c in interprete.conceptos
     ]
+
+    convertir = ConvertirJson(interprete.jsonData)
+    xml_generado = convertir.GenerarXml()
 
     return {
         "mensaje": "JSON procesado correctamente",
@@ -37,4 +41,5 @@ async def procesar_json(request: Request):
         "pwdCER": interprete.pwd_cer,
         "usuarioPAC": interprete.usuario_pac,
         "conceptos": conceptos_formato,
+        "xml": xml_generado
     }
