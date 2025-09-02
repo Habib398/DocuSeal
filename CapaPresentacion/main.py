@@ -1,15 +1,8 @@
 from fastapi import FastAPI, Request
-from CapaDatos.ConvertirJson import ConvertirJson, JsonInput
+from CapaDatos.ConvertirJson import ConvertirJson
 from CapaDatos.InterpreteJson import InterpreteJson
 
 app = FastAPI()
-"""
-@app.post("/convertir_json/")
-def convertir_json(item: JsonInput):
-    converter = ConvertirJson(item.data)
-    xml = converter.GenerarXml()
-    return {"xml": xml}
-"""
 
 @app.post("/InterpreteJson/")
 async def procesar_json(request: Request):
@@ -29,7 +22,7 @@ async def procesar_json(request: Request):
     ]
 
     convertir = ConvertirJson(interprete.jsonData)
-    xml_generado = convertir.GenerarXml()
+    xml_generado = convertir.GenerarXmlCFDI()
 
     return {
         "mensaje": "JSON procesado correctamente",
