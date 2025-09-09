@@ -4,4 +4,9 @@ class TimbradoExito:
         self.xmlTimbrado = xmlTimbrado
 
     def GenerarResultadoExito(self):
-        pass
+        # Devuelve el resultado de éxito en formato dict
+        return {
+            "id": self.idTimbradoExito,
+            "exito": True,
+            "xml_timbrado": self.xmlTimbrado,
+        }

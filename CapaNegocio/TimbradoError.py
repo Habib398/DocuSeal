@@ -5,4 +5,10 @@ class TimbradoError:
         self.mensaje = mensaje
 
     def GenerarResultadoError(self):
-        pass
+        # Devuelve el resultado de error en formato dict
+        return {
+            "id": self.idTimbradoError,
+            "exito": False,
+            "codigo": self.codigo,
+            "mensaje": self.mensaje,
+        }

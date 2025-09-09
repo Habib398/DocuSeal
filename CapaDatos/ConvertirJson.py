@@ -10,79 +10,60 @@ class ConvertirJson:
             'xsi': 'http://www.w3.org/2001/XMLSchema-instance'
         }
 
-        #Obtiene datos de json
-        comprobante_data = self.datos_xml.get("Comprobante", {})
+        comprobante_data = self.datos_xml.get("cfdi:Comprobante", {})
 
-        # Declararion de atributos del xml
+        #  Agrega atributos con valor en json
+        comprobante_attrib = {
+            k: str(v)
+            for k, v in comprobante_data.items()
+            if v is not None and v != ""
+            and not isinstance(v, dict)
+            and not k.startswith("xmlns")
+            and ":" not in k
+            }
+        
         comprobante = etree.Element(
             '{http://www.sat.gob.mx/cfd/4}Comprobante',
             nsmap=nsmap,
-            Version="4.0",
-            # Extrae atributos obligatorios
-            Serie=comprobante_data.get("Serie", ""),
-            Folio=comprobante_data.get("Folio", ""),
-            Fecha=comprobante_data.get("Fecha", ""),
-            Sello=comprobante_data.get("Sello", ""),
-            NoCertificado=comprobante_data.get("NoCertificado", ""),
-            Certificado=comprobante_data.get("Certificado", ""),
-            SubTotal=str(comprobante_data.get("SubTotal", "")),
-            Moneda=comprobante_data.get("Moneda", ""),
-            Total=str(comprobante_data.get("Total", "")),
-            TipoDeComprobante=comprobante_data.get("TipoDeComprobante", ""),
-            LugarExpedicion=comprobante_data.get("LugarExpedicion", "")
+            **comprobante_attrib
         )
+        if "xsi:schemaLocation" in comprobante_data and comprobante_data["xsi:schemaLocation"]:
+            comprobante.set("{http://www.w3.org/2001/XMLSchema-instance}schemaLocation", comprobante_data["xsi:schemaLocation"])
 
-        # Atributos de emisor
-        emisor_data = comprobante_data.get("Emisor", {})
-        emisor = etree.SubElement(
-            comprobante,
-            '{http://www.sat.gob.mx/cfd/4}Emisor',
-            Rfc=emisor_data.get("Rfc", ""),
-            Nombre=emisor_data.get("Nombre", ""),
-            RegimenFiscal=emisor_data.get("RegimenFiscal", "")
-        )
+        # Emisor
+        emisor_data = comprobante_data.get("cfdi:Emisor", {})
+        emisor_attrib = {k: str(v) for k, v in emisor_data.items() if v}
+        etree.SubElement(comprobante, '{http://www.sat.gob.mx/cfd/4}Emisor', **emisor_attrib)
 
-        # atributos de receptor
-        receptor_data = comprobante_data.get("Receptor", {})
-        receptor = etree.SubElement(
-            comprobante,
-            '{http://www.sat.gob.mx/cfd/4}Receptor',
-            Rfc=receptor_data.get("Rfc", ""),
-            Nombre=receptor_data.get("Nombre", ""),
-            UsoCFDI=receptor_data.get("UsoCFDI", "")
-        )
+        # Receptor
+        receptor_data = comprobante_data.get("cfdi:Receptor", {})
+        receptor_attrib = {k: str(v) for k, v in receptor_data.items() if v}
+        etree.SubElement(comprobante, '{http://www.sat.gob.mx/cfd/4}Receptor', **receptor_attrib)
 
-        # Atributos de conceptos
+        # Conceptos
+        conceptos_data = comprobante_data.get("cfdi:Conceptos", {}).get("cfdi:Concepto", {})
         conceptos = etree.SubElement(comprobante, '{http://www.sat.gob.mx/cfd/4}Conceptos')
-        # Recorre cadena de conceptos
-        for concepto in comprobante_data.get("Conceptos", []):
-            etree.SubElement(
-                conceptos,
-                '{http://www.sat.gob.mx/cfd/4}Concepto',
-                ClaveProdServ=concepto.get("ClaveProdServ", ""),
-                Cantidad=str(concepto.get("Cantidad", "")),
-                ClaveUnidad=concepto.get("ClaveUnidad", ""),
-                Descripcion=concepto.get("Descripcion", ""),
-                ValorUnitario=str(concepto.get("ValorUnitario", "")),
-                Importe=str(concepto.get("Importe", ""))
-            )
+        concepto_attrib = {k: str(v) for k, v in conceptos_data.items() if v and not isinstance(v, dict)}
+        concepto = etree.SubElement(conceptos, '{http://www.sat.gob.mx/cfd/4}Concepto', **concepto_attrib)
 
         # Impuestos
-        impuestos_data = comprobante_data.get("Impuestos", {})
+        impuestos_data = comprobante_data.get("cfdi:Impuestos", {})
         if impuestos_data:
             impuestos = etree.SubElement(comprobante, '{http://www.sat.gob.mx/cfd/4}Impuestos')
-            traslados = etree.SubElement(impuestos, '{http://www.sat.gob.mx/cfd/4}Traslados')
-            for traslado in impuestos_data.get("Traslados", []):
-                etree.SubElement(
-                    traslados,
-                    '{http://www.sat.gob.mx/cfd/4}Traslado',
-                    Base=str(traslado.get("Base", "")),
-                    Impuesto=traslado.get("Impuesto", ""),
-                    TipoFactor=traslado.get("TipoFactor", ""),
-                    TasaOCuota=str(traslado.get("TasaOCuota", "")),
-                    Importe=str(traslado.get("Importe", ""))
-                )
+            # Retenciones
+            if "cfdi:Retenciones" in impuestos_data:
+                retenciones = etree.SubElement(impuestos, '{http://www.sat.gob.mx/cfd/4}Retenciones')
+                retencion_data = impuestos_data["cfdi:Retenciones"].get("cfdi:Retencion", {})
+                retencion_attrib = {k: str(v) for k, v in retencion_data.items() if v}
+                etree.SubElement(retenciones, '{http://www.sat.gob.mx/cfd/4}Retencion', **retencion_attrib)
+            # Traslados
+            if "cfdi:Traslados" in impuestos_data:
+                traslados = etree.SubElement(impuestos, '{http://www.sat.gob.mx/cfd/4}Traslados')
+                traslado_data = impuestos_data["cfdi:Traslados"].get("cfdi:Traslado", {})
+                traslado_attrib = {k: str(v) for k, v in traslado_data.items() if v}
+                etree.SubElement(traslados, '{http://www.sat.gob.mx/cfd/4}Traslado', **traslado_attrib)
 
         xml_cfdi = etree.tostring(comprobante, pretty_print=True, encoding='utf-8', xml_declaration=True)
-        return xml_cfdi.decode('utf-8')
-    
+        xml_resultado = xml_cfdi.decode('utf-8')
+        print(xml_resultado)
+        return xml_resultado
