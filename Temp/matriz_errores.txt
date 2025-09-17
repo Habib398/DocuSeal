@@ -1,0 +1,126 @@
+CFDI40101|El campo Fecha no cumple con el patrón requerido.
+CFDI40102|El resultado de la digestión debe ser igual al resultado de la desencripción del sello.
+CFDI40103|Si existe el tipo de comprobante T, N o P el campo FormaPago no debe existir.
+CFDI40104|El campo FormaPago no contiene un valor del catálogo c_FormaPago. 
+CFDI40105|El campo FormaPago no contiene el valor "99". 
+CFDI40106|EL certificado no cumple con alguno de los valores permitidos.
+CFDI40107|El valor de este campo SubTotal excede la cantidad de decimales que soporta la moneda.
+CFDI40108|El TipoDeComprobante es I,E o N, el importe registrado en el campo no es igual al redondeo de la suma de los importes de los conceptos registrados.
+CFDI40109|El TipoDeComprobante es T o P y el importe no es igual a 0, o cero con decimales.
+CFDI40110|El valor registrado en el campo Descuento no es menor o igual que el campo Subtotal.
+CFDI40111|El TipoDeComprobante no es I,E o N, y un concepto incluye el campo descuento. 
+CFDI40112|El valor del campo Descuento excede la cantidad de decimales que soporta la moneda.
+CFDI40113|El campo Moneda no contiene un valor del catálogo c_Moneda. 
+CFDI40114|El campo TipoCambio no tiene el valor "1" y la moneda indicada es MXN.
+CFDI40115|El campo TipoCambio se debe registrar cuando el campo Moneda tiene un valor distinto de MXN y XXX. 
+CFDI40116|El campo TipoCambio no se debe registrar cuando el campo Moneda tiene el valor XXX.
+CFDI40117|El campo TipoCambio no cumple con el patrón requerido.
+CFDI40118|Cuando el valor del campo TipoCambio se encuentre fuera de los límites establecidos, debe existir el campo Confirmacion.
+CFDI40119|El campo Total no corresponde con la suma del subtotal, menos los descuentos aplicables, más las contribuciones recibidas (impuestos trasladados - federales o locales, derechos, productos, aprovechamientos, aportaciones de seguridad social, contribuciones de mejoras) menos los impuestos retenidos y/o locales.
+CFDI40120|Cuando el valor del campo Total se encuentre fuera de los límites establecidos, debe existir el campo Confirmacion.
+CFDI40121|El campo TipoDeComprobante, no contiene un valor del catálogo c_TipoDeComprobante.
+CFDI40122|El campo Exportacion contiene el valor "02", el CFDI debe contener el complemento para Comercio Exterior.
+CFDI40123|El campo Exportacion no contiene un valor del catálogo c_Exportacion. 
+CFDI40124|El campo MetodoPago, no contiene un valor del catálogo c_MetodoPago.
+CFDI40125|Se debe omitir el campo MetodoPago cuando el TipoDeComprobante es T o P.
+CFDI40126|El campo LugarExpedicion, no contiene un valor del catálogo c_CodigoPostal.
+CFDI40127|El campo Confirmacion no debe existir cuando los campos TipoCambio y/o Total están dentro del rango permitido.
+CFDI40128|Número de confirmación inválido.
+CFDI40129|Número de confirmación utilizado previamente.
+CFDI40130|Cuando el tipo de comprobante sea Ingreso y el campo Rfc del nodo receptor corresponda al valor "XAXX010101000" y el campo Nombre del nodo Receptor contenga la descripción “PUBLICO EN GENERAL”, el nodo Información Global debe existir.
+CFDI40131|El campo Periodicidad, no contiene un valor del catálogo c_Periodicidad. 
+CFDI40132|El campo RegimenFiscal, no contiene el valor 621 
+CFDI40133|El campo Meses, no contiene un valor del catálogo c_Meses. 
+CFDI40134|El campo Meses, no contiene alguno de los valores “01”, “02”, “03”, “04”, “05”, “06”, “07”, “08”, “09”, “10”, “11” o "12".
+CFDI40135|El campo Meses, no contiene alguno de los valores “13”, “14”, “15”, “16”, “17” o “18”.
+CFDI40136|El campo Año, no es igual al año en curso o al año inmediato anterior.
+CFDI40137|El campo TipoRelacion, no contiene un valor del catálogo c_TipoRelacion.
+CFDI40138|El campo Nombre del emisor, debe encontrarse en la lista de RFC inscritos no cancelados en el SAT.
+CFDI40139|El campo Nombre del emisor, debe pertenecer al nombre asociado al RFC registrado en el campo Rfc del Emisor.
+CFDI40140|El campo RegimenFiscal, no contiene un valor del catálogo c_RegimenFiscal.
+CFDI40141|La clave del campo RegimenFiscal debe corresponder con el tipo de persona (fisica o moral).
+CFDI40142|El campo FacAtrAdquirente, no contiene un número de operación valido.
+CFDI40143|Este RFC del receptor no existe en la lista de RFC inscritos no cancelados del SAT.
+CFDI40144|El campo Nombre del receptor, debe encontrarse en la lista de RFC inscritos no cancelados en el SAT.
+CFDI40145|El campo Nombre del receptor, debe pertenecer al nombre asociado al RFC registrado en el campo Rfc del Receptor.
+CFDI40146|El campo RFC del receptor debe contener el valor  "XAXX010101000".
+CFDI40147|El campo DomicilioFiscalReceptor del receptor, debe encontrarse en la lista de RFC inscritos no cancelados en el SAT.
+CFDI40148|El campo DomicilioFiscalReceptor del receptor, debe pertenecer al nombre asociado al RFC registrado en el campo Rfc del Receptor.
+CFDI40149|El campo DomicilioFiscalReceptor, no es igual al valor del campo LugarExpedicion. 
+CFDI40150|El campo ResidenciaFiscal, no contiene un valor del catálogo c_Pais.
+CFDI40151|El RFC del receptor es de un RFC registrado en el SAT o un RFC genérico nacional y existe el campo ResidenciaFiscal.
+CFDI40152|El valor del campo ResidenciaFiscal no puede ser MEX.
+CFDI40153|Se debe registrar un valor de acuerdo al catálogo c_Pais en en el campo ResidenciaFiscal, cuando en el en el campo NumRegIdTrib se registre información.
+CFDI40154|El valor del campo es un RFC inscrito no cancelado en el SAT o un RFC genérico nacional, y se registró el campo NumRegIdTrib.
+CFDI40155|Para registrar el campo NumRegIdTrib, el CFDI debe contener el complemento de comercio exterior y el RFC del receptor debe ser un RFC genérico extranjero.
+CFDI40156|El campo NumRegIdTrib no cumple con el patrón correspondiente. 
+CFDI40157|El campo RegimenFiscalR, no contiene un valor del catálogo c_RegimenFiscal.
+CFDI40158|La clave del campo RegimenFiscalR debe corresponder con el tipo de persona (física o moral).
+CFDI40159|La clave del campo RegimenFiscalR no corresponde de acuerdo al RFC del receptor.
+CFDI40160|El campo UsoCFDI, no contiene un valor del catálogo c_UsoCFDI.
+CFDI40161|La clave del campo UsoCFDI debe corresponder con el tipo de persona (física o moral) y el régimen correspondiente conforme al catálogo c_UsoCFDI.
+CFDI40162|El campo ClaveProdServ, no contiene un valor del catálogo c_ClaveProdServ.
+CFDI40163|No existe el complemento requerido para el valor de ClaveProdServ.
+CFDI40164|No está declarado el impuesto relacionado con el valor de ClaveProdServ.
+CFDI40165|El campo ClaveUnidad no contiene un valor del catálogo c_ClaveUnidad.
+CFDI40166|El valor valor del campo ValorUnitario debe ser mayor que cero (0) cuando el tipo de comprobante es Ingreso, Egreso o Nomina.
+CFDI40167|El valor del campo Importe no se encuentra entre el limite inferior y superior permitido.
+CFDI40168|El valor del campo Descuento no contiene la misma cantidad de decimales registrados en el campo  Importe del concepto.
+CFDI40169|El valor del campo Descuento es mayor que el campo Importe.
+CFDI40170|El campo ObjetoImp, no contiene un valor del catálogo c_ObjetoImp.
+CFDI40171|El nodo concepto, no contiene el nodo hijo Impuestos.
+CFDI40172|El nodo hijo Impuestos del nodo Concepto, no debe existir.
+CFDI40173|En caso de utilizar el nodo Impuestos en un concepto, se deben incluir impuestos  de traslado y/o retenciones.
+CFDI40174|El valor del campo Base que corresponde a Traslado debe ser mayor que cero.
+CFDI40175|El valor del campo Impuesto que corresponde a Traslado no contiene un valor del catálogo c_Impuesto.
+CFDI40176|El valor del campo TipoFactor que corresponde a Traslado no contiene un valor del catálogo c_TipoFactor.
+CFDI40177|Si el valor registrado en el campo TipoFactor que corresponde a Traslado es Exento no se deben registrar los campos TasaOCuota ni Importe.
+CFDI40178|Si el valor registrado en el campo TipoFactor que corresponde a Traslado es Tasa o Cuota, se deben registrar los campos TasaOCuota e Importe.
+CFDI40179|El valor del campo TasaOCuota que corresponde a Traslado no contiene un valor del catálogo c_TasaOcuota o se encuentra fuera de rango.
+CFDI40180|El valor del campo Importe o que corresponde a Traslado no se encuentra entre el limite inferior y superior permitido.
+CFDI40181|El valor del campo Base que corresponde a Retención debe ser mayor que cero.
+CFDI40182|El valor del campo Impuesto que corresponde a Retención no contiene un valor del catálogo c_Impuesto.
+CFDI40183|El valor del campo TipoFactor que corresponde a Retención no contiene un valor del catálogo c_TipoFactor.
+CFDI40184|Si el valor registrado en el campo TipoFactor que corresponde a Retención debe ser distinto de Exento.
+CFDI40185|El valor del campo TasaOCuota que corresponde a Retención, no contiene un valor del catálogo c_TasaOcuota o se encuentra fuera de rango.
+CFDI40186|El valor del campo Importe que corresponde a Retención no se encuentra entre el limite inferior y superior permitido.
+CFDI40187|El valor registrado en el campo RfcACuentaTerceros, no se encuentra en la lista l_LCO.
+CFDI40188|El valor del campo RfcACuentaTerceros, debe ser diferente de los valores de los campos Rfc del Emisor y Receptor.
+CFDI40189|El valor  registrado debe encontrarse en la lista de RFC inscritos no cancelados en el SAT, en otro caso debe contener la descripción “EXPEDICIÓN DE CFDI POR RESIDENTES EN MÉXICO QUE PRESTAN SERVICIOS DE INTERMEDIACIÓN ENTRE TERCEROS A OFERENTES DE BIENES Y SERVICIOS RESIDENTES EN EL EXTRANJERO”.
+CFDI40190|El campo NombreACuentaTerceros, debe pertenecer al nombre asociado al RFC registrado en el campo Rfc del tercero.
+CFDI40191|El campo RegimenFiscalACuentaTerceros, no contiene un valor del catálogo c_RegimenFiscal.
+CFDI40192|El valor registrado en el atributo DomicilioFiscalACuentaTerceros, debe encontrarse en la lista de RFC inscritos no cancelados en el SAT.
+CFDI40193|El valor registrado en el atributo DomicilioFiscalACuentaTerceros, debe pertenecer al nombre asociado al RFC registrado en el campo Rfc del tercero, o debe ser igual al valor del atributo "LugarExpedicion".
+CFDI40194|El número de pedimento es inválido.
+CFDI40195|El NumeroPedimento no debe existir si se incluye el complemento de comercio exterior.
+CFDI40196|El campo ClaveProdServ, no contiene un valor del catálogo c_ClaveProdServ.
+CFDI40197|El valor del campo ValorUnitario debe ser mayor que cero (0).
+CFDI40198|El valor del campo Importe no se encuentra entre el limite inferior y superior permitido.
+CFDI40199|El número de pedimento es inválido.
+CFDI40200|El NumeroPedimento no debe existir si se incluye el complemento de comercio exterior.
+CFDI40201|Cuando el TipoDeComprobante sea T o P, el elemento Impuestos no debe existir.
+CFDI40202|El valor del campo TotalImpuestosRetenidos debe tener hasta la cantidad de decimales que soporte la moneda.
+CFDI40203|El valor del campo TotalImpuestosRetenidos debe ser igual a la suma de los importes registrados en el elemento hijo Retencion.
+CFDI40204|El valor del campo TotalImpuestosTrasladados debe tener hasta la cantidad de decimales que soporte la moneda.
+CFDI40205|El valor del campo TotalImpuestosTrasladados no es igual a la suma de los importes registrados en el elemento hijo Traslado.
+CFDI40206|Debe existir el campo TotalImpuestosRetenidos.
+CFDI40207|El campo Impuesto no contiene un valor del catálogo c_Impuesto.
+CFDI40208|Debe haber sólo un registro por cada tipo de impuesto retenido.
+CFDI40209|Debe existir el campo TotalImpuestosRetenidos.
+CFDI40210|El valor del campo Importe correspondiente a Retención debe tener hasta la cantidad de decimales que soporte la moneda.
+CFDI40211|El campo Importe correspondiente a Retención no es igual al redondeo de la suma de los importes de los impuestos retenidos registrados en los conceptos donde el impuesto sea igual al campo impuesto de este elemento.
+CFDI40212|Debe existir el campo TotalImpuestosTrasladados.
+CFDI40213|Deben exitir los campos Base, Impuesto y TipoFactor
+CFDI40214|El valor del campo Importe correspondiente a Traslado debe tener hasta la cantidad de decimales que soporte la moneda.
+CFDI40215|El campo Importe correspondiente a Traslado no es igual al redondeo de la suma de los importes de las bases trasladados registrados en los conceptos donde el impuesto del concepto sea igual al campo impuesto de este elemento y la TasaOCuota del concepto sea igual al campo TasaOCuota de este elemento.
+CFDI40216|El importe del campo Base correspondiente a Traslado no es igual al redondeo de la suma de los importes de las bases trasladados registrados en los conceptos.
+CFDI40217|El campo Impuesto no contiene un valor del catálogo c_Impuesto.
+CFDI40218|Debe haber sólo un registro con la misma combinación de impuesto, factor y tasa por cada traslado.
+CFDI40219|El valor seleccionado debe corresponder a un valor del catalogo donde la columna impuesto corresponda con el campo impuesto y la columna factor corresponda con el campo TipoFactor.
+CFDI40220|El valor del campo Importe correspondiente a Traslado debe tener hasta la cantidad de decimales que soporte la moneda.
+CFDI40221|El campo Importe correspondiente a Traslado no es igual al redondeo de la suma de los importes de los impuestos trasladados registrados en los conceptos donde el impuesto del concepto sea igual al campo impuesto de este elemento y la TasaOCuota del concepto sea igual al campo TasaOCuota de este elemento.
+CFDI40222|El complemento de Comercio Exterior no debe existir cuando el campo Exportacion contenga un valor igual  a "01" o “03” del catálogo de CFDI c_Exportacion.
+CFDI140223|El valor registrado en el atributo RegimenFiscalACuentaTerceros es distinto a “616”.
+CFDI140224|El valor 001 (ISR) en el atributo "Impuesto" del nodo hijo “Retencion” del elemento “Retenciones” a nivel Concepto no debe existir.
+CFDI140225|Debe existir el valor 001 (ISR) y en el atributo “TasaOCuota” se debe registrar el valor 0.0125 en el atributo “Impuesto” del nodo hijo “Retencion” del elemento “Retenciones” a nivel Concepto.
+CFDI40999|Error no clasificado.

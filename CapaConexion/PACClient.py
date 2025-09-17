@@ -2,7 +2,7 @@ from typing import Optional, Tuple
 
 from CapaConexion.ConfiguracionPAC import ConfiguracionPAC
 
-
+# Clase hecha por Copilot
 class PACClientBase:
     """Interfaz base para clientes PAC.
     Implementaciones reales deben sobrescribir timbrar_xml.
