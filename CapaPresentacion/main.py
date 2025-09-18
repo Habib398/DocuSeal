@@ -1,15 +1,75 @@
 from fastapi import FastAPI, Request
+import json
 import os
+import re
+import json as _json
 from CapaDatos.ConvertirJson import ConvertirJson
 from CapaDatos.InterpreteJson import InterpreteJson
 from CapaNegocio.SellarXML import SellarXML
 from CapaNegocio.ConfiguracionSello import ConfiguracionSello
+from satcfdi.cfdi import CFDI
 from cryptography.fernet import Fernet
 from CapaNegocio.Timbrado import timbrado_service
 from CapaNegocio.ValidadorCFDI import ValidadorCFDI
 
-app = FastAPI()
 
+app = FastAPI()
+from fastapi import Body
+# Endpoint sencillo para timbrar CFDI
+@app.post("/timbrar/")
+async def timbrar_endpoint(
+    xml: str = Body(..., embed=True),
+    usuario_pac: str = Body(..., embed=True),
+    contrasena_pac: str = Body(..., embed=True),
+    pruebas: bool = Body(True, embed=True)
+):
+    """
+    Recibe XML, usuario y contraseña PAC, llama a TimbradoService y retorna el resultado.
+    """
+    xml_limpio = re.sub(r"<\?xml[^>]*encoding=['\"]?utf-8['\"]?[^>]*\?>", "", xml, flags=re.IGNORECASE)
+    xml_limpio = xml_limpio.strip()
+    resultado = timbrado_service.timbrar(
+        xml=xml_limpio,
+        usuario_pac=usuario_pac,
+        contrasena_pac=contrasena_pac,
+        pruebas=pruebas
+    )
+    return resultado
+
+# Endpoint sencillo para sellar XML
+from fastapi import Body
+
+@app.post("/sellar/")
+async def sellar_endpoint(data: dict = Body(...)):
+    # Obtener la clave Fernet
+    env_path = os.path.join(os.path.dirname(__file__), 'FernetKey.env')
+    fernet_key = None
+    if os.path.exists(env_path):
+        with open(env_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line and line.startswith('FERNET_KEY'):
+                    parts = line.split('=', 1)
+                    if len(parts) == 2:
+                        fernet_key = parts[1].strip().strip('"').strip("'")
+                    break
+    if not fernet_key:
+        fernet_key = Fernet.generate_key().decode()
+
+    # Configuración y sellado
+    raw_body = json.dumps(data)
+    configuracion = ConfiguracionSello(raw_body, fernet_key.encode())
+    convertir = ConvertirJson(data["datos_xml"])
+    xml_generado = convertir.GenerarXmlCFDI()
+    sellador = SellarXML(1, configuracion, xml_generado)
+
+
+    try:
+        xml_con_sello = sellador.GenerarSello(convertir)
+    except Exception as e:
+        return {"error": str(e)}
+    return {"xml_con_sello": xml_con_sello}
+"""
 @app.post("/InterpreteJson/")
 async def procesar_json(request: Request):
     raw_body: str = await request.body()
@@ -39,14 +99,17 @@ async def procesar_json(request: Request):
 
     configuracion = ConfiguracionSello(raw_body, fernet_key.encode())
     sellador = SellarXML(1, configuracion, xml_generado)
-    cadena_original = sellador.generarCadenaOriginal(convertir)
-
-    # Firmar la cadena con private key (.key/.cer manejo básico)
+    # Generar sello y agregarlo al XML usando satcfdi (la librería calcula cadena original internamente)
+    xml_con_sello = None
     sello = None
+    cadena_original = None
     try:
-        if cadena_original:
-            sello = sellador.GenerarSello(cadena_original)
+        xml_con_sello = sellador.GenerarSello(convertir)
+        sello = sellador.get_sello()
+        # Si se requiere mostrar/validar cadena original, la calculamos desde el XML resultante
+        cadena_original = CFDI.from_string(xml_con_sello.encode('utf-8')).cadena_original()
     except Exception as e:
+        xml_con_sello = None
         sello = f"ERROR_SIGN: {e}"
 
     conceptos_formato = [
@@ -66,9 +129,9 @@ async def procesar_json(request: Request):
         "conceptos": conceptos_formato,
         "xml": xml_generado,
         "validaciones_pre": validaciones,
-        "cadena_original": cadena_original,
-        "sello": sello,
-        "xml_con_sello": sellador.agregarSelloAlXML(sello) if sello else None,
+    "cadena_original": cadena_original,
+    "sello": sello,
+    "xml_con_sello": xml_con_sello,
     }
 
     # Validar el XML contra el XSD después de agregar el sello
@@ -87,7 +150,7 @@ async def procesar_json(request: Request):
     try:
         from CapaNegocio.VerificadorSello import VerificadorSello
         sello_valido = False
-        if cadena_original and sello and interprete.cer:
+        if cadena_original and sello and interprete.cer and isinstance(sello, str) and not sello.startswith("ERROR_SIGN"):
             sello_valido = VerificadorSello.verificar_sello(cadena_original, sello, interprete.cer)
         resultado["sello_valido"] = sello_valido
     except Exception as e:
@@ -116,3 +179,5 @@ async def procesar_json(request: Request):
         })
 
     return resultado
+
+"""
