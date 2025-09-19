@@ -1,8 +1,8 @@
 import os
 from typing import Optional
 
-from CapaDatos.ConvertirJson import ConvertirJson
-from CapaNegocio.ConfiguracionSello import ConfiguracionSello
+from Data.ConvertirJson import ConvertirJson
+from Business.ConfiguracionSello import ConfiguracionSello
 
 from satcfdi.models import Signer
 from satcfdi.cfdi import CFDI

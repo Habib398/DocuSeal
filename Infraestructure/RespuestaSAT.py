@@ -16,7 +16,7 @@ class RespuestaSAT:
             return None
         if os.path.isabs(path_str) and os.path.exists(path_str):
             return os.path.abspath(path_str)
-        base = os.path.dirname(os.path.dirname(__file__))  # raíz del proyecto
+        base = os.path.dirname(os.path.dirname(__file__))
         candidatos = [
             path_str,
             os.path.join(base, path_str),
@@ -44,7 +44,6 @@ class RespuestaSAT:
 
     def obtener_mensaje_error(self, codigo: str) -> str:
         codigo = str(codigo).strip()
-        # Buscar exacto, o por prefijo (algunos PAC devuelven sufijos)
         if codigo in self._errores:
             return self._errores[codigo]
         for k, v in self._errores.items():
@@ -56,7 +55,6 @@ class RespuestaSAT:
     def procesar_respuesta(self, xml_str: str) -> Tuple[Optional[int], str]:
         if not xml_str or not xml_str.strip():
             return -3, "Respuesta vacía del PAC"
-        # Heurística: ¿ya trae TFD?
         if 'TimbreFiscalDigital' in xml_str:
             uuid = self.extraer_uuid(xml_str)
             if uuid:
