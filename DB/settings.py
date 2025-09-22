@@ -8,8 +8,6 @@ conn = sqlite3.connect(db_file)
 
 # Crear un cursor para ejecutar sentencias SQL
 cursor = conn.cursor()
-
-# Crear tabla (si no existe ya)
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS certificados_pac (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
