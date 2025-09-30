@@ -1,0 +1,73 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  background-color: #F1F1F1;
+  color: #222;
+}
+
+/* Barra superior */
+.top-bar {
+  background: #0d6efd;
+  box-shadow: 0 2px 6px rgba(0,0,0,.12);
+  height: 64px;
+  display: flex;
+  align-items: center;
+}
+.app-title { color:#ffffff !important; font-size: 1.25rem }
+
+/* Page layout */
+.login-page { padding: 0; }
+.min-vh-100 { min-height: 100vh; }
+
+/* Movimiento vertical de objetos*/
+:root {
+  --login-offset: -40px;
+}
+
+.login-panel {
+  width: 100%;
+  max-width: 420px;
+  padding: 36px 28px;
+  margin: 24px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(15,15,15,0.06);
+}
+
+.login-title { font-size: 1.8rem; text-align: center; margin: 0; color: #111; }
+
+.login-panel .form-control {
+  border-radius: 6px;
+  height: 48px;
+}
+
+/* (password visibility button removed from HTML; no CSS needed) */
+
+/* Imagen de login */
+.login-illustration-wrap { max-width: 520px; margin: 0 24px; }
+.placeholder-img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  min-height: 0;
+  display: block;
+}
+
+.row.align-items-center {
+  transform: translateY(var(--login-offset));
+}
+
+/* Vistas responsivas */
+@media (max-width: 767.98px) {
+  .login-panel { margin: 12px; }
+  .login-illustration-wrap { display: none; }
+  :root { --login-offset: 0px; }
+}
+
+@media (min-width: 768px) {
+  .login-panel { margin-left: 80px; }
+}
