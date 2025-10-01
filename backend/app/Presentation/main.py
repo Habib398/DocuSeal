@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, status
+﻿from fastapi import FastAPI, HTTPException, status
 from fastapi import Body
 from fastapi.middleware.cors import CORSMiddleware
 import sys
@@ -12,6 +12,7 @@ from Business.SellarXML import SellarXML
 from Business.Timbrado import TimbradoService
 from Business.ConfiguracionLogin import ConfiguracionLogin, UsuarioLoginRequest
 from Business.ConfiguracionRegistro import ConfiguracionRegistro, UsuarioRegistroRequest
+from Business.ConfiguracionCertificados import ConfiguracionCertificados
 from DB.DBManager import DBManager
 
 
@@ -30,6 +31,9 @@ app.add_middleware(
 db_manager = DBManager()
 login_service = ConfiguracionLogin(db_manager)
 registro_service = ConfiguracionRegistro(db_manager)
+certificados_service = ConfiguracionCertificados(db_manager)
+
+# Endpoints de autenticación
 
 @app.post("/api/register", status_code=status.HTTP_201_CREATED)
 async def register_usuario(usuario: UsuarioRegistroRequest):
@@ -68,121 +72,102 @@ async def login_usuario(credenciales: UsuarioLoginRequest):
             detail=f"Error inesperado en el login: {str(e)}"
         )
 
-# Endpoint de health check
+# Endpoint de verificador de conexion (Copilot)
 @app.get("/health")
 async def health_check():
-    """Endpoint para verificar que el servidor está funcionando."""
     return {"status": "ok", "message": "Server is running"}
 
 # Endpoints para certificados
 @app.get("/api/v1/certificados/")
 async def get_all_certificados():
-    """Obtiene todos los certificados."""
     try:
-        certificados = db_manager.get_all_certificados()
-        return certificados
+        return certificados_service.obtener_todos()
+    except RuntimeError as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al obtener certificados: {str(e)}"
+            detail=f"Error inesperado al obtener certificados: {str(e)}"
         )
 
 @app.get("/api/v1/certificados/usuario/{usuario_pac}")
 async def get_certificado_by_usuario(usuario_pac: str):
-    """Obtiene un certificado por usuario PAC."""
     try:
-        certificado = db_manager.get_certificado_by_usuario(usuario_pac)
+        certificado = certificados_service.obtener_por_usuario(usuario_pac)
         if not certificado:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificado no encontrado")
         return certificado
     except HTTPException:
         raise
+    except RuntimeError as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al obtener certificado: {str(e)}"
+            detail=f"Error inesperado al obtener certificado: {str(e)}"
         )
 
 @app.get("/api/v1/certificados/numero/{no_certificado}")
 async def get_certificado_by_numero(no_certificado: str):
-    """Obtiene un certificado por número de certificado."""
     try:
-        certificado = db_manager.get_certificado_by_noCertificado(no_certificado)
+        certificado = certificados_service.obtener_por_numero(no_certificado)
         if not certificado:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificado no encontrado")
         return certificado
     except HTTPException:
         raise
+    except RuntimeError as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al obtener certificado: {str(e)}"
+            detail=f"Error inesperado al obtener certificado: {str(e)}"
         )
 
 @app.post("/api/v1/certificados/", status_code=status.HTTP_201_CREATED)
 async def create_certificado(certificado: dict = Body(...)):
-    """Crea un nuevo certificado."""
     try:
-        required_fields = ['usuarioPAC', 'contrasenaPAC', 'noCertificado', 'vigencia', 'CER', 'KEY', 'Certificado']
-        for field in required_fields:
-            if field not in certificado:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Campo requerido faltante: {field}"
-                )
-        
-        cert_id = db_manager.insert_certificado(
-            usuarioPAC=certificado['usuarioPAC'],
-            contrasenaPAC=certificado['contrasenaPAC'],
-            nombreEmpresa=certificado.get('nombreEmpresa', ''),
-            CER=certificado['CER'],
-            KEY=certificado['KEY'],
-            vigencia=certificado['vigencia'],
-            noCertificado=certificado['noCertificado'],
-            Certificado=certificado['Certificado']
-        )
-        
-        return {"success": True, "id": cert_id, "message": "Certificado creado exitosamente"}
-    except HTTPException:
-        raise
+        return certificados_service.crear_certificado(certificado)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al crear certificado: {str(e)}"
+            detail=f"Error inesperado al crear certificado: {str(e)}"
         )
 
 @app.put("/api/v1/certificados/{cert_id}")
 async def update_certificado(cert_id: int, certificado: dict = Body(...)):
-    """Actualiza un certificado existente."""
     try:
-        success = db_manager.update_certificado(cert_id, **certificado)
-        if not success:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificado no encontrado")
-        return {"success": True, "message": "Certificado actualizado exitosamente"}
-    except HTTPException:
-        raise
+        return certificados_service.actualizar_certificado(cert_id, certificado)
+    except ValueError as e:
+        status_code = status.HTTP_404_NOT_FOUND if "no encontrado" in str(e) else status.HTTP_400_BAD_REQUEST
+        raise HTTPException(status_code=status_code, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al actualizar certificado: {str(e)}"
+            detail=f"Error inesperado al actualizar certificado: {str(e)}"
         )
 
 @app.delete("/api/v1/certificados/{cert_id}")
 async def delete_certificado(cert_id: int):
-    """Elimina un certificado."""
     try:
-        success = db_manager.delete_certificado(cert_id)
-        if not success:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificado no encontrado")
-        return {"success": True, "message": "Certificado eliminado exitosamente"}
-    except HTTPException:
-        raise
+        return certificados_service.eliminar_certificado(cert_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al eliminar certificado: {str(e)}"
+            detail=f"Error inesperado al eliminar certificado: {str(e)}"
         )
 
+# Endpoints de proceso de timbrado y sellado
 @app.post("/timbrar/")
 async def timbrar_endpoint(
     xml: str = Body(..., embed=True),

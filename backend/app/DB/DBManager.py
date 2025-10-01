@@ -12,13 +12,30 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+def _normalize_cert_keys(cert_dict):
+    # Convierte los nombres de columnas de PostgreSQL a camelCase para el frontend. (Copilot)
+    if not cert_dict:
+        return None
+    return {
+        'id': cert_dict.get('id'),
+        'usuarioPAC': cert_dict.get('usuariopac'),
+        'contrasenaPAC': cert_dict.get('contrasenapac'),
+        'nombreEmpresa': cert_dict.get('nombreempresa'),
+        'CER': cert_dict.get('cer'),
+        'KEY': cert_dict.get('key'),
+        'vigencia': str(cert_dict.get('vigencia')) if cert_dict.get('vigencia') else None,
+        'noCertificado': cert_dict.get('nocertificado'),
+        'Certificado': cert_dict.get('certificado'),
+        'created_at': str(cert_dict.get('created_at')) if cert_dict.get('created_at') else None,
+        'updated_at': str(cert_dict.get('updated_at')) if cert_dict.get('updated_at') else None
+    }
+
 class DBManager:
     def __init__(self):
-        """Inicializa el DBManager para PostgreSQL"""
         pass
 
     def _get_connection(self):
-        """Obtiene una conexión a la base de datos"""
+        # Obtiene una conexión a la base de datos
         return get_db_connection()
 
     def insert_certificado(self, usuarioPAC, contrasenaPAC, nombreEmpresa, CER, KEY, vigencia, noCertificado, Certificado):
@@ -61,7 +78,7 @@ class DBManager:
             cursor.close()
             conn.close()
             
-            return dict(result) if result else None
+            return _normalize_cert_keys(dict(result)) if result else None
             
         except psycopg2.Error as e:
             logger.error(f"Error obteniendo certificado por usuario: {e}")
@@ -82,7 +99,7 @@ class DBManager:
             cursor.close()
             conn.close()
             
-            return dict(result) if result else None
+            return _normalize_cert_keys(dict(result)) if result else None
             
         except psycopg2.Error as e:
             logger.error(f"Error obteniendo certificado por número: {e}")
@@ -101,7 +118,7 @@ class DBManager:
             cursor.close()
             conn.close()
             
-            return [dict(row) for row in results] if results else []
+            return [_normalize_cert_keys(dict(row)) for row in results] if results else []
             
         except psycopg2.Error as e:
             logger.error(f"Error obteniendo todos los certificados: {e}")

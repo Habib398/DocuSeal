@@ -206,21 +206,33 @@ class ConvertirJson:
         return comprobante
     
     def _agregar_carta_porte(self, comprobante, complemento_data):
-        """Agrega el namespace de CartaPorte si no existe"""
+        """Construye y agrega el complemento CartaPorte al CFDI"""
         carta_data = complemento_data.get("cartaporte30:CartaPorte", {})
         if not carta_data:
             return comprobante
-        # Usar el adaptador que construye un elemento lxml a partir de la estructura de datos
-        carta_xml = CartaPorteBuilder.build_element(carta_data)
-        complemento_node = comprobante.find('{http://www.sat.gob.mx/cfd/4}Complemento')
-        if complemento_node is None:
-            complemento_node = etree.SubElement(comprobante, '{http://www.sat.gob.mx/cfd/4}Complemento')
-
-        # Si la librería satcfdi devolvió un elemento, anexarlo.
-        if carta_xml is not None:
-            # El elemento del complemento usa su propio namespace; como el root ya contiene
-            # 'cartaporte30' en su nsmap no es necesario (y es inválido) setear atributos xmlns manualmente.
-            complemento_node.append(carta_xml)
+        
+        try:
+            # Usar CartaPorteBuilder para construir el objeto CartaPorte desde JSON
+            builder = CartaPorteBuilder(carta_data)
+            carta_porte_obj = builder.construir()
+            
+            # Convertir el objeto CartaPorte a elemento XML usando satcfdi
+            carta_xml = carta_porte_obj.to_xml()
+            
+            # Buscar o crear el nodo Complemento
+            complemento_node = comprobante.find('{http://www.sat.gob.mx/cfd/4}Complemento')
+            if complemento_node is None:
+                complemento_node = etree.SubElement(comprobante, '{http://www.sat.gob.mx/cfd/4}Complemento')
+            
+            # Anexar el elemento CartaPorte al Complemento
+            if carta_xml is not None:
+                complemento_node.append(carta_xml)
+                
+        except Exception as e:
+            # Log del error para debugging
+            print(f"Error al construir CartaPorte: {str(e)}")
+            # Opcionalmente, puedes decidir si continuar sin el complemento o lanzar la excepción
+            
         return comprobante
 
     def _agregar_namespace_carta_porte(self, comprobante):

@@ -136,9 +136,9 @@ function viewSelected() {
         <strong>Nombre de la empresa:</strong> ${cert.nombreEmpresa || '-'}<br>
         <strong>No. Certificado:</strong> ${cert.noCertificado}<br>
         <strong>Vigencia:</strong> ${formatDate(cert.vigencia)}<br>
-        <strong>CER (50c):</strong> ${cert.CER.substring(0,50)}...<br>
-        <strong>KEY (50c):</strong> ${cert.KEY.substring(0,50)}...<br>
-        <strong>Certificado (50c):</strong> ${cert.Certificado.substring(0,50)}...
+        <strong>CER (50c):</strong> ${cert.CER ? cert.CER.substring(0,50) : 'N/A'}...<br>
+        <strong>KEY (50c):</strong> ${cert.KEY ? cert.KEY.substring(0,50) : 'N/A'}...<br>
+        <strong>Certificado (50c):</strong> ${cert.Certificado ? cert.Certificado.substring(0,50) : 'N/A'}...
     `;
     showAlert('info', details, 10000);
 }
