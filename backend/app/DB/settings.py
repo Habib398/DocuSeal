@@ -2,8 +2,9 @@ import psycopg2 # type: ignore
 import os
 from dotenv import load_dotenv
 
-# Cargar variables de entorno
-load_dotenv()
+# Cargar variables de entorno desde el archivo .env en este directorio
+env_path = os.path.join(os.path.dirname(__file__), '.env')
+load_dotenv(env_path)
 
 # Configuración de la base de datos PostgreSQL
 DB_CONFIG = {
@@ -30,7 +31,7 @@ def init_database():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Crear tabla certificados_pac (adaptada para PostgreSQL)
+        # Crear tabla certificados_pac
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS certificados_pac (
             id SERIAL PRIMARY KEY,
@@ -44,6 +45,18 @@ def init_database():
             Certificado TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+        
+        # Crear tabla usuarios
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            email VARCHAR(255) NOT NULL UNIQUE,
+            password VARCHAR(255) NOT NULL,
+            verificacion BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """)
         

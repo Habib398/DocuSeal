@@ -21,15 +21,18 @@
 			<div class="col-12 col-md-6 d-flex justify-content-center">
 				<div class="login-panel">
 					<h2 class="login-title">Iniciar sesión</h2>
-					<form class="mt-4" id="loginForm" action="#" method="post">
+					<form class="mt-4" id="loginForm">
 						<div class="mb-3">
-							<input id="txtUser" name="username" type="text" class="form-control form-control-lg" placeholder="Usuario" required>
+							<input id="txtEmail" name="email" type="email" class="form-control form-control-lg" placeholder="Email" required>
 						</div>
 						<div class="mb-3 position-relative">
 							<input id="txtPassword" name="password" type="password" class="form-control form-control-lg" placeholder="Contraseña" required>
 						</div>
 						<div class="mb-3 text-start">
 							<button class="btn btn-primary btn-lg px-4" type="submit"><i class="fa fa-sign-in-alt me-2"></i>Ingresar</button>
+						</div>
+						<div class="text-center mt-3">
+							<p class="text-muted">¿No tienes cuenta? <a href="#" id="btnOpenRegister" class="text-primary">Regístrate aquí</a></p>
 						</div>
 					</form>
 				</div>
@@ -44,25 +47,162 @@
 		</div>
 	</main>
 
+	<!-- Modal de Registro -->
+	<div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-dialog-centered">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="registerModalLabel">Registrar nuevo usuario</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
+				<div class="modal-body">
+					<form id="registerForm">
+						<div class="mb-3">
+							<label for="registerName" class="form-label">Nombre completo</label>
+							<input type="text" class="form-control" id="registerName" name="name" required>
+						</div>
+						<div class="mb-3">
+							<label for="registerEmail" class="form-label">Email</label>
+							<input type="email" class="form-control" id="registerEmail" name="email" required>
+						</div>
+						<div class="mb-3">
+							<label for="registerPassword" class="form-label">Contraseña (mínimo 8 caracteres)</label>
+							<input type="password" class="form-control" id="registerPassword" name="password" required minlength="8">
+						</div>
+						<div class="mb-3">
+							<label for="registerConfirmPassword" class="form-label">Confirmar contraseña</label>
+							<input type="password" class="form-control" id="registerConfirmPassword" name="confirm_password" required minlength="8">
+						</div>
+						<div id="registerAlert" class="alert d-none" role="alert"></div>
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+					<button type="button" class="btn btn-primary" id="btnRegister">Registrar</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 	<script>
-			// Placeholder logic for the illustration (the password visibility button was removed)
-			(function(){
-				const img = document.getElementById('loginIllustration');
-				const placeholder = document.getElementById('illustrationPlaceholder');
-				function refreshIllustration(){
-					if(!img) return;
-					const srcAttr = img.getAttribute('src');
-					if(srcAttr && srcAttr.trim() !== ""){
-						img.classList.remove('d-none');
-						if(placeholder) placeholder.classList.add('d-none');
-					} else {
-						img.classList.add('d-none');
-						if(placeholder) placeholder.classList.remove('d-none');
-					}
+		// Configuración de API
+		const API_URL = 'http://localhost:8080/api';
+
+		// Elementos del DOM
+		const loginForm = document.getElementById('loginForm');
+		const registerForm = document.getElementById('registerForm');
+		const btnOpenRegister = document.getElementById('btnOpenRegister');
+		const btnRegister = document.getElementById('btnRegister');
+		const registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
+		const registerAlert = document.getElementById('registerAlert');
+
+		// Abrir modal de registro
+		btnOpenRegister.addEventListener('click', (e) => {
+			e.preventDefault();
+			registerModal.show();
+		});
+
+		// Login
+		loginForm.addEventListener('submit', async (e) => {
+			e.preventDefault();
+			
+			const email = document.getElementById('txtEmail').value;
+			const password = document.getElementById('txtPassword').value;
+
+			try {
+				const response = await fetch(`${API_URL}/login`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({ email, password })
+				});
+
+				const data = await response.json();
+
+				if (response.ok && data.success) {
+					// Guardar sesión
+					localStorage.setItem('user', JSON.stringify(data.user));
+					// Redirigir a index.html
+					window.location.href = 'index.html';
+				} else {
+					alert(data.detail || 'Error al iniciar sesión');
 				}
-				// run on load
-				refreshIllustration();
-			})();
+			} catch (error) {
+				console.error('Error:', error);
+				alert('Error de conexión con el servidor');
+			}
+		});
+
+		// Registro
+		btnRegister.addEventListener('click', async () => {
+			const name = document.getElementById('registerName').value;
+			const email = document.getElementById('registerEmail').value;
+			const password = document.getElementById('registerPassword').value;
+			const confirm_password = document.getElementById('registerConfirmPassword').value;
+
+			// Validar contraseñas coinciden
+			if (password !== confirm_password) {
+				showAlert('Las contraseñas no coinciden', 'danger');
+				return;
+			}
+
+			// Validar longitud mínima
+			if (password.length < 8) {
+				showAlert('La contraseña debe tener al menos 8 caracteres', 'danger');
+				return;
+			}
+
+			try {
+				const response = await fetch(`${API_URL}/register`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({ name, email, password, confirm_password })
+				});
+
+				const data = await response.json();
+
+				if (response.ok && data.success) {
+					showAlert('Usuario registrado exitosamente. Por favor inicia sesión.', 'success');
+					setTimeout(() => {
+						registerModal.hide();
+						registerForm.reset();
+					}, 2000);
+				} else {
+					showAlert(data.detail || 'Error al registrar usuario', 'danger');
+				}
+			} catch (error) {
+				console.error('Error:', error);
+				showAlert('Error de conexión con el servidor', 'danger');
+			}
+		});
+
+		function showAlert(message, type) {
+			registerAlert.className = `alert alert-${type}`;
+			registerAlert.textContent = message;
+			registerAlert.classList.remove('d-none');
+		}
+
+		// Placeholder logic for the illustration
+		(function(){
+			const img = document.getElementById('loginIllustration');
+			const placeholder = document.getElementById('illustrationPlaceholder');
+			function refreshIllustration(){
+				if(!img) return;
+				const srcAttr = img.getAttribute('src');
+				if(srcAttr && srcAttr.trim() !== ""){
+					img.classList.remove('d-none');
+					if(placeholder) placeholder.classList.add('d-none');
+				} else {
+					img.classList.add('d-none');
+					if(placeholder) placeholder.classList.remove('d-none');
+				}
+			}
+			refreshIllustration();
+		})();
 	</script>
 
 </body>

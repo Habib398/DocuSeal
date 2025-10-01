@@ -1,11 +1,10 @@
 // Variables globales
 let certificados = [];
-let currentCertificadoId = null; // usado para editar
-let deleteId = null; // usado para eliminar
+let currentCertificadoId = null; // editar
+let deleteId = null; // eliminar
 let selectedRow = null; // referencia visual
 let selectedCert = null; // objeto certificado seleccionado
 
-// Inicialización cuando se carga la página
 document.addEventListener('DOMContentLoaded', function() {
     loadCertificados();
     checkApiConnection();
@@ -83,7 +82,7 @@ function toggleActionButtons(enabled) {
     });
 }
 
-// Obtener clase CSS para el badge de vigencia
+// Badge de vigencia
 function getVigenciaBadgeClass(vigencia) {
     const fechaVigencia = new Date(vigencia);
     const hoy = new Date();
@@ -100,7 +99,7 @@ function formatDate(dateString) {
     return date.toLocaleDateString('es-ES');
 }
 
-// Mostrar modal para agregar certificado
+// Modal agregar certificado
 function openAddModal() {
     currentCertificadoId = null;
     document.getElementById('modalTitle').textContent = 'Agregar Certificado';
@@ -235,7 +234,7 @@ function showAlert(type, message, duration = 5000) {
     
     alertsContainer.insertAdjacentHTML('beforeend', alertHTML);
     
-    // Auto-ocultar después del tiempo especificado
+    // Ocultar
     if (duration > 0) {
         setTimeout(() => {
             const alert = document.getElementById(alertId);
@@ -247,11 +246,8 @@ function showAlert(type, message, duration = 5000) {
     }
 }
 
-// Mostrar/ocultar loading
+// Loading
 function showLoading(show) {
-    // Aquí podrías agregar un spinner de carga si lo deseas
-    const loadingText = show ? 'Cargando...' : '';
-    // Por ahora, simplemente cambiaremos el cursor
     document.body.style.cursor = show ? 'wait' : 'default';
 }
 
@@ -304,7 +300,8 @@ document.getElementById('btnBuscar')?.addEventListener('click', () => searchCert
 document.getElementById('searchInput')?.addEventListener('keyup', (e) => { if (e.key==='Enter') searchCertificados(e.target.value); });
 document.getElementById('btnAgregar')?.addEventListener('click', () => { currentCertificadoId=null; selectedCert=null; });
 
-// salir (placeholder)
+// salir - cerrar sesión
 document.getElementById('btnSalir')?.addEventListener('click', () => {
-    showAlert('warning','Función de salir aún no implementada.',2500);
+    localStorage.removeItem('user');
+    window.location.href = 'login.html';
 });
