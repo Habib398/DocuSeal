@@ -17,6 +17,7 @@ class SellarXML:
         self.complemento = complemento
         self.xml = xml
         self.xmlSellado = xmlSellado
+        self.cadena_original: Optional[str] = None
         self.no_certificado_json: Optional[str] = None
         self.certificado_json: Optional[str] = None
 
@@ -30,15 +31,19 @@ class SellarXML:
     
     def get_sello(self) -> str:
         return self.xmlSellado
+    
+    def get_cadena_original(self) -> Optional[str]:
+        """Retorna la cadena original generada"""
+        return self.cadena_original
 
     def obtener_cer_db(self, noCertificado: str) -> Optional[str]:
+        """Obtiene el campo CER de la base de datos"""
         db = DBManager()
         registro = db.get_certificado_by_noCertificado(noCertificado)
         print(f"[LOG] Resultado consulta CER para noCertificado={noCertificado}: {registro}")
         if registro:
-            # Compatibilidad con dict (PostgreSQL) y tuple/list (SQLite legacy)
             if isinstance(registro, dict):
-                cer_value = registro.get('cer')
+                cer_value = registro.get('CER')  # Cambiado a mayúsculas
                 print(f"[LOG] CER obtenido (dict): {cer_value}")
                 return cer_value
             elif isinstance(registro, (list, tuple)):
@@ -48,19 +53,35 @@ class SellarXML:
         return None
 
     def obtener_key_db(self, noCertificado: str) -> Optional[str]:
+        """Obtiene el campo KEY de la base de datos"""
         db = DBManager()
         registro = db.get_certificado_by_noCertificado(noCertificado)
         print(f"[LOG] Resultado consulta KEY para noCertificado={noCertificado}: {registro}")
         if registro:
-            # Compatibilidad con dict (PostgreSQL) y tuple/list (SQLite legacy)
             if isinstance(registro, dict):
-                key_value = registro.get('key')
+                key_value = registro.get('KEY')  # Cambiado a mayúsculas
                 print(f"[LOG] KEY obtenido (dict): {key_value}")
                 return key_value
             elif isinstance(registro, (list, tuple)):
                 print(f"[LOG] KEY obtenido (tuple): {registro[4]}")
                 return registro[4]  # KEY está en la posición 4
         print("[LOG] No se encontró registro para KEY")
+        return None
+
+    def obtener_certificado_db(self, noCertificado: str) -> Optional[str]:
+        """Obtiene el campo Certificado de la base de datos"""
+        db = DBManager()
+        registro = db.get_certificado_by_noCertificado(noCertificado)
+        print(f"[LOG] Resultado consulta Certificado para noCertificado={noCertificado}")
+        if registro:
+            if isinstance(registro, dict):
+                cert_value = registro.get('Certificado')
+                print(f"[LOG] Certificado obtenido (dict): {'Sí' if cert_value else 'No'}")
+                return cert_value
+            elif isinstance(registro, (list, tuple)) and len(registro) > 8:
+                print(f"[LOG] Certificado obtenido (tuple): Sí")
+                return registro[8]  # Certificado está en la posición 8
+        print("[LOG] No se encontró registro para Certificado")
         return None
 
     def convertir_cer(self, cer_b64: str) -> bytes:
@@ -126,19 +147,29 @@ class SellarXML:
             if not no_certificado:
                 return {"error": "Falta el campo 'NoCertificado' en 'datos_xml.cfdi:Comprobante'"}
 
-            # Obtener CER y KEY
+            # Obtener CER, KEY y Certificado de la base de datos
             sellador_temp = cls(1, None, None)
             cer_b64 = sellador_temp.obtener_cer_db(no_certificado)
             key_b64 = sellador_temp.obtener_key_db(no_certificado)
+            certificado_texto = sellador_temp.obtener_certificado_db(no_certificado)
             
             if not cer_b64 or not key_b64:
                 return {"error": "No se encontraron CER o KEY en la base de datos para el noCertificado proporcionado."}
+            
+            if not certificado_texto:
+                return {"error": "No se encontró el campo Certificado en la base de datos para el noCertificado proporcionado."}
+
+            # Agregar el campo Certificado al XML si no existe
+            if "datos_xml" in data and "cfdi:Comprobante" in data["datos_xml"]:
+                if "Certificado" not in data["datos_xml"]["cfdi:Comprobante"]:
+                    data["datos_xml"]["cfdi:Comprobante"]["Certificado"] = certificado_texto
+                    print("[LOG] Campo Certificado agregado automáticamente desde la BD")
 
             # Generar XML
             convertir = ConvertirJson(data["datos_xml"])
             xml_generado = convertir.GenerarXmlCFDI()
 
-            # Obtener pwdCER de JSON
+            # Obtener pwdCER de JSON (ahora es opcional, con valor por defecto vacío)
             pwd_cer = ""
             if "certificado" in data and isinstance(data["certificado"], dict):
                 pwd_cer = data["certificado"].get("pwdCER", "")
@@ -165,7 +196,10 @@ class SellarXML:
                 # Eliminar archivos temporales
                 sellador.limpiar_temporal(cer_path)
                 sellador.limpiar_temporal(key_path)
-                return {"xml_con_sello": xml_con_sello}
+                return {
+                    "xml_con_sello": xml_con_sello,
+                    "cadena_original": sellador.cadena_original  # Retornar la cadena original
+                }
             except Exception as e:
                 # Eliminar archivos temporales en caso de error
                 sellador.limpiar_temporal(cer_path)
@@ -189,6 +223,10 @@ class SellarXML:
         cfdi = CFDI.from_string(self.xml.encode('utf-8'))
         signer = self._load_signer()
         cfdi.sign(signer)
+
+        # Guardar la cadena original generada
+        self.cadena_original = cfdi.cadena_original
+        print(f"[LOG] Cadena original generada: {self.cadena_original[:100]}...")  # Imprimir primeros 100 caracteres
 
         self.xmlSellado = cfdi.xml_bytes(pretty_print=True).decode('utf-8')
         return self.xmlSellado

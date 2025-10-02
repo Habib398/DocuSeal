@@ -1,8 +1,8 @@
 from decimal import Decimal
 from datetime import datetime
 
-# importa las clases del módulo cartaporte31
-from satcfdi.create.cfd.cartaporte31 import (
+# importa las clases del módulo cartaporte30
+from satcfdi.create.cfd.cartaporte30 import (
     CartaPorte,
     Ubicacion,
     Domicilio,
