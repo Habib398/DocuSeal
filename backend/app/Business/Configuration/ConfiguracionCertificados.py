@@ -175,38 +175,39 @@ class ConfiguracionCertificados:
     
     def eliminar_certificado(self, cert_id: int) -> Dict[str, Any]:
         """
-        Elimina un certificado.
+        Desactiva un certificado (soft delete).
+        El certificado se marca como inactivo pero no se elimina de la base de datos.
         
         Args:
-            cert_id: ID del certificado a eliminar
+            cert_id: ID del certificado a desactivar
             
         Returns:
-            Diccionario con resultado de la eliminación
+            Diccionario con resultado de la desactivación
             
         Raises:
-            ValueError: Si el certificado no existe
-            RuntimeError: Si hay error al eliminar
+            ValueError: Si el certificado no existe o ya está inactivo
+            RuntimeError: Si hay error al desactivar
         """
         try:
             success = self.db_manager.delete_certificado(cert_id)
             
             if not success:
-                raise ValueError(f"Certificado con ID {cert_id} no encontrado")
+                raise ValueError(f"Certificado con ID {cert_id} no encontrado o ya está inactivo")
             
-            logger.info(f"Certificado ID {cert_id} eliminado exitosamente")
+            logger.info(f"Certificado ID {cert_id} desactivado exitosamente")
             
             return {
                 "success": True,
-                "message": "Certificado eliminado exitosamente",
+                "message": "Certificado desactivado exitosamente",
                 "id": cert_id
             }
             
         except ValueError as e:
-            logger.warning(f"Error al eliminar certificado: {e}")
+            logger.warning(f"Error al desactivar certificado: {e}")
             raise
         except Exception as e:
-            logger.error(f"Error al eliminar certificado: {e}")
-            raise RuntimeError(f"Error al eliminar certificado: {str(e)}")
+            logger.error(f"Error al desactivar certificado: {e}")
+            raise RuntimeError(f"Error al desactivar certificado: {str(e)}")
     
     def obtener_certificados_proximos_vencer(self, dias: int = 30) -> List[Dict[str, Any]]:
         # Obtiene certificados que están próximos a vencer.
@@ -215,3 +216,56 @@ class ConfiguracionCertificados:
         # Por ahora retorna lista vacía
         logger.info(f"Búsqueda de certificados próximos a vencer en {dias} días (no implementado)")
         return []
+    
+    def obtener_inactivos(self) -> List[Dict[str, Any]]:
+        """
+        Obtiene todos los certificados inactivos.
+        
+        Returns:
+            Lista de certificados inactivos
+            
+        Raises:
+            RuntimeError: Si hay error al obtener los certificados
+        """
+        try:
+            certificados = self.db_manager.get_certificados_inactivos()
+            logger.info(f"Se obtuvieron {len(certificados)} certificados inactivos")
+            return certificados
+        except Exception as e:
+            logger.error(f"Error obteniendo certificados inactivos: {e}")
+            raise RuntimeError(f"Error al obtener certificados inactivos: {str(e)}")
+    
+    def reactivar_certificado(self, cert_id: int) -> Dict[str, Any]:
+        """
+        Reactiva un certificado inactivo.
+        
+        Args:
+            cert_id: ID del certificado a reactivar
+            
+        Returns:
+            Diccionario con resultado de la reactivación
+            
+        Raises:
+            ValueError: Si el certificado no existe o ya está activo
+            RuntimeError: Si hay error al reactivar
+        """
+        try:
+            success = self.db_manager.reactivar_certificado(cert_id)
+            
+            if not success:
+                raise ValueError(f"Certificado con ID {cert_id} no encontrado o ya está activo")
+            
+            logger.info(f"Certificado ID {cert_id} reactivado exitosamente")
+            
+            return {
+                "success": True,
+                "message": "Certificado reactivado exitosamente",
+                "id": cert_id
+            }
+            
+        except ValueError as e:
+            logger.warning(f"Error al reactivar certificado: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Error al reactivar certificado: {e}")
+            raise RuntimeError(f"Error al reactivar certificado: {str(e)}")

@@ -76,6 +76,16 @@ class ApiClient {
         });
     }
 
+    async getCertificadosInactivos() {
+        return this.request('/api/v1/certificados/inactivos');
+    }
+
+    async reactivarCertificado(id) {
+        return this.request(`/api/v1/certificados/${id}/reactivar`, {
+            method: 'PATCH',
+        });
+    }
+
     // Métodos para timbrado (si se necesitan en el futuro)
     async timbrarXML(xmlData, usuarioPAC, contrasenaPAC, pruebas = true) {
         return this.request('/timbrado/timbrar/', {

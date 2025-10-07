@@ -254,13 +254,14 @@ async def update_certificado(cert_id: int, certificado: dict = Body(...)):
 @app.delete("/api/v1/certificados/{cert_id}")
 async def delete_certificado(cert_id: int):
     """
-    Elimina un certificado del sistema.
+    Desactiva un certificado del sistema (soft delete).
+    El certificado se marca como inactivo pero no se elimina de la base de datos.
     
     Args:
-        cert_id: ID del certificado a eliminar
+        cert_id: ID del certificado a desactivar
     
     Returns:
-        Confirmación de eliminación
+        Confirmación de desactivación
     """
     try:
         return certificados_service.eliminar_certificado(cert_id)
@@ -271,5 +272,47 @@ async def delete_certificado(cert_id: int):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error inesperado al eliminar certificado: {str(e)}"
+            detail=f"Error inesperado al desactivar certificado: {str(e)}"
         )
+
+@app.get("/api/v1/certificados/inactivos")
+async def get_certificados_inactivos():
+    """
+    Obtiene todos los certificados inactivos.
+    
+    Returns:
+        Lista de certificados inactivos
+    """
+    try:
+        return certificados_service.obtener_inactivos()
+    except RuntimeError as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error inesperado al obtener certificados inactivos: {str(e)}"
+        )
+
+@app.patch("/api/v1/certificados/{cert_id}/reactivar")
+async def reactivar_certificado(cert_id: int):
+    """
+    Reactiva un certificado inactivo.
+    
+    Args:
+        cert_id: ID del certificado a reactivar
+    
+    Returns:
+        Confirmación de reactivación
+    """
+    try:
+        return certificados_service.reactivar_certificado(cert_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error inesperado al reactivar certificado: {str(e)}"
+        )
+

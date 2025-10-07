@@ -16,6 +16,81 @@ body {
 
 .page-title { font-weight: 600; color: #0d3b66; }
 
+/* Filtro activo/inactivo (versión compacta y mantenible) */
+
+:root {
+  --tgl-width: 4em;
+  --tgl-height: 2em;
+  --tgl-border-width: 4px;
+  --tgl-bg: #fff;
+  --tgl-border-off: #f2f2f2;
+  --tgl-knob-off: #f2f2f2;
+  --tgl-border-on: #0f6abb; /* color activo */
+  --tgl-knob-on: #0f6abb;
+}
+
+.checkbox-wrapper-9 .tgl { display: none; }
+
+/* agrupar propiedades comunes */
+.checkbox-wrapper-9 .tgl,
+.checkbox-wrapper-9 .tgl + .tgl-btn,
+.checkbox-wrapper-9 .tgl * {
+  box-sizing: border-box;
+}
+
+/* evitar selección de texto en el control y pseudo-elementos */
+.checkbox-wrapper-9 .tgl::selection,
+.checkbox-wrapper-9 .tgl + .tgl-btn::selection,
+.checkbox-wrapper-9 .tgl *::selection {
+  background: none;
+}
+
+.checkbox-wrapper-9 .tgl + .tgl-btn {
+  outline: 0;
+  display: block;
+  width: var(--tgl-width);
+  height: var(--tgl-height);
+  position: relative;
+  cursor: pointer;
+  -webkit-user-select: none;
+     -moz-user-select: none;
+      -ms-user-select: none;
+          user-select: none;
+}
+
+.checkbox-wrapper-9 .tgl + .tgl-btn::after,
+.checkbox-wrapper-9 .tgl + .tgl-btn::before {
+  content: "";
+  display: block;
+  position: relative;
+  width: 50%;
+  height: 100%;
+}
+.checkbox-wrapper-9 .tgl + .tgl-btn::after { left: 0; }
+.checkbox-wrapper-9 .tgl + .tgl-btn::before { display: none; }
+.checkbox-wrapper-9 .tgl:checked + .tgl-btn::after { left: 50%; }
+
+.checkbox-wrapper-9 .tgl-flat + .tgl-btn {
+  padding: 2px;
+  transition: all 0.2s ease;
+  background: var(--tgl-bg);
+  border: var(--tgl-border-width) solid var(--tgl-border-off);
+  border-radius: 2em;
+}
+.checkbox-wrapper-9 .tgl-flat + .tgl-btn::after {
+  transition: all 0.2s ease;
+  background: var(--tgl-knob-off);
+  border-radius: 1em;
+}
+.checkbox-wrapper-9 .tgl-flat:checked + .tgl-btn {
+  border-color: var(--tgl-border-on);
+}
+.checkbox-wrapper-9 .tgl-flat:checked + .tgl-btn::after {
+  left: 50%;
+  background: var(--tgl-knob-on);
+}
+
+
 /* Contenedor panel */
 .panel-box {
   background: #ffffff;

@@ -4,11 +4,41 @@ let currentCertificadoId = null; // editar
 let deleteId = null; // eliminar
 let selectedRow = null; // referencia visual
 let selectedCert = null; // objeto certificado seleccionado
+let mostrandoInactivos = false; // Estado del toggle
 
 document.addEventListener('DOMContentLoaded', function() {
     loadCertificados();
     checkApiConnection();
+    setupToggleInactivos();
 });
+
+// Configurar el toggle de inactivos
+function setupToggleInactivos() {
+    const toggleCheckbox = document.getElementById('cb4-9');
+    if (toggleCheckbox) {
+        toggleCheckbox.addEventListener('change', function() {
+            mostrandoInactivos = this.checked;
+            loadCertificados();
+            updateButtonLabels();
+        });
+    }
+}
+
+// Actualizar etiquetas de botones según el modo
+function updateButtonLabels() {
+    const btnEliminar = document.getElementById('btnEliminar');
+    if (btnEliminar) {
+        if (mostrandoInactivos) {
+            btnEliminar.innerHTML = '<i class="fas fa-check-circle me-1"></i>Reactivar seleccionado';
+            btnEliminar.classList.remove('btn-success');
+            btnEliminar.classList.add('btn-success');
+        } else {
+            btnEliminar.innerHTML = '<i class="fas fa-ban me-1"></i>Desactivar seleccionado';
+            btnEliminar.classList.remove('btn-success');
+            btnEliminar.classList.add('btn-success');
+        }
+    }
+}
 
 // Verificar conexión con la API
 async function checkApiConnection() {
@@ -22,9 +52,14 @@ async function checkApiConnection() {
 async function loadCertificados() {
     try {
         showLoading(true);
-        certificados = await apiClient.getAllCertificados();
+        if (mostrandoInactivos) {
+            certificados = await apiClient.getCertificadosInactivos();
+        } else {
+            certificados = await apiClient.getAllCertificados();
+        }
         renderCertificados();
-        showAlert('success', `Se cargaron ${certificados.length} certificados correctamente.`, 3000);
+        const tipo = mostrandoInactivos ? 'inactivos' : 'activos';
+        showAlert('success', `Se cargaron ${certificados.length} certificados ${tipo} correctamente.`, 3000);
     } catch (error) {
         showAlert('danger', `Error al cargar certificados: ${error.message}`);
         console.error('Error loading certificados:', error);
@@ -141,34 +176,92 @@ function editSelected() {
 }
 
 
-// Eliminar certificado
+// Desactivar certificado
 function deleteSelected() {
     if (!selectedCert) return;
     deleteId = selectedCert.id;
-    const modal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
-    modal.show();
+    
+    if (mostrandoInactivos) {
+        // Si estamos viendo inactivos, mostrar modal de reactivación
+        const modal = new bootstrap.Modal(document.getElementById('confirmReactivateModal'));
+        modal.show();
+    } else {
+        // Si estamos viendo activos, mostrar modal de desactivación
+        const modal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+        modal.show();
+    }
 }
 
-// Confirmar eliminación
+// Confirmar desactivación
 async function confirmDelete() {
     if (!deleteId) return;
 
     try {
-    await apiClient.deleteCertificado(deleteId);
-        showAlert('success', 'Certificado eliminado correctamente.');
-        
+        // Deshabilitar botón para evitar envíos duplicados
+        const deleteBtn = document.getElementById('btnEliminar');
+        if (deleteBtn) deleteBtn.disabled = true;
+
+        await apiClient.deleteCertificado(deleteId);
+        showAlert('success', 'Certificado desactivado correctamente.');
+
         // Cerrar modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('confirmDeleteModal'));
         modal.hide();
-        
+
         // Recargar certificados
-    await loadCertificados();
-    selectedCert = null; selectedRow = null; toggleActionButtons(false);
-        
+        await loadCertificados();
+        selectedCert = null; selectedRow = null; toggleActionButtons(false);
+
     } catch (error) {
-        showAlert('danger', `Error al eliminar certificado: ${error.message}`);
+        // Detectar caso de "no encontrado" (soft-delete ya aplicado o id inválido)
+        const msg = (error && error.message) ? error.message.toLowerCase() : '';
+        if (msg.includes('not found') || msg.includes('no encontrado') || msg.includes('404')) {
+            showAlert('warning', 'El certificado no existe o ya está inactivo.');
+        } else {
+            showAlert('danger', `Error al desactivar certificado: ${error.message}`);
+        }
         console.error('Error deleting certificado:', error);
     } finally {
+        // Rehabilitar botón y limpiar estado
+        const deleteBtn = document.getElementById('btnEliminar');
+        if (deleteBtn) deleteBtn.disabled = false;
+        deleteId = null;
+    }
+}
+
+// Confirmar reactivación
+async function confirmReactivate() {
+    if (!deleteId) return;
+
+    try {
+        // Deshabilitar botón para evitar envíos duplicados
+        const deleteBtn = document.getElementById('btnEliminar');
+        if (deleteBtn) deleteBtn.disabled = true;
+
+        await apiClient.reactivarCertificado(deleteId);
+        showAlert('success', 'Certificado reactivado correctamente.');
+
+        // Cerrar modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('confirmReactivateModal'));
+        modal.hide();
+
+        // Recargar certificados
+        await loadCertificados();
+        selectedCert = null; selectedRow = null; toggleActionButtons(false);
+
+    } catch (error) {
+        // Detectar caso de "no encontrado"
+        const msg = (error && error.message) ? error.message.toLowerCase() : '';
+        if (msg.includes('not found') || msg.includes('no encontrado') || msg.includes('404')) {
+            showAlert('warning', 'El certificado no existe o ya está activo.');
+        } else {
+            showAlert('danger', `Error al reactivar certificado: ${error.message}`);
+        }
+        console.error('Error reactivating certificado:', error);
+    } finally {
+        // Rehabilitar botón y limpiar estado
+        const deleteBtn = document.getElementById('btnEliminar');
+        if (deleteBtn) deleteBtn.disabled = false;
         deleteId = null;
     }
 }

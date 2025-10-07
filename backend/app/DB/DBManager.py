@@ -28,6 +28,7 @@ def _normalize_cert_keys(cert_dict):
         'Certificado': cert_dict.get('certificado'),
         'correo': cert_dict.get('correo'),
         'telefono': cert_dict.get('telefono'),
+        'activo': cert_dict.get('activo', True),
         'created_at': str(cert_dict.get('created_at')) if cert_dict.get('created_at') else None,
         'updated_at': str(cert_dict.get('updated_at')) if cert_dict.get('updated_at') else None
     }
@@ -110,12 +111,12 @@ class DBManager:
             raise
 
     def get_all_certificados(self):
-        """Obtiene todos los certificados."""
+        """Obtiene todos los certificados activos."""
         conn = None
         try:
             conn = self._get_connection()
             cursor = conn.cursor(cursor_factory=RealDictCursor)
-            cursor.execute("SELECT * FROM certificados_pac ORDER BY created_at DESC")
+            cursor.execute("SELECT * FROM certificados_pac WHERE activo = TRUE ORDER BY created_at DESC")
             results = cursor.fetchall()
             cursor.close()
             conn.close()
@@ -125,6 +126,52 @@ class DBManager:
         except psycopg2.Error as e:
             logger.error(f"Error obteniendo todos los certificados: {e}")
             if conn:
+                conn.close()
+            raise
+    
+    def get_certificados_inactivos(self):
+        """Obtiene todos los certificados inactivos."""
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("SELECT * FROM certificados_pac WHERE activo = FALSE ORDER BY updated_at DESC")
+            results = cursor.fetchall()
+            cursor.close()
+            conn.close()
+            
+            return [_normalize_cert_keys(dict(row)) for row in results] if results else []
+            
+        except psycopg2.Error as e:
+            logger.error(f"Error obteniendo certificados inactivos: {e}")
+            if conn:
+                conn.close()
+            raise
+    
+    def reactivar_certificado(self, id):
+        """Reactiva un certificado inactivo."""
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE certificados_pac 
+                SET activo = TRUE, updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s AND activo = FALSE
+            """, (id,))
+            
+            affected_rows = cursor.rowcount
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            logger.info(f"Certificado reactivado. Filas afectadas: {affected_rows}")
+            return affected_rows > 0
+            
+        except psycopg2.Error as e:
+            logger.error(f"Error reactivando certificado: {e}")
+            if conn:
+                conn.rollback()
                 conn.close()
             raise
     
@@ -236,13 +283,15 @@ class DBManager:
             raise
 
     def delete_certificado(self, id):
-        """Elimina un registro por id."""
+        """Desactiva un certificado (soft delete) en lugar de eliminarlo."""
         conn = None
         try:
             conn = self._get_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                DELETE FROM certificados_pac WHERE id = %s
+                UPDATE certificados_pac 
+                SET activo = FALSE, updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s AND activo = TRUE
             """, (id,))
             
             affected_rows = cursor.rowcount
@@ -250,11 +299,11 @@ class DBManager:
             cursor.close()
             conn.close()
             
-            logger.info(f"Certificado eliminado. Filas afectadas: {affected_rows}")
+            logger.info(f"Certificado desactivado. Filas afectadas: {affected_rows}")
             return affected_rows > 0
             
         except psycopg2.Error as e:
-            logger.error(f"Error eliminando certificado: {e}")
+            logger.error(f"Error desactivando certificado: {e}")
             if conn:
                 conn.rollback()
                 conn.close()
