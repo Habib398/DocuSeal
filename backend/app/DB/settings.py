@@ -43,6 +43,8 @@ def init_database():
             vigencia VARCHAR(50) NOT NULL,
             noCertificado VARCHAR(50) NOT NULL,
             Certificado TEXT NOT NULL,
+            correo VARCHAR(255),
+            telefono VARCHAR(50),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );

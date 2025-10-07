@@ -41,7 +41,7 @@ function renderCertificados() {
     if (certificados.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="4" class="text-center text-muted py-4">
+                <td colspan="7" class="text-center text-muted py-4">
                     <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
                     No hay certificados registrados
                 </td>
@@ -56,8 +56,11 @@ function renderCertificados() {
         row.innerHTML = `
             <td>${cert.id}</td>
             <td>${cert.usuarioPAC}</td>
+            <td>${cert.nombreEmpresa || '-'}</td>
             <td>${cert.noCertificado}</td>
             <td><span class="badge ${getVigenciaBadgeClass(cert.vigencia)}">${formatDate(cert.vigencia)}</span></td>
+            <td>${cert.correo || '-'}</td>
+            <td>${cert.telefono || '-'}</td>
         `;
 
         row.addEventListener('click', () => selectRow(row, cert));
@@ -66,6 +69,15 @@ function renderCertificados() {
 }
 
 function selectRow(row, cert) {
+    // Si la fila ya está seleccionada, deseleccionar
+    if (selectedRow === row) {
+        selectedRow.classList.remove('selected-row');
+        selectedRow = null;
+        selectedCert = null;
+        toggleActionButtons(false);
+        return;
+    }
+    
     // quitar selección previa
     if (selectedRow) selectedRow.classList.remove('selected-row');
     row.classList.add('selected-row');
@@ -119,6 +131,8 @@ function editSelected() {
     document.getElementById('nombreEmpresa').value = cert.nombreEmpresa || '';
     document.getElementById('noCertificado').value = cert.noCertificado;
     document.getElementById('vigencia').value = cert.vigencia;
+    document.getElementById('correo').value = cert.correo || '';
+    document.getElementById('telefono').value = cert.telefono || '';
     document.getElementById('CER').value = cert.CER;
     document.getElementById('KEY').value = cert.KEY;
     document.getElementById('Certificado').value = cert.Certificado;
@@ -126,22 +140,6 @@ function editSelected() {
     modal.show();
 }
 
-// Ver detalles del certificado
-function viewSelected() {
-    if (!selectedCert) return;
-    const cert = selectedCert;
-    const details = `
-        <strong>ID:</strong> ${cert.id}<br>
-        <strong>Usuario PAC:</strong> ${cert.usuarioPAC}<br>
-        <strong>Nombre de la empresa:</strong> ${cert.nombreEmpresa || '-'}<br>
-        <strong>No. Certificado:</strong> ${cert.noCertificado}<br>
-        <strong>Vigencia:</strong> ${formatDate(cert.vigencia)}<br>
-        <strong>CER (50c):</strong> ${cert.CER ? cert.CER.substring(0,50) : 'N/A'}...<br>
-        <strong>KEY (50c):</strong> ${cert.KEY ? cert.KEY.substring(0,50) : 'N/A'}...<br>
-        <strong>Certificado (50c):</strong> ${cert.Certificado ? cert.Certificado.substring(0,50) : 'N/A'}...
-    `;
-    showAlert('info', details, 10000);
-}
 
 // Eliminar certificado
 function deleteSelected() {
@@ -190,6 +188,8 @@ async function saveCertificado() {
         contrasenaPAC: document.getElementById('contrasenaPAC').value,
         noCertificado: document.getElementById('noCertificado').value,
         vigencia: document.getElementById('vigencia').value,
+        correo: document.getElementById('correo')?.value || '',
+        telefono: document.getElementById('telefono')?.value || '',
         CER: document.getElementById('CER').value,
         KEY: document.getElementById('KEY').value,
         Certificado: document.getElementById('Certificado').value
@@ -276,7 +276,7 @@ function searchCertificados(query) {
     const tbody = document.getElementById('certificadosTableBody');
     tbody.innerHTML = '';
     if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-4">Sin resultados</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">Sin resultados</td></tr>`;
         return;
     }
     filtered.forEach(cert => {
@@ -285,8 +285,11 @@ function searchCertificados(query) {
         row.innerHTML = `
             <td>${cert.id}</td>
             <td>${cert.usuarioPAC}</td>
+            <td>${cert.nombreEmpresa || '-'}</td>
             <td>${cert.noCertificado}</td>
-            <td><span class="badge ${getVigenciaBadgeClass(cert.vigencia)}">${formatDate(cert.vigencia)}</span></td>`;
+            <td><span class="badge ${getVigenciaBadgeClass(cert.vigencia)}">${formatDate(cert.vigencia)}</span></td>
+            <td>${cert.correo || '-'}</td>
+            <td>${cert.telefono || '-'}</td>`;
         row.addEventListener('click', () => selectRow(row, cert));
         tbody.appendChild(row);
     });

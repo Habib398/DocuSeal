@@ -4,10 +4,12 @@ const API_BASE_URL = (function() {
     try {
         const origin = window.location.origin;
         if (origin && origin.startsWith('http')) {
-            return origin + '/api/v1';
+            // Si estamos en el mismo dominio, usar rutas relativas
+            return origin;
         }
     } catch (e) { /* ignore */ }
-    return 'http://localhost:8080/api/v1';
+    // Fallback: Admin API en puerto 8002 local
+    return 'http://localhost:8002';
 })();
 
 // Clase para manejar las llamadas a la API
@@ -43,33 +45,33 @@ class ApiClient {
 
     // Métodos para certificados
     async getAllCertificados() {
-        return this.request('/certificados/');
+        return this.request('/api/v1/certificados/');
     }
 
     async getCertificadoByUsuario(usuario) {
-        return this.request(`/certificados/usuario/${encodeURIComponent(usuario)}`);
+        return this.request(`/api/v1/certificados/usuario/${encodeURIComponent(usuario)}`);
     }
 
     async getCertificadoByNumero(numero) {
-        return this.request(`/certificados/numero/${encodeURIComponent(numero)}`);
+        return this.request(`/api/v1/certificados/numero/${encodeURIComponent(numero)}`);
     }
 
     async createCertificado(certificadoData) {
-        return this.request('/certificados/', {
+        return this.request('/api/v1/certificados/', {
             method: 'POST',
             body: JSON.stringify(certificadoData),
         });
     }
 
     async updateCertificado(id, certificadoData) {
-        return this.request(`/certificados/${id}`, {
+        return this.request(`/api/v1/certificados/${id}`, {
             method: 'PUT',
             body: JSON.stringify(certificadoData),
         });
     }
 
     async deleteCertificado(id) {
-        return this.request(`/certificados/${id}`, {
+        return this.request(`/api/v1/certificados/${id}`, {
             method: 'DELETE',
         });
     }

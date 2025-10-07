@@ -2,7 +2,7 @@ import os
 from typing import Optional
 from DB.DBManager import DBManager
 from Data.ConvertirJson import ConvertirJson
-from Business.ConfiguracionSello import ConfiguracionSello
+from Business.Configuration.ConfiguracionSello import ConfiguracionSello
 import base64
 import tempfile
 import json
@@ -225,7 +225,7 @@ class SellarXML:
         cfdi.sign(signer)
 
         # Guardar la cadena original generada
-        self.cadena_original = cfdi.cadena_original
+        self.cadena_original = cfdi.cadena_original()
         print(f"[LOG] Cadena original generada: {self.cadena_original[:100]}...")  # Imprimir primeros 100 caracteres
 
         self.xmlSellado = cfdi.xml_bytes(pretty_print=True).decode('utf-8')

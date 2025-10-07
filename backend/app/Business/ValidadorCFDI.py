@@ -3,7 +3,7 @@ from typing import List, Dict, Any
 # Clase generada por Copilot
 
 class ValidadorCFDI:
-    """Valida reglas básicas antes de timbrar (no sustituye validación XSD ni PAC)."""
+    """Valida reglas básicas antes de timbrar."""
 
     def __init__(self, datos_xml: Dict[str, Any]):
         self.datos = datos_xml or {}

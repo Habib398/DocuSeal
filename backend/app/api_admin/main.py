@@ -1,6 +1,8 @@
-﻿from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status
 from fastapi import Body
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, RedirectResponse
 import sys
 import os
 
@@ -8,24 +10,28 @@ import os
 backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, backend_path)
 
-from Business.SellarXML import SellarXML
-from Business.Timbrado import TimbradoService
-from Business.ConfiguracionLogin import ConfiguracionLogin, UsuarioLoginRequest
-from Business.ConfiguracionRegistro import ConfiguracionRegistro, UsuarioRegistroRequest
-from Business.ConfiguracionCertificados import ConfiguracionCertificados
+from Business.Configuration.ConfiguracionLogin import ConfiguracionLogin, UsuarioLoginRequest
+from Business.Configuration.ConfiguracionRegistro import ConfiguracionRegistro, UsuarioRegistroRequest
+from Business.Configuration.ConfiguracionCertificados import ConfiguracionCertificados
 from DB.DBManager import DBManager
 
+app = FastAPI(
+    title="DocuSeal Admin API",
+    version="1.0.0",
+    description="API administrativa para gestión de usuarios y certificados"
+)
 
-app = FastAPI(title="DocuSeal API", version="1.0.0")
-
-# Configurar CORS para permitir requests desde el frontend
+# Configurar CORS para el frontend administrativo
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # En producción, especificar el dominio del frontend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Configurar ruta del Frontend
+frontend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'Frontend'))
 
 # Inicializar servicios
 db_manager = DBManager()
@@ -33,10 +39,54 @@ login_service = ConfiguracionLogin(db_manager)
 registro_service = ConfiguracionRegistro(db_manager)
 certificados_service = ConfiguracionCertificados(db_manager)
 
-# Endpoints de autenticación
+# ==================== ENDPOINTS DE FRONTEND ====================
+
+@app.get("/")
+async def root():
+    """Redirige a la página de login"""
+    return RedirectResponse(url="/login")
+
+@app.get("/login")
+async def login_page():
+    """Sirve la página de login"""
+    return FileResponse(os.path.join(frontend_path, "login.html"))
+
+@app.get("/index")
+async def index_page():
+    """Sirve la página principal"""
+    return FileResponse(os.path.join(frontend_path, "index.html"))
+
+@app.get("/index.html")
+async def index_html_page():
+    """Sirve la página principal (con extensión .html)"""
+    return FileResponse(os.path.join(frontend_path, "index.html"))
+
+@app.get("/login.html")
+async def login_html_page():
+    """Sirve la página de login (con extensión .html)"""
+    return FileResponse(os.path.join(frontend_path, "login.html"))
+
+# Endpoint de health check
+@app.get("/health")
+async def health_check():
+    return {"status": "ok", "message": "DocuSeal Admin API is running"}
+
+# Montar archivos estáticos del Frontend AL FINAL (importante)
+app.mount("/static", StaticFiles(directory=frontend_path), name="static")
+
+# ==================== ENDPOINTS DE AUTENTICACIÓN ====================
 
 @app.post("/api/register", status_code=status.HTTP_201_CREATED)
 async def register_usuario(usuario: UsuarioRegistroRequest):
+    """
+    Registra un nuevo usuario en el sistema.
+    
+    Args:
+        usuario: Datos del usuario a registrar
+    
+    Returns:
+        Confirmación del registro exitoso
+    """
     try:
         resultado = registro_service.registrar_usuario(usuario)
         return resultado
@@ -56,6 +106,15 @@ async def register_usuario(usuario: UsuarioRegistroRequest):
 
 @app.post("/api/login")
 async def login_usuario(credenciales: UsuarioLoginRequest):
+    """
+    Autentica un usuario en el sistema.
+    
+    Args:
+        credenciales: Email y contraseña del usuario
+    
+    Returns:
+        Token de autenticación y datos del usuario
+    """
     try:
         resultado = login_service.autenticar_usuario(credenciales)
         return resultado
@@ -72,14 +131,16 @@ async def login_usuario(credenciales: UsuarioLoginRequest):
             detail=f"Error inesperado en el login: {str(e)}"
         )
 
-# Endpoint de verificador de conexion (Copilot)
-@app.get("/health")
-async def health_check():
-    return {"status": "ok", "message": "Server is running"}
+# ==================== ENDPOINTS DE CERTIFICADOS ====================
 
-# Endpoints para certificados
 @app.get("/api/v1/certificados/")
 async def get_all_certificados():
+    """
+    Obtiene todos los certificados almacenados.
+    
+    Returns:
+        Lista de certificados
+    """
     try:
         return certificados_service.obtener_todos()
     except RuntimeError as e:
@@ -92,6 +153,15 @@ async def get_all_certificados():
 
 @app.get("/api/v1/certificados/usuario/{usuario_pac}")
 async def get_certificado_by_usuario(usuario_pac: str):
+    """
+    Obtiene un certificado por nombre de usuario PAC.
+    
+    Args:
+        usuario_pac: Nombre de usuario del PAC
+    
+    Returns:
+        Datos del certificado encontrado
+    """
     try:
         certificado = certificados_service.obtener_por_usuario(usuario_pac)
         if not certificado:
@@ -109,6 +179,15 @@ async def get_certificado_by_usuario(usuario_pac: str):
 
 @app.get("/api/v1/certificados/numero/{no_certificado}")
 async def get_certificado_by_numero(no_certificado: str):
+    """
+    Obtiene un certificado por número de certificado.
+    
+    Args:
+        no_certificado: Número del certificado
+    
+    Returns:
+        Datos del certificado encontrado
+    """
     try:
         certificado = certificados_service.obtener_por_numero(no_certificado)
         if not certificado:
@@ -126,6 +205,15 @@ async def get_certificado_by_numero(no_certificado: str):
 
 @app.post("/api/v1/certificados/", status_code=status.HTTP_201_CREATED)
 async def create_certificado(certificado: dict = Body(...)):
+    """
+    Crea un nuevo certificado en el sistema.
+    
+    Args:
+        certificado: Datos del certificado a crear
+    
+    Returns:
+        Confirmación de creación con ID del certificado
+    """
     try:
         return certificados_service.crear_certificado(certificado)
     except ValueError as e:
@@ -140,6 +228,16 @@ async def create_certificado(certificado: dict = Body(...)):
 
 @app.put("/api/v1/certificados/{cert_id}")
 async def update_certificado(cert_id: int, certificado: dict = Body(...)):
+    """
+    Actualiza un certificado existente.
+    
+    Args:
+        cert_id: ID del certificado a actualizar
+        certificado: Nuevos datos del certificado
+    
+    Returns:
+        Confirmación de actualización
+    """
     try:
         return certificados_service.actualizar_certificado(cert_id, certificado)
     except ValueError as e:
@@ -155,6 +253,15 @@ async def update_certificado(cert_id: int, certificado: dict = Body(...)):
 
 @app.delete("/api/v1/certificados/{cert_id}")
 async def delete_certificado(cert_id: int):
+    """
+    Elimina un certificado del sistema.
+    
+    Args:
+        cert_id: ID del certificado a eliminar
+    
+    Returns:
+        Confirmación de eliminación
+    """
     try:
         return certificados_service.eliminar_certificado(cert_id)
     except ValueError as e:
@@ -166,37 +273,3 @@ async def delete_certificado(cert_id: int):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error inesperado al eliminar certificado: {str(e)}"
         )
-
-# Endpoints de proceso de timbrado y sellado
-@app.post("/timbrar/")
-async def timbrar_endpoint(
-    xml: str = Body(..., embed=True),
-    usuario_pac: str = Body(..., embed=True),
-    contrasena_pac: str = Body(..., embed=True),
-    pruebas: bool = Body(True, embed=True)
-):
-    return TimbradoService.timbrar_cfdi(xml, usuario_pac, contrasena_pac, pruebas)
-
-@app.post("/sellar/")
-async def sellar_endpoint(data: dict = Body(...)):
-    return SellarXML.sellar_cfdi(data)
-
-@app.post("/timbrarSellar/")
-async def timbrar_sellar_endpoint(data: dict = Body(...)):
-    # Sellado
-    resultado_sellado = SellarXML.sellar_cfdi(data)
-    if "error" in resultado_sellado:
-        return resultado_sellado
-    
-    xml_sellado = resultado_sellado["xml_con_sello"]
-    
-    # Obtiene credenciales PAC
-    usuario_pac = data.get("PAC", {}).get("usuario")
-    contrasena_pac = data.get("PAC", {}).get("contrasena")
-    pruebas = data.get("pruebas", True)
-    
-    if not usuario_pac or not contrasena_pac:
-        return {"error": "Faltan credenciales PAC (objeto PAC incompleto o vacío)"}
-    
-    # Timbrado
-    return TimbradoService.timbrar_cfdi(xml_sellado, usuario_pac, contrasena_pac, pruebas)

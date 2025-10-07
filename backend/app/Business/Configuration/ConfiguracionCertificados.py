@@ -14,24 +14,10 @@ class ConfiguracionCertificados:
     """Clase para manejar la lógica de gestión de certificados PAC."""
     
     def __init__(self, db_manager):
-        """
-        Inicializa el servicio de certificados.
-        
-        Args:
-            db_manager: Instancia de DBManager para operaciones de BD
-        """
         self.db_manager = db_manager
     
     def obtener_todos(self) -> List[Dict[str, Any]]:
-        """
-        Obtiene todos los certificados almacenados.
-        
-        Returns:
-            Lista de diccionarios con información de certificados
-            
-        Raises:
-            RuntimeError: Si hay error al obtener certificados
-        """
+        # Obtiene todos los certificados almacenados.
         try:
             certificados = self.db_manager.get_all_certificados()
             logger.info(f"Se obtuvieron {len(certificados)} certificados")
@@ -41,19 +27,8 @@ class ConfiguracionCertificados:
             raise RuntimeError(f"Error al obtener certificados: {str(e)}")
     
     def obtener_por_usuario(self, usuario_pac: str) -> Optional[Dict[str, Any]]:
-        """
-        Obtiene un certificado por usuario PAC.
+        # Obtiene un certificado por usuario PAC.
         
-        Args:
-            usuario_pac: Usuario PAC a buscar
-            
-        Returns:
-            Diccionario con información del certificado o None si no existe
-            
-        Raises:
-            ValueError: Si el usuario_pac está vacío
-            RuntimeError: Si hay error al buscar
-        """
         if not usuario_pac or not usuario_pac.strip():
             raise ValueError("El usuario PAC no puede estar vacío")
         
@@ -71,19 +46,8 @@ class ConfiguracionCertificados:
             raise RuntimeError(f"Error al buscar certificado: {str(e)}")
     
     def obtener_por_numero(self, no_certificado: str) -> Optional[Dict[str, Any]]:
-        """
-        Obtiene un certificado por número de certificado.
-        
-        Args:
-            no_certificado: Número de certificado a buscar
-            
-        Returns:
-            Diccionario con información del certificado o None si no existe
-            
-        Raises:
-            ValueError: Si el número está vacío
-            RuntimeError: Si hay error al buscar
-        """
+        # Obtiene un certificado por número de certificado.
+
         if not no_certificado or not no_certificado.strip():
             raise ValueError("El número de certificado no puede estar vacío")
         
@@ -101,16 +65,8 @@ class ConfiguracionCertificados:
             raise RuntimeError(f"Error al buscar certificado: {str(e)}")
     
     def validar_datos_certificado(self, datos: Dict[str, Any], es_actualizacion: bool = False) -> tuple[bool, str]:
-        """
-        Valida los datos de un certificado antes de crear o actualizar.
+        # Valida los datos de un certificado antes de crear o actualizar.
         
-        Args:
-            datos: Diccionario con los datos del certificado
-            es_actualizacion: Si es True, no valida campos requeridos (permite actualizaciones parciales)
-            
-        Returns:
-            Tupla (es_valido, mensaje_error)
-        """
         if not es_actualizacion:
             # Validar campos requeridos solo en creación
             campos_requeridos = ['usuarioPAC', 'contrasenaPAC', 'noCertificado', 'vigencia', 'CER', 'KEY', 'Certificado']
@@ -141,19 +97,8 @@ class ConfiguracionCertificados:
         return True, ""
     
     def crear_certificado(self, datos: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Crea un nuevo certificado PAC.
-        
-        Args:
-            datos: Diccionario con los datos del certificado
-            
-        Returns:
-            Diccionario con información del certificado creado
-            
-        Raises:
-            ValueError: Si los datos son inválidos
-            RuntimeError: Si hay error al crear
-        """
+        # Crea un nuevo certificado PAC.
+
         try:
             # Validar datos
             valido, mensaje = self.validar_datos_certificado(datos, es_actualizacion=False)
@@ -174,7 +119,9 @@ class ConfiguracionCertificados:
                 KEY=datos['KEY'],
                 vigencia=datos['vigencia'],
                 noCertificado=datos['noCertificado'],
-                Certificado=datos['Certificado']
+                Certificado=datos['Certificado'],
+                correo=datos.get('correo', ''),
+                telefono=datos.get('telefono', '')
             )
             
             logger.info(f"Certificado creado exitosamente con ID: {cert_id}")
@@ -194,20 +141,8 @@ class ConfiguracionCertificados:
             raise RuntimeError(f"Error al crear certificado: {str(e)}")
     
     def actualizar_certificado(self, cert_id: int, datos: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Actualiza un certificado existente.
-        
-        Args:
-            cert_id: ID del certificado a actualizar
-            datos: Diccionario con los campos a actualizar
-            
-        Returns:
-            Diccionario con resultado de la actualización
-            
-        Raises:
-            ValueError: Si los datos son inválidos o el certificado no existe
-            RuntimeError: Si hay error al actualizar
-        """
+        # Actualiza un certificado existente.
+
         try:
             if not datos:
                 raise ValueError("No hay datos para actualizar")
@@ -274,19 +209,8 @@ class ConfiguracionCertificados:
             raise RuntimeError(f"Error al eliminar certificado: {str(e)}")
     
     def obtener_certificados_proximos_vencer(self, dias: int = 30) -> List[Dict[str, Any]]:
-        """
-        Obtiene certificados que están próximos a vencer.
-        
-        Args:
-            dias: Número de días para considerar "próximo a vencer"
-            
-        Returns:
-            Lista de certificados próximos a vencer
-            
-        Note:
-            Esta función está preparada para futuras implementaciones
-            de notificaciones automáticas.
-        """
+        # Obtiene certificados que están próximos a vencer.
+
         # TODO: Implementar en DBManager.py si se necesita
         # Por ahora retorna lista vacía
         logger.info(f"Búsqueda de certificados próximos a vencer en {dias} días (no implementado)")

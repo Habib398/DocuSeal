@@ -26,6 +26,8 @@ def _normalize_cert_keys(cert_dict):
         'vigencia': str(cert_dict.get('vigencia')) if cert_dict.get('vigencia') else None,
         'noCertificado': cert_dict.get('nocertificado'),
         'Certificado': cert_dict.get('certificado'),
+        'correo': cert_dict.get('correo'),
+        'telefono': cert_dict.get('telefono'),
         'created_at': str(cert_dict.get('created_at')) if cert_dict.get('created_at') else None,
         'updated_at': str(cert_dict.get('updated_at')) if cert_dict.get('updated_at') else None
     }
@@ -38,17 +40,17 @@ class DBManager:
         # Obtiene una conexión a la base de datos
         return get_db_connection()
 
-    def insert_certificado(self, usuarioPAC, contrasenaPAC, nombreEmpresa, CER, KEY, vigencia, noCertificado, Certificado):
+    def insert_certificado(self, usuarioPAC, contrasenaPAC, nombreEmpresa, CER, KEY, vigencia, noCertificado, Certificado, correo=None, telefono=None):
         """Inserta un nuevo registro en la tabla certificados_pac."""
         conn = None
         try:
             conn = self._get_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO certificados_pac (usuarioPAC, contrasenaPAC, nombreEmpresa, CER, KEY, vigencia, noCertificado, Certificado)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO certificados_pac (usuarioPAC, contrasenaPAC, nombreEmpresa, CER, KEY, vigencia, noCertificado, Certificado, correo, telefono)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
-            """, (usuarioPAC, contrasenaPAC, nombreEmpresa, CER, KEY, vigencia, noCertificado, Certificado))
+            """, (usuarioPAC, contrasenaPAC, nombreEmpresa, CER, KEY, vigencia, noCertificado, Certificado, correo, telefono))
             
             new_id = cursor.fetchone()[0]
             conn.commit()

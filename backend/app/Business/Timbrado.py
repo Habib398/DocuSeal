@@ -7,10 +7,6 @@ class TimbradoService:
 
 	@classmethod
 	def timbrar_cfdi(cls, xml: str, usuario_pac: str, contrasena_pac: str, pruebas: bool = True) -> dict:
-		"""
-		Método principal para timbrar un CFDI.
-		Maneja la limpieza del XML y el proceso completo de timbrado.
-		"""
 		import re
 		
 		# Limpiar XML eliminando declaración de encoding UTF-8
