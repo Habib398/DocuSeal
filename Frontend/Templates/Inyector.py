@@ -21,12 +21,7 @@ class InyectorPDF:
         self.template = self.env.get_template(self.template_name)
     
     def leer_css(self) -> str:
-        """
-        Lee el contenido del archivo CSS
         
-        Returns:
-            String con el contenido del CSS
-        """
         if self.css_path and os.path.exists(self.css_path):
             with open(self.css_path, 'r', encoding='utf-8') as f:
                 return f.read()

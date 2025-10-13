@@ -135,20 +135,40 @@ DocuSeal/
 │   ├── css/
 │   │   ├── styles.css
 │   │   └── login.css
-│   └── js/
-│       ├── api.js                    # Cliente API (conecta a Admin API)
-│       └── main.js                   # Lógica del frontend
+│   ├── js/
+│   │   ├── api.js                    # Cliente API (conecta a Admin API)
+│   │   └── main.js                   # Lógica del frontend
+│   ├── react-app/                    # Aplicación React moderna (en desarrollo)
+│   │   ├── src/
+│   │   ├── package.json
+│   │   ├── vite.config.ts
+│   │   └── tsconfig.json
+│   └── template/                     # Templates para generación de PDF
+│       ├── Inyector.py
+│       └── PDF.html
 │
-├── Temp/                             # Archivos temporales
-│   ├── contraseña.txt
-│   └── CSD PRUEBA/                   # Certificados de prueba
-│       ├── AAA010101AAA.cer
-│       └── AAA010101AAA.key
+├── Scripts/                          # Scripts de inicio
+│   ├── start_service.ps1             # Iniciar Service API (puerto 8001)
+│   ├── start_admin.ps1               # Iniciar Admin API (puerto 8002)
+│   ├── start_all.ps1                 # Iniciar ambas APIs
+│   └── start_with_cloudflare.ps1     # Iniciar con túnel Cloudflare
 │
-├── start_service.ps1                 # Iniciar Service API
-├── start_admin.ps1                   # Iniciar Admin API
-├── start_all.ps1                     # Iniciar ambas APIs
-└── README.md                         # Este archivo
+├── migrations/                       # Migraciones de base de datos
+│   ├── add_activo_field.sql
+│   ├── migrate_add_activo_field.py
+│   └── migrate_add_fields.py
+│
+├── Documentation/                    # Documentación del proyecto
+│   ├── README.md                     # Este archivo
+│   ├── ARCHITECTURE.md               # Arquitectura visual
+│   ├── MIGRATION_README.md           # Guía de migraciones
+│   └── SOFT_DELETE_MIGRATION.md      # Sistema de eliminación lógica
+│
+└── Temp/                             # Archivos temporales
+    ├── contraseña.txt
+    └── CSD PRUEBA/                   # Certificados de prueba
+        ├── AAA010101AAA.cer
+        └── AAA010101AAA.key
 ```
 
 ---
@@ -406,12 +426,18 @@ DELETE /api/v1/certificados/{cert_id}
 # Navegar al directorio del proyecto
 cd DocuSeal
 
-# Instalar dependencias de la API
-pip install fastapi uvicorn sqlalchemy psycopg2-binary cryptography reportlab
+# Crear entorno virtual (recomendado)
+python -m venv .venv
 
-# O usar requirements.txt si existe
+# Activar entorno virtual
+.\.venv\Scripts\Activate.ps1
+
+# Instalar dependencias de la API
 pip install -r backend/app/requirements.txt
 pip install -r backend/app/DB/requirements.txt
+
+# O instalar manualmente:
+pip install fastapi uvicorn sqlalchemy psycopg2-binary cryptography reportlab lxml bcrypt
 ```
 
 ### Configuración de Base de Datos
@@ -439,6 +465,7 @@ Colocar tus certificados CSD en una ubicación segura y actualizar las rutas en 
 ### Opción 1: Iniciar Ambas APIs Simultáneamente
 
 ```powershell
+cd Scripts
 .\start_all.ps1
 ```
 
@@ -450,11 +477,13 @@ Esto iniciará:
 
 #### Iniciar solo Service API:
 ```powershell
+cd Scripts
 .\start_service.ps1
 ```
 
 #### Iniciar solo Admin API:
 ```powershell
+cd Scripts
 .\start_admin.ps1
 ```
 
@@ -469,7 +498,7 @@ Una vez iniciados los servicios, accede a la documentación automática:
 
 Abrir en un navegador:
 ```
-file:///C:/Users/Abitt/OneDrive/Escritorio/DocuSealV2/DocuSeal/Frontend/index.html
+file:///C:/Users/Abitt/OneDrive/Escritorio/DocuSealV2/DocuSeal/Frontend/login.html
 ```
 
 O servir con un servidor web local:
@@ -478,7 +507,17 @@ cd Frontend
 python -m http.server 8080
 ```
 
-Luego acceder a: `http://localhost:8080`
+Luego acceder a: `http://localhost:8080/login.html`
+
+### Frontend React (Aplicación moderna - en desarrollo)
+
+```powershell
+cd Frontend/react-app
+npm install
+npm run dev
+```
+
+Acceder a: `http://localhost:5173`
 
 ---
 
@@ -652,10 +691,12 @@ print(response.json())
 ### Mejores Prácticas Implementadas
 
 1. **Separación de APIs**: Servicios públicos y administrativos separados
-2. **Encriptación de contraseñas**: Usando Fernet encryption
+2. **Encriptación de contraseñas**: Usando bcrypt (migrado desde Fernet)
 3. **Validación de entrada**: En todos los endpoints
 4. **CORS configurado**: Políticas específicas por API
 5. **Health checks**: Monitoreo de disponibilidad
+6. **Soft Delete**: Sistema de eliminación lógica para proteger datos
+7. **Auditoría**: Campo activo y timestamp para rastreo de cambios
 
 ### Recomendaciones Futuras
 
@@ -668,6 +709,38 @@ print(response.json())
 ---
 
 ## 📝 Notas Adicionales
+
+### Características Recientes (v1.5.0)
+
+#### Sistema de Soft Delete
+El sistema ahora implementa eliminación lógica en lugar de eliminación física:
+- **Campo `activo`**: Indica si un registro está activo (TRUE) o eliminado lógicamente (FALSE)
+- **Protección de datos**: Los registros nunca se eliminan permanentemente de la base de datos
+- **Recuperación**: Posibilidad de restaurar registros eliminados
+- **Consultas automáticas**: Las consultas filtran automáticamente registros inactivos
+
+Para más información, consultar: `Documentation/SOFT_DELETE_MIGRATION.md`
+
+#### Migración de Seguridad
+- **Bcrypt**: Se migró de Fernet a bcrypt para el hash de contraseñas
+- **Mayor seguridad**: Bcrypt es específico para contraseñas y más resistente a ataques
+- **Salt automático**: Cada contraseña tiene su propio salt único
+
+#### Frontend React
+Se está desarrollando una nueva versión del frontend usando:
+- **React 18** con TypeScript
+- **Vite** como bundler
+- **Tailwind CSS** para estilos
+- **React Router** para navegación
+
+Estado: En desarrollo (`Frontend/react-app/`)
+
+#### Scripts Organizados
+Los scripts de inicio se han movido a la carpeta `Scripts/`:
+- `start_service.ps1` - Inicia Service API (puerto 8001)
+- `start_admin.ps1` - Inicia Admin API (puerto 8002)
+- `start_all.ps1` - Inicia ambas APIs simultáneamente
+- `start_with_cloudflare.ps1` - Inicia con túnel Cloudflare
 
 ### Archivo Deprecado
 
@@ -716,29 +789,38 @@ Para preguntas o problemas:
 
 ## 🎯 Roadmap
 
-### Versión Actual (1.0.0)
+### Versión Actual (1.5.0)
 - ✅ API de sellado y timbrado funcional
 - ✅ Panel administrativo web
 - ✅ Gestión de certificados
 - ✅ Separación Service/Admin APIs
+- ✅ Sistema de soft delete implementado
+- ✅ Frontend React moderno en desarrollo
+- ✅ Scripts de inicio organizados en carpeta Scripts/
 
 ### Próximas Versiones
 
-#### v1.1.0
+#### v1.6.0
+- [ ] Completar migración a React del frontend
 - [ ] Autenticación JWT en Admin API
-- [ ] Soporte para Carta Porte 3.0
-- [ ] Generación de reportes
+- [ ] Sistema de roles y permisos
+- [ ] Dashboard con métricas en tiempo real
 
-#### v1.2.0
+#### v1.7.0
+- [ ] Soporte para Carta Porte 3.0
+- [ ] Generación de reportes avanzados
 - [ ] API de cancelación de CFDI
-- [ ] Dashboard con estadísticas
-- [ ] Notificaciones por email
+- [ ] Webhooks para eventos
 
 #### v2.0.0
 - [ ] Soporte para múltiples PACs
-- [ ] Webhooks para eventos
+- [ ] Sistema de auditoría completo
 - [ ] SDK para clientes en múltiples lenguajes
+- [ ] Escalabilidad con microservicios
 
 ---
 
 **Desarrollado con ❤️ para simplificar la facturación electrónica en México**
+
+**Última actualización**: 8 de Octubre de 2025  
+**Versión**: 1.5.0

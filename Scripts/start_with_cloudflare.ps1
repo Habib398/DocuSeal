@@ -66,6 +66,17 @@ $adminProcess = Start-Process powershell -ArgumentList "-NoExit", "-Command", $a
 
 Start-Sleep -Seconds 5
 
+# Iniciar Frontend React (Puerto 3000)
+Write-Host "[INFO] Iniciando Frontend React en puerto 3000..." -ForegroundColor Yellow
+$frontendPath = ".\Frontend\react-app"
+if (Test-Path $frontendPath) {
+    $frontendCommand = "cd '$currentDir\Frontend\react-app'; Write-Host 'Instalando dependencias de React...' -ForegroundColor Yellow; npm install; Write-Host 'Iniciando servidor de desarrollo React...' -ForegroundColor Green; npm run dev"
+    $frontendProcess = Start-Process powershell -ArgumentList "-NoExit", "-Command", $frontendCommand -PassThru -WindowStyle Normal
+    Start-Sleep -Seconds 10
+} else {
+    Write-Host "[WARNING] No se encontró el directorio del frontend en $frontendPath" -ForegroundColor Yellow
+}
+
 Write-Host ""
 Write-Host "=====================================" -ForegroundColor Cyan
 Write-Host "  Cloudflare Tunnels" -ForegroundColor Cyan
@@ -82,22 +93,34 @@ Start-Sleep -Seconds 3
 Write-Host "[INFO] Creando túnel Cloudflare para API Admin (puerto 8002)..." -ForegroundColor Yellow
 $tunnelAdmin = Start-Process powershell -ArgumentList "-NoExit", "-Command", "& '$cloudflaredPath' tunnel --url http://localhost:8002" -PassThru -WindowStyle Normal
 
+Start-Sleep -Seconds 3
+
+# Iniciar túnel para Frontend React
+Write-Host "[INFO] Creando túnel Cloudflare para Frontend React (puerto 3000)..." -ForegroundColor Yellow
+$tunnelFrontend = Start-Process powershell -ArgumentList "-NoExit", "-Command", "& '$cloudflaredPath' tunnel --url http://localhost:3000" -PassThru -WindowStyle Normal
+
+Start-Sleep -Seconds 3
+
 Write-Host ""
 Write-Host "=====================================" -ForegroundColor Green
 Write-Host "  ¡Servicios Iniciados!" -ForegroundColor Green
 Write-Host "=====================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "📌 URLs Locales:" -ForegroundColor Cyan
-Write-Host "   - API Service: http://localhost:8001" -ForegroundColor White
-Write-Host "   - API Admin:   http://localhost:8002" -ForegroundColor White
+Write-Host "   - Frontend React: http://localhost:3000" -ForegroundColor White
+Write-Host "   - API Admin:      http://localhost:8002" -ForegroundColor White
+Write-Host "   - API Service:    http://localhost:8001" -ForegroundColor White
 Write-Host ""
 Write-Host "🌐 URLs Públicas Cloudflare:" -ForegroundColor Cyan
 Write-Host "   - Revisa las ventanas de PowerShell que se abrieron" -ForegroundColor Yellow
 Write-Host "   - Busca líneas como: 'https://xxxx.trycloudflare.com'" -ForegroundColor Yellow
+Write-Host "   - Túnel Frontend: Ventana con puerto 3000" -ForegroundColor Yellow
+Write-Host "   - Túnel API Admin: Ventana con puerto 8002" -ForegroundColor Yellow
+Write-Host "   - Túnel API Service: Ventana con puerto 8001" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "📚 Documentación:" -ForegroundColor Cyan
-Write-Host "   - API Service Docs: http://localhost:8001/docs" -ForegroundColor White
 Write-Host "   - API Admin Docs:   http://localhost:8002/docs" -ForegroundColor White
+Write-Host "   - API Service Docs: http://localhost:8001/docs" -ForegroundColor White
 Write-Host ""
 Write-Host "⚠️  Presiona Ctrl+C para detener todos los servicios" -ForegroundColor Yellow
 Write-Host ""
@@ -114,8 +137,10 @@ try {
     # Detener procesos
     Stop-Process -Id $serviceProcess.Id -Force -ErrorAction SilentlyContinue
     Stop-Process -Id $adminProcess.Id -Force -ErrorAction SilentlyContinue
+    Stop-Process -Id $frontendProcess.Id -Force -ErrorAction SilentlyContinue
     Stop-Process -Id $tunnelService.Id -Force -ErrorAction SilentlyContinue
     Stop-Process -Id $tunnelAdmin.Id -Force -ErrorAction SilentlyContinue
+    Stop-Process -Id $tunnelFrontend.Id -Force -ErrorAction SilentlyContinue
     
     Write-Host "[OK] Servicios detenidos" -ForegroundColor Green
 }

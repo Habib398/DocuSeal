@@ -1,5 +1,7 @@
 import psycopg2 # type: ignore
 from psycopg2.extras import RealDictCursor # type: ignore
+from psycopg2 import Binary # type: ignore
+import base64
 import logging
 
 # Importación flexible para settings
@@ -21,8 +23,9 @@ def _normalize_cert_keys(cert_dict):
         'usuarioPAC': cert_dict.get('usuariopac'),
         'contrasenaPAC': cert_dict.get('contrasenapac'),
         'nombreEmpresa': cert_dict.get('nombreempresa'),
-        'CER': cert_dict.get('cer'),
-        'KEY': cert_dict.get('key'),
+    # Convertir bytes a base64 para el frontend (si están en bytes)
+    'CER': base64.b64encode(cert_dict.get('cer')).decode('utf-8') if cert_dict.get('cer') is not None else None,
+    'KEY': base64.b64encode(cert_dict.get('key')).decode('utf-8') if cert_dict.get('key') is not None else None,
         'vigencia': str(cert_dict.get('vigencia')) if cert_dict.get('vigencia') else None,
         'noCertificado': cert_dict.get('nocertificado'),
         'Certificado': cert_dict.get('certificado'),
@@ -47,11 +50,15 @@ class DBManager:
         try:
             conn = self._get_connection()
             cursor = conn.cursor()
+            # Asegurarse de pasar bytes como psycopg2.Binary para campos binarios
+            cer_param = Binary(CER) if CER is not None else None
+            key_param = Binary(KEY) if KEY is not None else None
+
             cursor.execute("""
                 INSERT INTO certificados_pac (usuarioPAC, contrasenaPAC, nombreEmpresa, CER, KEY, vigencia, noCertificado, Certificado, correo, telefono)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
-            """, (usuarioPAC, contrasenaPAC, nombreEmpresa, CER, KEY, vigencia, noCertificado, Certificado, correo, telefono))
+            """, (usuarioPAC, contrasenaPAC, nombreEmpresa, cer_param, key_param, vigencia, noCertificado, Certificado, correo, telefono))
             
             new_id = cursor.fetchone()[0]
             conn.commit()
@@ -254,6 +261,12 @@ class DBManager:
             if not kwargs:
                 return False
                 
+            # Si CER/KEY están en kwargs y son bytes, convertir a Binary
+            if 'CER' in kwargs and kwargs['CER'] is not None:
+                kwargs['CER'] = Binary(kwargs['CER'])
+            if 'KEY' in kwargs and kwargs['KEY'] is not None:
+                kwargs['KEY'] = Binary(kwargs['KEY'])
+
             # Construir la consulta dinámicamente
             set_clause = ", ".join([f"{key} = %s" for key in kwargs.keys()])
             values = list(kwargs.values())

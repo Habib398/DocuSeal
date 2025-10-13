@@ -1,8 +1,6 @@
 from fastapi import FastAPI, HTTPException, status
 from fastapi import Body
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, RedirectResponse
 import sys
 import os
 
@@ -30,49 +28,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configurar ruta del Frontend
-frontend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'Frontend'))
-
 # Inicializar servicios
 db_manager = DBManager()
 login_service = ConfiguracionLogin(db_manager)
 registro_service = ConfiguracionRegistro(db_manager)
 certificados_service = ConfiguracionCertificados(db_manager)
 
-# ==================== ENDPOINTS DE FRONTEND ====================
+# ==================== ENDPOINTS DE HEALTH CHECK ====================
+
+@app.get("/health")
+async def health_check():
+    """Endpoint de health check para verificar que el servidor está funcionando"""
+    return {"status": "ok", "message": "DocuSeal Admin API is running"}
 
 @app.get("/")
 async def root():
-    """Redirige a la página de login"""
-    return RedirectResponse(url="/login")
-
-@app.get("/login")
-async def login_page():
-    """Sirve la página de login"""
-    return FileResponse(os.path.join(frontend_path, "login.html"))
-
-@app.get("/index")
-async def index_page():
-    """Sirve la página principal"""
-    return FileResponse(os.path.join(frontend_path, "index.html"))
-
-@app.get("/index.html")
-async def index_html_page():
-    """Sirve la página principal (con extensión .html)"""
-    return FileResponse(os.path.join(frontend_path, "index.html"))
-
-@app.get("/login.html")
-async def login_html_page():
-    """Sirve la página de login (con extensión .html)"""
-    return FileResponse(os.path.join(frontend_path, "login.html"))
-
-# Endpoint de health check
-@app.get("/health")
-async def health_check():
-    return {"status": "ok", "message": "DocuSeal Admin API is running"}
-
-# Montar archivos estáticos del Frontend AL FINAL (importante)
-app.mount("/static", StaticFiles(directory=frontend_path), name="static")
+    """
+    Endpoint raíz - Retorna información básica de la API
+    El frontend de React se ejecuta independientemente en el puerto 3000
+    """
+    return {
+        "message": "DocuSeal Admin API",
+        "version": "1.0.0",
+        "frontend": "http://localhost:3000",
+        "docs": "/docs"
+    }
 
 # ==================== ENDPOINTS DE AUTENTICACIÓN ====================
 

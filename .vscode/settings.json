@@ -2,6 +2,7 @@
     "python.analysis.extraPaths": [
         "./Frontend/template",
         "./backend/app/DB",
-        "./backend/app"
+        "./backend/app",
+        "./Frontend/Templates"
     ]
 }

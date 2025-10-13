@@ -27,25 +27,9 @@ class ConfiguracionRegistro:
     """Clase para manejar la lógica de registro de usuarios."""
     
     def __init__(self, db_manager):
-        """
-        Inicializa el servicio de registro.
-        
-        Args:
-            db_manager: Instancia de DBManager para operaciones de BD
-        """
         self.db_manager = db_manager
     
     def validar_passwords(self, password: str, confirm_password: str) -> tuple[bool, str]:
-        """
-        Valida que las contraseñas coincidan y cumplan requisitos mínimos.
-        
-        Args:
-            password: Contraseña ingresada
-            confirm_password: Confirmación de contraseña
-            
-        Returns:
-            Tupla (es_valido, mensaje_error)
-        """
         if password != confirm_password:
             return False, "Las contraseñas no coinciden"
         
@@ -55,39 +39,12 @@ class ConfiguracionRegistro:
         return True, ""
     
     def validar_fortaleza_password(self, password: str) -> tuple[bool, str]:
-        """
-        Valida la fortaleza de la contraseña (opcional, se puede extender).
-        
-        Args:
-            password: Contraseña a validar
-            
-        Returns:
-            Tupla (es_valido, mensaje_error)
-        """
-        # Validaciones adicionales que se pueden agregar:
-        # - Al menos una mayúscula
-        # - Al menos un número
-        # - Al menos un carácter especial
-        
-        # Por ahora solo verificamos longitud mínima
         if len(password) < 8:
             return False, "La contraseña debe tener al menos 8 caracteres"
         
         return True, ""
     
     def hashear_password(self, password: str) -> str:
-        """
-        Hashea la contraseña usando bcrypt.
-        
-        Args:
-            password: Contraseña en texto plano
-            
-        Returns:
-            Contraseña hasheada
-            
-        Raises:
-            RuntimeError: Si bcrypt no está disponible
-        """
         if bcrypt is None:
             raise RuntimeError("bcrypt no está instalado. Instale con: pip install bcrypt")
         
@@ -98,15 +55,6 @@ class ConfiguracionRegistro:
         return password_hash.decode('utf-8')
     
     def verificar_email_disponible(self, email: str) -> tuple[bool, str]:
-        """
-        Verifica si el email ya está registrado.
-        
-        Args:
-            email: Email a verificar
-            
-        Returns:
-            Tupla (esta_disponible, mensaje_error)
-        """
         try:
             usuario_existente = self.db_manager.get_usuario_by_email(email)
             if usuario_existente:
@@ -117,19 +65,7 @@ class ConfiguracionRegistro:
             return False, f"Error al verificar email: {str(e)}"
     
     def registrar_usuario(self, datos: UsuarioRegistroRequest) -> Dict[str, Any]:
-        """
-        Procesa el registro completo de un usuario.
-        
-        Args:
-            datos: Datos del usuario a registrar
-            
-        Returns:
-            Diccionario con resultado del registro
-            
-        Raises:
-            ValueError: Si las validaciones fallan
-            RuntimeError: Si hay error en el proceso
-        """
+
         try:
             # Validar contraseñas
             valido, mensaje = self.validar_passwords(datos.password, datos.confirm_password)

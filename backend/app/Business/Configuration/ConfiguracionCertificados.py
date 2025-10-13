@@ -4,6 +4,7 @@ Módulo de configuración y lógica para la gestión de certificados PAC.
 import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
+import base64
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -110,13 +111,32 @@ class ConfiguracionCertificados:
             if certificado_existente:
                 raise ValueError(f"Ya existe un certificado para el usuario PAC: {datos['usuarioPAC']}")
             
-            # Insertar certificado
+            # Decodificar CER/KEY si vienen en base64 y almacenar bytes
+            cer_value = datos['CER']
+            key_value = datos['KEY']
+            if isinstance(cer_value, str):
+                try:
+                    cer_bytes = base64.b64decode(cer_value)
+                except Exception:
+                    raise ValueError("El campo CER no contiene base64 válido")
+            else:
+                cer_bytes = cer_value
+
+            if isinstance(key_value, str):
+                try:
+                    key_bytes = base64.b64decode(key_value)
+                except Exception:
+                    raise ValueError("El campo KEY no contiene base64 válido")
+            else:
+                key_bytes = key_value
+
+            # Insertar certificado (CER/KEY como bytes)
             cert_id = self.db_manager.insert_certificado(
                 usuarioPAC=datos['usuarioPAC'],
                 contrasenaPAC=datos['contrasenaPAC'],
                 nombreEmpresa=datos.get('nombreEmpresa', ''),
-                CER=datos['CER'],
-                KEY=datos['KEY'],
+                CER=cer_bytes,
+                KEY=key_bytes,
                 vigencia=datos['vigencia'],
                 noCertificado=datos['noCertificado'],
                 Certificado=datos['Certificado'],
@@ -152,8 +172,21 @@ class ConfiguracionCertificados:
             if not valido:
                 raise ValueError(mensaje)
             
+            # Si CER/KEY vienen en base64, decodificarlas a bytes antes de actualizar
+            datos_to_update = datos.copy()
+            if 'CER' in datos_to_update and isinstance(datos_to_update['CER'], str):
+                try:
+                    datos_to_update['CER'] = base64.b64decode(datos_to_update['CER'])
+                except Exception:
+                    raise ValueError("El campo CER no contiene base64 válido")
+            if 'KEY' in datos_to_update and isinstance(datos_to_update['KEY'], str):
+                try:
+                    datos_to_update['KEY'] = base64.b64decode(datos_to_update['KEY'])
+                except Exception:
+                    raise ValueError("El campo KEY no contiene base64 válido")
+
             # Actualizar certificado
-            success = self.db_manager.update_certificado(cert_id, **datos)
+            success = self.db_manager.update_certificado(cert_id, **datos_to_update)
             
             if not success:
                 raise ValueError(f"Certificado con ID {cert_id} no encontrado")

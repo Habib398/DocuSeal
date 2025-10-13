@@ -1,5 +1,28 @@
 class PreferenciasCliente:
-    def __init__(self, idPreferencia: int, enviarEmail: bool, enviarPDF: bool):
+    def __init__(self, idPreferencia: int = None, enviarEmail: bool = False, enviarPDF: bool = False):
         self.idPreferencia = idPreferencia
-        self.enviarEmail = enviarEmail
-        self.enviarPDF = enviarPDF
+        self.enviarEmail = bool(enviarEmail)
+        self.enviarPDF = bool(enviarPDF)
+
+    @classmethod
+    def from_json(cls, data: dict) -> "PreferenciasCliente":
+        # Leer enviarCorreo
+        enviar_email = data.get("enviarCorreo")
+        if enviar_email is None:
+            enviar_email = data.get("enviarEmail", False)
+        
+        # Leer generarPDF
+        generar_pdf = data.get("generarPDF")
+        if generar_pdf is None:
+            generar_pdf = data.get("enviarPDF", False)
+        
+        # Leer idPreferencia (opcional)
+        id_pref = data.get("idPreferencia")
+        if not isinstance(id_pref, int):
+            id_pref = None
+        
+        return cls(
+            idPreferencia=id_pref,
+            enviarEmail=enviar_email,
+            enviarPDF=generar_pdf
+        )

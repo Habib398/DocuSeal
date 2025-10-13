@@ -4,11 +4,22 @@ from typing import Optional, Tuple
 
 # Añadir ruta al Frontend para acceder al Inyector
 current_dir = os.path.dirname(os.path.abspath(__file__))
-frontend_path = os.path.abspath(os.path.join(current_dir, '..', '..', '..', 'Frontend', 'template'))
-sys.path.insert(0, frontend_path)
+# Intentamos resolver la ruta correcta hacia Frontend/Templates donde está Inyector.py
+frontend_templates_path = os.path.abspath(os.path.join(current_dir, '..', '..', '..', 'Frontend', 'Templates'))
+frontend_templates_file = os.path.join(frontend_templates_path, 'Inyector.py')
 
-from Inyector import InyectorPDF
-from Business.PreferenciasCliente import PreferenciasCliente
+# Si existe, añadir al path para poder importar como módulo simple
+if os.path.exists(frontend_templates_file):
+    if frontend_templates_path not in sys.path:
+        sys.path.insert(0, frontend_templates_path)
+    from Inyector import InyectorPDF
+else:
+    # Fallback: intentar importar a través de ruta relativa si el paquete está instalado de otra forma
+    try:
+        from Frontend.Templates.Inyector import InyectorPDF
+    except Exception:
+        # Informar claramente del problema para facilitar debugging
+        raise ImportError(f"No se encontró 'Inyector.py' en: {frontend_templates_file}. Asegúrate de que Frontend/Templates/Inyector.py existe y es accesible.")
 
 
 class PDF:

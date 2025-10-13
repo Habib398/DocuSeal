@@ -1,5 +1,5 @@
 {
-  "enviarCorreo": true,
+  "enviarCorreo": false,
   "generarPDF": false,
   "certificado": {
     "pwdCER": "12345678a"
@@ -9,8 +9,6 @@
     "contrasena": "PWD"
   },
   "datos_xml": {
-    "TotalRetencion": "4.00",
-    "TotalTraslado": "16.00",
     "cfdi:Comprobante": {
       "Version": "4.0",
       "Serie": "CD",

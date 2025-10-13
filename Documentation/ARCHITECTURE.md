@@ -1,17 +1,112 @@
 # DocuSeal - Arquitectura Visual
 
-## 🎯 Separación de APIs
+## 📐 Arquitectura de Capas (4 Capas)
+
+DocuSeal implementa una **arquitectura en capas (N-Tier Architecture)** simplificada que separa las responsabilidades del sistema en **4 capas independientes y reutilizables**. Esta arquitectura promueve la modularidad, mantenibilidad y escalabilidad del sistema.
+
+### Capas del Sistema
+
+1. **Presentation Layer** - APIs de exposición (Service API + Admin API)
+2. **Business Layer** - Lógica de negocio y servicios externos
+3. **Data Layer** - Transformación y estructuración de datos
+4. **Database Layer** - Persistencia de datos
+
+### Principios de la Arquitectura de Capas
+
+1. **Separación de Responsabilidades**: Cada capa tiene una función específica y bien definida
+2. **Bajo Acoplamiento**: Las capas son independientes entre sí
+3. **Alta Cohesión**: Cada capa agrupa funcionalidades relacionadas
+4. **Reutilización**: Las capas inferiores son compartidas por ambas APIs
+5. **Flujo Unidireccional**: Las capas superiores dependen de las inferiores, nunca al revés
+
+---
+
+## 🏗️ Diagrama Completo de Arquitectura
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           DOCUSEAL SYSTEM                                │
+│                    Arquitectura en Capas (N-Tier)                        │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                ┌───────────────────┴────────────────────┐
+                │                                        │
+    ┌───────────▼──────────┐                ┌───────────▼──────────┐
+    │                      │                │                      │
+    │   SERVICE API        │                │   ADMIN API          │
+    │   Puerto: 8001       │                │   Puerto: 8002       │
+    │                      │                │                      │
+    │   🌐 PÚBLICO         │                │   🔒 INTERNO         │
+    │                      │                │                      │
+    │   - /timbrar         │                │   - /api/login       │
+    │   - /sellar          │                │   - /api/register    │
+    │   - /timbrarSellar   │                │   - /api/v1/cert*    │
+    │   - /health          │                │   - /api/v1/prefs*   │
+    │                      │                │                      │
+    └──────────┬───────────┘                └───────────┬──────────┘
+               │                                        │
+               │         CAPA DE PRESENTACIÓN           │
+               │         (Presentation Layer)           │
+               │                                        │
+               └────────────────┬───────────────────────┘
+                                │
+                  ┌─────────────▼─────────────────────┐
+                  │                                   │
+                  │   BUSINESS LAYER                  │
+                  │   Lógica de Negocio               │
+                  │   (Compartida)                    │
+                  │                                   │
+                  │   - SellarXML.py                  │
+                  │   - Timbrado.py                   │
+                  │   - ValidadorCFDI.py              │
+                  │   - Correo.py                     │
+                  │   - PDF.py                        │
+                  │   - Configuraciones               │
+                  │   - Comunicación con PAC          │
+                  │                                   │
+                  └─────────────┬─────────────────────┘
+                                │
+                  ┌─────────────▼─────────────────────┐
+                  │                                   │
+                  │   DATA LAYER                      │
+                  │   Acceso y Transformación         │
+                  │   (Compartida)                    │
+                  │                                   │
+                  │   - cartaPorte.py                 │
+                  │   - ConvertirJson.py              │
+                  │   - InterpreteJson.py             │
+                  │                                   │
+                  └─────────────┬─────────────────────┘
+                                │
+                  ┌─────────────▼─────────────────────┐
+                  │                                   │
+                  │   DATABASE LAYER                  │
+                  │   Persistencia                    │
+                  │   (Compartida)                    │
+                  │                                   │
+                  │   - DBManager.py                  │
+                  │   - settings.py                   │
+                  │   - PostgreSQL                    │
+                  │                                   │
+                  └───────────────────────────────────┘
+```
+
+---
+
+## 🎯 Separación de APIs (Capa de Presentación)
+
+Las dos APIs actúan como la **Capa de Presentación** del sistema, cada una con responsabilidades distintas:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        DOCUSEAL SYSTEM                           │
+│                        PRESENTATION LAYER                        │
 └─────────────────────────────────────────────────────────────────┘
                               │
                 ┌─────────────┴──────────────┐
                 │                            │
         ┌───────▼────────┐          ┌───────▼────────┐
         │  SERVICE API   │          │   ADMIN API    │
-        │  Puerto: 8000  │          │  Puerto: 8001  │
+        │  Puerto: 8001  │          │  Puerto: 8002  │
         │                │          │                │
         │  🌐 PÚBLICO    │          │  🔒 INTERNO    │
         └───────┬────────┘          └───────┬────────┘
@@ -29,322 +124,169 @@
                     └─────────┬──────────┘
                               │
                     ┌─────────▼──────────┐
-                    │ INFRASTRUCTURE     │
+                    │   DATABASE LAYER   │
                     │   (Compartido)     │
                     └────────────────────┘
 ```
 
-## 📦 Componentes del Sistema
+## � Descripción Detallada de Capas
 
-### 1. SERVICE API (Puerto 8001)
-**Propósito**: API pública para clientes externos
+### Capa 1: PRESENTATION LAYER (Capa de Presentación)
+**Responsabilidad**: Exponer funcionalidades del sistema a través de APIs REST
 
-**Endpoints**:
-- `POST /timbrar/` - Timbrar CFDI sellado
-- `POST /sellar/` - Sellar CFDI
-- `POST /timbrarSellar/` - Proceso completo
-- `GET /health` - Health check
+**Componentes**:
+- **Service API** (Puerto 8001): API pública para clientes externos
+- **Admin API** (Puerto 8002): API administrativa para gestión interna
 
 **Características**:
-- Sin autenticación requerida
-- CORS permisivo
-- Documentación pública
-- Ideal para integraciones
+- ✅ Manejo de peticiones HTTP
+- ✅ Validación de entrada
+- ✅ Serialización/Deserialización JSON
+- ✅ Documentación automática (Swagger)
+- ✅ Manejo de CORS
+- ✅ Rate limiting (futuro)
 
-**Uso típico**:
-```bash
-curl -X POST http://localhost:8001/timbrar/ \
-  -H "Content-Type: application/json" \
-  -d '{...}'
-```
+**Ubicación**: `backend/app/api_service/` y `backend/app/api_admin/`
 
 ---
 
-### 2. ADMIN API (Puerto 8002)
-**Propósito**: Panel administrativo para gestión interna
+### Capa 2: BUSINESS LAYER (Capa de Lógica de Negocio)
+**Responsabilidad**: Contener toda la lógica de negocio, reglas del dominio y comunicación con servicios externos
 
-**Endpoints de Autenticación**:
-- `POST /api/register` - Registro de usuarios
-- `POST /api/login` - Login de usuarios
-
-**Endpoints de Certificados**:
-- `GET /api/v1/certificados/` - Listar todos
-- `GET /api/v1/certificados/usuario/{usuario}` - Por usuario
-- `GET /api/v1/certificados/numero/{numero}` - Por número
-- `POST /api/v1/certificados/` - Crear
-- `PUT /api/v1/certificados/{id}` - Actualizar
-- `DELETE /api/v1/certificados/{id}` - Eliminar
-
-**Características**:
-- Autenticación futura con JWT
-- CORS restrictivo
-- Documentación administrativa
-- Gestión de BD
-
-**Uso típico**:
-```bash
-curl -X GET http://localhost:8002/api/v1/certificados/
-```
-
----
-
-### 3. BUSINESS LAYER (Compartido)
-**Módulos principales**:
-
+**Componentes principales**:
 ```
 Business/
-├── SellarXML.py             # Sellado digital de CFDI
-├── Timbrado.py              # Integración con PAC
-├── ValidadorCFDI.py         # Validación de comprobantes
-├── ConfiguracionLogin.py    # Lógica de login
-├── ConfiguracionRegistro.py # Lógica de registro
-├── ConfiguracionCertificados.py # Gestión de certificados
-├── ConfiguracionSello.py    # Configuración de sellado
-├── Correo.py                # Envío de emails
-├── PDF.py                   # Generación de PDFs
-└── PreferenciasCliente.py   # Preferencias de usuario
+├── SellarXML.py              # Sellado digital de comprobantes
+├── Timbrado.py               # Proceso de timbrado con PAC
+├── ValidadorCFDI.py          # Validación de estructura CFDI
+├── Correo.py                 # Envío de correos electrónicos
+├── PDF.py                    # Generación de representación impresa
+├── PreferenciasCliente.py    # Gestión de preferencias de usuario
+├── ResultadoTimbrado.py      # Procesamiento de resultados
+└── Configuration/
+    ├── ConfiguracionLogin.py        # Lógica de autenticación
+    ├── ConfiguracionRegistro.py     # Lógica de registro
+    ├── ConfiguracionCertificados.py # Gestión de certificados
+    └── ConfiguracionSello.py        # Configuración de sellado
 ```
+
+**Características**:
+- ✅ Independiente de la presentación
+- ✅ Reutilizable por ambas APIs
+- ✅ Contiene validaciones de negocio
+- ✅ Orquesta operaciones complejas
+- ✅ Maneja transacciones
+- ✅ Integración con servicios externos (PAC, correo, etc.)
+
+**Ubicación**: `backend/app/Business/`
+
+**Nota**: Esta capa ahora también maneja la comunicación con servicios externos como el PAC del SAT, integrando lo que antes era la capa de infraestructura.
 
 ---
 
-### 4. DATA LAYER (Compartido)
-**Módulos principales**:
+### Capa 3: DATA LAYER (Capa de Acceso a Datos)
+**Responsabilidad**: Transformar y estructurar datos entre formatos
 
+**Componentes principales**:
 ```
 Data/
-├── cartaPorte.py        # Manejo de Carta Porte
-├── ConvertirJson.py     # JSON → XML CFDI
-└── InterpreteJson.py    # Interpretación de datos
+├── cartaPorte.py         # Manejo específico de Carta Porte
+├── ConvertirJson.py      # Conversión JSON → XML CFDI
+└── InterpreteJson.py     # Interpretación y validación de JSON
 ```
+
+**Características**:
+- ✅ Transformación de datos
+- ✅ Validación de esquemas
+- ✅ Mapeo de objetos
+- ✅ Generación de XML SAT
+
+**Ubicación**: `backend/app/Data/`
 
 ---
 
-### 5. INFRASTRUCTURE LAYER (Compartido)
-**Módulos principales**:
+### Capa 4: DATABASE LAYER (Capa de Base de Datos)
+**Responsabilidad**: Persistencia y recuperación de datos
 
-```
-Infraestructure/
-├── PACClient.py         # Cliente HTTP para PAC
-├── RespuestaSAT.py      # Parser de respuestas SAT
-└── ConfiguracionPAC.py  # Configuración del PAC
-```
-
----
-
-### 6. DATABASE LAYER (Compartido)
-**Módulos principales**:
-
+**Componentes principales**:
 ```
 DB/
-├── DBManager.py         # Gestor principal de BD
-├── settings.py          # Configuración de conexión
-└── requirements.txt     # Dependencias de BD
+├── DBManager.py          # Gestor de conexiones y operaciones
+├── settings.py           # Configuración de base de datos
+└── migrations/           # Scripts de migración
 ```
+
+**Características**:
+- ✅ CRUD operations
+- ✅ Connection pooling
+- ✅ Gestión de transacciones
+- ✅ Sistema de soft delete
+- ✅ Migraciones de esquema
+
+**Ubicación**: `backend/app/DB/`
+
+
+## 🔧 Stack Tecnológico
+
+### Backend
+| Tecnología | Uso | Versión |
+|-----------|-----|---------|
+| **Python** | Lenguaje principal | 3.10+ |
+| **FastAPI** | Framework web | Latest |
+| **Uvicorn** | Servidor ASGI | Latest |
+| **SQLAlchemy** | ORM | Latest |
+| **PostgreSQL** | Base de datos | 12+ |
+| **bcrypt** | Hash de passwords | Latest |
+| **Cryptography** | Manejo de certificados | Latest |
+| **ReportLab** | Generación de PDFs | Latest |
+| **lxml** | Procesamiento XML | Latest |
+
+### Frontend Clásico
+| Tecnología | Uso |
+|-----------|-----|
+| **HTML5/CSS3** | Estructura y estilos |
+| **JavaScript (Vanilla)** | Lógica del cliente |
+| **Fetch API** | Comunicación con backend |
+
+### Frontend React (En desarrollo)
+| Tecnología | Uso | Versión |
+|-----------|-----|---------|
+| **React** | Framework UI | 18.x |
+| **TypeScript** | Tipado estático | 5.x |
+| **Vite** | Build tool | 5.x |
+| **Tailwind CSS** | Framework CSS | 3.x |
+| **React Router** | Enrutamiento | 6.x |
+
+### DevOps y Scripts
+| Herramienta | Uso |
+|------------|-----|
+| **PowerShell** | Scripts de automatización |
+| **Git** | Control de versiones |
+| **Cloudflare Tunnel** | Exposición pública (opcional) |
 
 ---
 
-## 🔄 Flujos de Trabajo
+---
 
-### Flujo 1: Timbrado desde Cliente Externo
-```
-Cliente Externo
-    │
-    │ POST /timbrarSellar/
-    ▼
-Service API (8001)
-    │
-    ├──▶ ConvertirJson (Data Layer)
-    ├──▶ SellarXML (Business Layer)
-    ├──▶ ValidadorCFDI (Business Layer)
-    ├──▶ PACClient (Infrastructure Layer)
-    └──▶ PDF (Business Layer)
-    │
-    ▼
-Response: XML Timbrado + PDF
-```
+## 📚 Glosario de Términos
 
-### Flujo 2: Gestión de Certificados desde Frontend
-```
-Frontend (index.html)
-    │
-    │ GET /api/v1/certificados/
-    ▼
-Admin API (8002)
-    │
-    └──▶ ConfiguracionCertificados (Business Layer)
-            │
-            └──▶ DBManager (DB Layer)
-                    │
-                    ▼
-                Database
-    │
-    ▼
-Response: Lista de certificados
-```
-
-### Flujo 3: Login de Usuario
-```
-Frontend (login.html)
-    │
-    │ POST /api/login
-    ▼
-Admin API (8002)
-    │
-    └──▶ ConfiguracionLogin (Business Layer)
-            │
-            └──▶ DBManager (DB Layer)
-    │
-    ▼
-Response: Token + Datos de usuario
-```
+| Término | Definición |
+|---------|------------|
+| **Capa (Layer)** | Agrupación lógica de componentes con responsabilidades similares |
+| **CFDI** | Comprobante Fiscal Digital por Internet (factura electrónica mexicana) |
+| **PAC** | Proveedor Autorizado de Certificación del SAT |
+| **CSD** | Certificado de Sello Digital (e.firma empresarial) |
+| **Sellado** | Firma digital del XML con el CSD del emisor |
+| **Timbrado** | Certificación del CFDI por el PAC y el SAT |
+| **UUID** | Identificador único del comprobante fiscal |
+| **Soft Delete** | Eliminación lógica (marcar como inactivo) en vez de física |
+| **ORM** | Object-Relational Mapping (SQLAlchemy en este proyecto) |
+| **API REST** | Interfaz de programación basada en HTTP |
+| **Swagger** | Herramienta de documentación automática de APIs |
 
 ---
 
-## 🚀 Scripts de Inicio
 
-### start_service.ps1
-```powershell
-# Inicia SOLO Service API
-cd backend/app/api_service
-uvicorn main:app --host 0.0.0.0 --port 8001 --reload
-```
-
-### start_admin.ps1
-```powershell
-# Inicia SOLO Admin API
-cd backend/app/api_admin
-uvicorn main:app --host 0.0.0.0 --port 8002 --reload
-```
-
-### start_all.ps1
-```powershell
-# Inicia AMBAS APIs simultáneamente
-# Service en puerto 8001
-# Admin en puerto 8002
-```
-
----
-
-## 📂 Estructura de Archivos Simplificada
-
-```
-DocuSeal/
-│
-├── start_service.ps1        ← Script Service API
-├── start_admin.ps1          ← Script Admin API
-├── start_all.ps1            ← Script Ambas APIs
-├── README.md                ← Documentación completa
-├── QUICKSTART.md            ← Guía rápida
-│
-├── backend/app/
-│   │
-│   ├── api_service/         ← SERVICE API (Puerto 8001)
-│   │   └── main.py
-│   │
-│   ├── api_admin/           ← ADMIN API (Puerto 8002)
-│   │   └── main.py
-│   │
-│   ├── Business/            ← Lógica compartida
-│   ├── Data/                ← Datos compartidos
-│   ├── DB/                  ← Base de datos
-│   ├── Infraestructure/     ← Infraestructura
-│   └── ejemplos/            ← JSONs de ejemplo
-│
-└── Frontend/                ← Panel web (conecta a Admin API)
-    ├── index.html
-    ├── login.html
-    ├── js/api.js            ← Configurado para puerto 8002
-    └── css/
-```
-
----
-
-## 🎨 Diferencias Clave
-
-| Aspecto | SERVICE API (8001) | ADMIN API (8002) |
-|---------|-------------------|------------------|
-| **Propósito** | Servicios públicos | Gestión interna |
-| **Clientes** | Externos | Frontend web |
-| **Autenticación** | No requerida | Futura con JWT |
-| **CORS** | Permisivo (*) | Restrictivo |
-| **Endpoints** | 4 (health + 3 servicios) | 9 (auth + certificados) |
-| **Deploy** | Producción pública | Red interna |
-| **Documentación** | Pública | Privada |
-
----
-
-## 🔐 Seguridad por Capas
-
-### Capa 1: Separación de APIs
-- ✅ Service y Admin en puertos diferentes
-- ✅ Sin exposición de endpoints administrativos en Service
-
-### Capa 2: CORS
-- ✅ Service API: Permisivo (público)
-- ✅ Admin API: Restrictivo (solo frontend autorizado)
-
-### Capa 3: Autenticación (Futuro)
-- ⏳ JWT tokens para Admin API
-- ⏳ Rate limiting en Service API
-- ⏳ API Keys para clientes externos
-
-### Capa 4: Encriptación
-- ✅ Contraseñas encriptadas con Fernet
-- ✅ Certificados almacenados de forma segura
-- ✅ Comunicación HTTPS con PAC
-
----
-
-## 📊 Métricas del Sistema
-
-### Rendimiento
-- **Service API**: Optimizada para alto volumen de requests
-- **Admin API**: Optimizada para operaciones CRUD
-
-### Escalabilidad
-- APIs independientes = escalado independiente
-- Business Layer compartido = sin duplicación de código
-
-### Mantenibilidad
-- Separación clara de responsabilidades
-- Código modular y reutilizable
-- Documentación automática con Swagger
-
----
-
-## 🎯 Casos de Uso
-
-### Caso 1: Empresa Externa
-```
-Empresa con sistema ERP
-    ↓
-Integra con Service API (8001)
-    ↓
-Genera facturas automáticamente
-```
-
-### Caso 2: Administrador Interno
-```
-Administrador
-    ↓
-Accede al Frontend
-    ↓
-Gestiona certificados vía Admin API (8002)
-    ↓
-Certificados disponibles para Service API
-```
-
-### Caso 3: Desarrollador
-```
-Desarrollador
-    ↓
-Consulta Swagger docs (/docs)
-    ↓
-Prueba endpoints directamente
-    ↓
-Integra en su aplicación
-```
-
----
-
-**Última actualización**: 2 de Octubre de 2025
+**Última actualización**: 10 de Octubre de 2025  
+**Versión del Sistema**: 1.5.0  
+**Versión del Documento**: 2.1
