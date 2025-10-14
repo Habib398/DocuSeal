@@ -19,6 +19,8 @@ const emptyFormData: CertificateFormData = {
   telefono: '',
   CER: '',
   KEY: '',
+  Certificado: '',
+  pwdCER: '',
 };
 
 const CertificateModal: React.FC<CertificateModalProps> = ({
@@ -70,6 +72,21 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
     });
   };
 
+  // Función para extraer el certificado del archivo .cer
+  const extractCertificateFromCer = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remover el prefijo "data:*/*;base64," para obtener solo el Base64
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
   // Manejar subida de archivo CER
   const handleCerFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -77,9 +94,13 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
       setCerFileName(file.name);
       try {
         const base64 = await fileToBase64(file);
+        // Extraer también el certificado para el campo Certificado del XML
+        const certificado = await extractCertificateFromCer(file);
+        
         setFormData({
           ...formData,
           CER: base64,
+          Certificado: certificado, // Agregar el certificado extraído
         });
       } catch (error) {
         console.error('Error al convertir archivo CER:', error);
@@ -252,6 +273,22 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
                   <div className="col-12">
                     <div className="divider"></div>
                     <div className="section-title">Archivos</div>
+                  </div>
+                  <div className="col-12">
+                    <label htmlFor="pwdCER" className="form-label required-asterisk">
+                      Contraseña del Certificado
+                    </label>
+                    <input
+                      type="password"
+                      className="form-control"
+                      id="pwdCER"
+                      placeholder="Contraseña de los archivos CER/KEY"
+                      value={formData.pwdCER || ''}
+                      onChange={handleChange}
+                      disabled={loading}
+                      required
+                    />
+                    <div className="field-help">Contraseña para descifrar los archivos CER y KEY (dejar vacío solo si no tienen contraseña).</div>
                   </div>
                   <div className="col-12">
                     <label htmlFor="CER" className="form-label required-asterisk">

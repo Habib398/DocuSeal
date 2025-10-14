@@ -70,8 +70,9 @@ class ConfiguracionCertificados:
         
         if not es_actualizacion:
             # Validar campos requeridos solo en creación
-            campos_requeridos = ['usuarioPAC', 'contrasenaPAC', 'noCertificado', 'vigencia', 'CER', 'KEY', 'Certificado']
-            campos_faltantes = [campo for campo in campos_requeridos if campo not in datos or not datos[campo]]
+            # Certificado NO es requerido, se genera automáticamente desde CER
+            campos_requeridos = ['usuarioPAC', 'contrasenaPAC', 'noCertificado', 'vigencia', 'CER', 'KEY', 'pwdCER']
+            campos_faltantes = [campo for campo in campos_requeridos if campo not in datos or datos[campo] is None]
             
             if campos_faltantes:
                 return False, f"Campos requeridos faltantes: {', '.join(campos_faltantes)}"
@@ -92,7 +93,8 @@ class ConfiguracionCertificados:
         if 'KEY' in datos and len(datos['KEY']) < 10:
             return False, "El contenido del archivo KEY es demasiado corto"
         
-        if 'Certificado' in datos and len(datos['Certificado']) < 10:
+        # Certificado es opcional, ya que se genera automáticamente desde CER
+        if 'Certificado' in datos and datos['Certificado'] and len(datos['Certificado']) < 10:
             return False, "El contenido del Certificado es demasiado corto"
         
         return True, ""
@@ -130,6 +132,9 @@ class ConfiguracionCertificados:
             else:
                 key_bytes = key_value
 
+            # Si no viene Certificado, usar el mismo CER (es el mismo contenido en base64)
+            certificado_texto = datos.get('Certificado', datos['CER'])
+
             # Insertar certificado (CER/KEY como bytes)
             cert_id = self.db_manager.insert_certificado(
                 usuarioPAC=datos['usuarioPAC'],
@@ -139,9 +144,10 @@ class ConfiguracionCertificados:
                 KEY=key_bytes,
                 vigencia=datos['vigencia'],
                 noCertificado=datos['noCertificado'],
-                Certificado=datos['Certificado'],
+                Certificado=certificado_texto,
                 correo=datos.get('correo', ''),
-                telefono=datos.get('telefono', '')
+                telefono=datos.get('telefono', ''),
+                pwdCER=datos['pwdCER']  # Requerido
             )
             
             logger.info(f"Certificado creado exitosamente con ID: {cert_id}")
@@ -174,6 +180,13 @@ class ConfiguracionCertificados:
             
             # Si CER/KEY vienen en base64, decodificarlas a bytes antes de actualizar
             datos_to_update = datos.copy()
+            
+            # Eliminar campos que no se deben actualizar directamente
+            datos_to_update.pop('id', None)
+            datos_to_update.pop('activo', None)
+            datos_to_update.pop('created_at', None)
+            datos_to_update.pop('updated_at', None)
+            
             if 'CER' in datos_to_update and isinstance(datos_to_update['CER'], str):
                 try:
                     datos_to_update['CER'] = base64.b64decode(datos_to_update['CER'])

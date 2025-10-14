@@ -18,17 +18,35 @@ def _normalize_cert_keys(cert_dict):
     # Convierte los nombres de columnas de PostgreSQL a camelCase para el frontend. (Copilot)
     if not cert_dict:
         return None
+    
+    def encode_if_bytes(value):
+        if value is None:
+            return None
+        # Si es un string que comienza con \x, es un BYTEA escapado, convertirlo a bytes primero
+        if isinstance(value, str) and value.startswith('\\x'):
+            try:
+                value = bytes.fromhex(value[2:])
+            except:
+                return None
+        # Ahora convertir bytes a base64
+        if isinstance(value, bytes):
+            return base64.b64encode(value).decode('utf-8')
+        elif isinstance(value, str):
+            return value  # Assume it's already base64
+        else:
+            return None
+    
     return {
         'id': cert_dict.get('id'),
         'usuarioPAC': cert_dict.get('usuariopac'),
         'contrasenaPAC': cert_dict.get('contrasenapac'),
         'nombreEmpresa': cert_dict.get('nombreempresa'),
-    # Convertir bytes a base64 para el frontend (si están en bytes)
-    'CER': base64.b64encode(cert_dict.get('cer')).decode('utf-8') if cert_dict.get('cer') is not None else None,
-    'KEY': base64.b64encode(cert_dict.get('key')).decode('utf-8') if cert_dict.get('key') is not None else None,
+        'CER': encode_if_bytes(cert_dict.get('cer')),
+        'KEY': encode_if_bytes(cert_dict.get('key')),
         'vigencia': str(cert_dict.get('vigencia')) if cert_dict.get('vigencia') else None,
         'noCertificado': cert_dict.get('nocertificado'),
         'Certificado': cert_dict.get('certificado'),
+        'pwdCER': cert_dict.get('pwdcer'),
         'correo': cert_dict.get('correo'),
         'telefono': cert_dict.get('telefono'),
         'activo': cert_dict.get('activo', True),
@@ -44,7 +62,7 @@ class DBManager:
         # Obtiene una conexión a la base de datos
         return get_db_connection()
 
-    def insert_certificado(self, usuarioPAC, contrasenaPAC, nombreEmpresa, CER, KEY, vigencia, noCertificado, Certificado, correo=None, telefono=None):
+    def insert_certificado(self, usuarioPAC, contrasenaPAC, nombreEmpresa, CER, KEY, vigencia, noCertificado, Certificado, pwdCER, correo=None, telefono=None):
         """Inserta un nuevo registro en la tabla certificados_pac."""
         conn = None
         try:
@@ -53,12 +71,14 @@ class DBManager:
             # Asegurarse de pasar bytes como psycopg2.Binary para campos binarios
             cer_param = Binary(CER) if CER is not None else None
             key_param = Binary(KEY) if KEY is not None else None
+            # pwdCER es requerido, usar string vacío si es None
+            pwd_cer_value = pwdCER if pwdCER is not None else ''
 
             cursor.execute("""
-                INSERT INTO certificados_pac (usuarioPAC, contrasenaPAC, nombreEmpresa, CER, KEY, vigencia, noCertificado, Certificado, correo, telefono)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO certificados_pac (usuarioPAC, contrasenaPAC, nombreEmpresa, CER, KEY, vigencia, noCertificado, Certificado, correo, telefono, pwdCER)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
-            """, (usuarioPAC, contrasenaPAC, nombreEmpresa, cer_param, key_param, vigencia, noCertificado, Certificado, correo, telefono))
+            """, (usuarioPAC, contrasenaPAC, nombreEmpresa, cer_param, key_param, vigencia, noCertificado, Certificado, correo, telefono, pwd_cer_value))
             
             new_id = cursor.fetchone()[0]
             conn.commit()

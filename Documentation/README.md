@@ -234,6 +234,9 @@ DocuSeal/
 
 **Base URL:** `http://localhost:8001`
 
+> **🆕 Novedad v1.6.0**: Todos los endpoints ahora aceptan XML directamente mediante el campo `datos_xml`.  
+> Ver [USO_DATOS_XML.md](USO_DATOS_XML.md) para documentación completa.
+
 #### Endpoints Disponibles:
 
 ##### 1. Health Check
@@ -303,7 +306,10 @@ Content-Type: application/json
 ```http
 POST /timbrarSellar/
 Content-Type: application/json
+```
 
+**Formato tradicional (JSON estructurado):**
+```json
 {
   "Emisor": { ... },
   "Receptor": { ... },
@@ -317,16 +323,47 @@ Content-Type: application/json
 }
 ```
 
+**🆕 Formato nuevo (XML como string):**
+```json
+{
+  "datos_xml": "<?xml version=\"1.0\"?><cfdi:Comprobante>...</cfdi:Comprobante>",
+  "PAC": {
+    "usuario": "usuario_pac",
+    "contrasena": "password_pac"
+  },
+  "generarPDF": false,
+  "enviarCorreo": false,
+  "pruebas": true
+}
+```
+
 **Respuesta:**
 ```json
 {
   "uuid": "12345678-1234-1234-1234-123456789012",
   "fecha_timbrado": "2025-10-02T12:00:00",
   "xml_timbrado": "<cfdi:Comprobante ... />",
-  "pdf": "base64_encoded_pdf...",
+  "cadena_original": "||fields|separated||",
+  "modo_entrada": "datos_xml",
+  "info_cfdi": {
+    "version": "4.0",
+    "emisor_rfc": "AAA010101AAA",
+    "receptor_rfc": "XAXX010101000",
+    "total": "1160.00",
+    "tiene_sello": true,
+    "tiene_timbre": true,
+    "uuid": "12345678-1234-1234-1234-123456789012"
+  },
   "mensaje": "Proceso completado exitosamente"
 }
 ```
+
+> **💡 Ventajas del formato `datos_xml`:**
+> - ✅ No necesitas construir estructura JSON completa
+> - ✅ Facilita integración con sistemas que ya generan XML
+> - ✅ Validación automática de estructura y campos
+> - ✅ Detección inteligente de sello y timbre previos
+> - ✅ Compatible con formato tradicional (ambos funcionan)
 
 ---
 

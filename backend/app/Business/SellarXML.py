@@ -1,232 +1,183 @@
-import os
+"""
+SellarXML.py - Clase para el sellado de CFDI
+Maneja el sellado criptográfico de documentos CFDI usando certificados de la base de datos.
+"""
+
 from typing import Optional
 from DB.DBManager import DBManager
-from Data.ConvertirJson import ConvertirJson
-from Business.Configuration.ConfiguracionSello import ConfiguracionSello
 import base64
-import tempfile
-import json
 from satcfdi.models import Signer
 from satcfdi.cfdi import CFDI
-from cryptography.fernet import Fernet
+
 
 class SellarXML:
+    """
+    Clase para el sellado de documentos CFDI.
+    Obtiene los certificados CER y KEY desde la base de datos y realiza el sellado digital.
+    """
 
-    def __init__(self,id: int, complemento: ConfiguracionSello, xml: str, xmlSellado: Optional[str] = None):
+    def __init__(self, id: int, xml: str, cer_bytes: bytes, key_bytes: bytes, password: Optional[str] = None, xmlSellado: Optional[str] = None):
         self.id = id
-        self.complemento = complemento
         self.xml = xml
+        self.cer_bytes = cer_bytes
+        self.key_bytes = key_bytes
+        self.password = password
         self.xmlSellado = xmlSellado
         self.cadena_original: Optional[str] = None
-        self.no_certificado_json: Optional[str] = None
-        self.certificado_json: Optional[str] = None
 
-    def _resolve_path(self, path: str) -> str:
-        # Convierte una ruta relativa a absoluta, si es necesario. (Hecho por Copilot)
-        if not os.path.isabs(path):
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            abs_path = os.path.join(base_dir, path)
-            return abs_path
-        return path
-    
     def get_sello(self) -> str:
+        """Retorna el XML sellado"""
         return self.xmlSellado
     
     def get_cadena_original(self) -> Optional[str]:
-        """Retorna la cadena original generada"""
+        """Retorna la cadena original generada durante el sellado"""
         return self.cadena_original
 
-    def obtener_cer_db(self, noCertificado: str) -> Optional[str]:
-        """Obtiene el campo CER de la base de datos"""
+    @staticmethod
+    def obtener_cer_db(noCertificado: str) -> Optional[bytes]:
+        """
+        Obtiene el campo CER de la base de datos en formato bytes.
+        """
         db = DBManager()
         registro = db.get_certificado_by_noCertificado(noCertificado)
-        print(f"[LOG] Resultado consulta CER para noCertificado={noCertificado}: {registro}")
         if registro:
-            if isinstance(registro, dict):
-                cer_value = registro.get('CER')  # Cambiado a mayúsculas
-                print(f"[LOG] CER obtenido (dict): {cer_value}")
-                return cer_value
-            elif isinstance(registro, (list, tuple)):
-                print(f"[LOG] CER obtenido (tuple): {registro[3]}")
-                return registro[3]  # CER está en la posición 3
-        print("[LOG] No se encontró registro para CER")
+            cer_b64 = registro.get('CER')
+            if cer_b64:
+                try:
+                    return base64.b64decode(cer_b64)
+                except Exception as e:
+                    raise ValueError(f"Error decodificando CER: {str(e)}")
         return None
 
-    def obtener_key_db(self, noCertificado: str) -> Optional[str]:
-        """Obtiene el campo KEY de la base de datos"""
+    @staticmethod
+    def obtener_key_db(noCertificado: str) -> Optional[bytes]:
+        """
+        Obtiene el campo KEY de la base de datos en formato bytes.
+        """
         db = DBManager()
         registro = db.get_certificado_by_noCertificado(noCertificado)
-        print(f"[LOG] Resultado consulta KEY para noCertificado={noCertificado}: {registro}")
         if registro:
-            if isinstance(registro, dict):
-                key_value = registro.get('KEY')  # Cambiado a mayúsculas
-                print(f"[LOG] KEY obtenido (dict): {key_value}")
-                return key_value
-            elif isinstance(registro, (list, tuple)):
-                print(f"[LOG] KEY obtenido (tuple): {registro[4]}")
-                return registro[4]  # KEY está en la posición 4
-        print("[LOG] No se encontró registro para KEY")
+            key_b64 = registro.get('KEY')
+            if key_b64:
+                try:
+                    return base64.b64decode(key_b64)
+                except Exception as e:
+                    raise ValueError(f"Error decodificando KEY: {str(e)}")
         return None
 
-    def obtener_certificado_db(self, noCertificado: str) -> Optional[str]:
-        """Obtiene el campo Certificado de la base de datos"""
+    @staticmethod
+    def obtener_certificado_db(noCertificado: str) -> Optional[str]:
+        """
+        Obtiene el campo Certificado (texto base64) de la base de datos.
+        Este campo contiene el certificado en formato base64 tal como se usa en el XML.
+        """
         db = DBManager()
         registro = db.get_certificado_by_noCertificado(noCertificado)
-        print(f"[LOG] Resultado consulta Certificado para noCertificado={noCertificado}")
         if registro:
-            if isinstance(registro, dict):
-                cert_value = registro.get('Certificado')
-                print(f"[LOG] Certificado obtenido (dict): {'Sí' if cert_value else 'No'}")
-                return cert_value
-            elif isinstance(registro, (list, tuple)) and len(registro) > 8:
-                print(f"[LOG] Certificado obtenido (tuple): Sí")
-                return registro[8]  # Certificado está en la posición 8
-        print("[LOG] No se encontró registro para Certificado")
+            return registro.get('Certificado')
         return None
 
-    def convertir_cer(self, cer_b64: str) -> bytes:
-        return base64.b64decode(cer_b64)
+    @staticmethod
+    def obtener_password_db(noCertificado: str) -> str:
+        """
+        Obtiene la contraseña del certificado desde la base de datos.
+        """
+        db = DBManager()
+        registro = db.get_certificado_by_noCertificado(noCertificado)
+        if registro:
+            pwd = registro.get('pwdCER')
+            return pwd if pwd else ''
+        return ''
     
-    def convertir_key(self, key_b64: str) -> bytes:
-        return base64.b64decode(key_b64)
-    
-    def archivar_cer(self, cer_b64: str, filename: str) -> str:
-        cer_bytes = self.convertir_cer(cer_b64)
-        tmpfile = tempfile.NamedTemporaryFile(delete=False, suffix=".cer")
-        tmpfile.write(cer_bytes)
-        tmpfile.close()
-        return tmpfile.name
-    
-    def archivar_key(self, key_b64: str, filename: str) -> str:
-        key_bytes = self.convertir_key(key_b64)
-        tmpfile = tempfile.NamedTemporaryFile(delete=False, suffix=".key")
-        tmpfile.write(key_bytes)
-        tmpfile.close()
-        return tmpfile.name
-
     def _load_signer(self) -> Signer:
-        cer_data = self.complemento.get_cer()
-        key_data = self.complemento.get_key()
-        password = self.complemento.get_pwd_cer() or None
-
-        if os.path.exists(cer_data):
-            # Ruta de archivo
-            cer_path = self._resolve_path(cer_data)
-            with open(cer_path, "rb") as f:
-                cer_bytes = f.read()
-        else:
-            # Contenido base64
-            cer_bytes = base64.b64decode(cer_data)
-
-        if os.path.exists(key_data):
-            # Ruta de archivo
-            key_path = self._resolve_path(key_data)
-            with open(key_path, "rb") as f:
-                key_bytes = f.read()
-        else:
-            # Contenido base64
-            key_bytes = base64.b64decode(key_data)
-
-        signer = Signer.load(certificate=cer_bytes, key=key_bytes, password=password)
-        return signer
-    
-    def limpiar_temporal(self, ruta: str) -> None:
-        if os.path.exists(ruta):
-            os.remove(ruta)
+        """
+        Carga el signer (firmador) usando los certificados en bytes.
+        """
+        return Signer.load(
+            certificate=self.cer_bytes, 
+            key=self.key_bytes, 
+            password=self.password
+        )
     
     @classmethod
     def sellar_cfdi(cls, data: dict) -> dict:
+        """
+        Método principal para sellar un CFDI.
+        Acepta datos_xml como string (XML).
+        """
         try:
-            # Obtener NoCertificado del JSON
-            no_certificado = None
-            if "datos_xml" in data and isinstance(data["datos_xml"], dict):
-                comprobante = data["datos_xml"].get("cfdi:Comprobante")
-                if comprobante and isinstance(comprobante, dict):
-                    no_certificado = comprobante.get("NoCertificado")
+            # Obtener NoCertificado del XML
+            if "datos_xml" not in data or not isinstance(data["datos_xml"], str):
+                return {"error": "El campo 'datos_xml' debe ser un string XML"}
+            
+            from lxml import etree
+            try:
+                xml_tree = etree.fromstring(data["datos_xml"].encode('utf-8'))
+                no_certificado = xml_tree.get('NoCertificado')
+            except Exception as e:
+                return {"error": f"Error al parsear XML en datos_xml: {str(e)}"}
             
             if not no_certificado:
-                return {"error": "Falta el campo 'NoCertificado' en 'datos_xml.cfdi:Comprobante'"}
+                return {"error": "Falta el campo 'NoCertificado' en el XML"}
 
-            # Obtener CER, KEY y Certificado de la base de datos
-            sellador_temp = cls(1, None, None)
-            cer_b64 = sellador_temp.obtener_cer_db(no_certificado)
-            key_b64 = sellador_temp.obtener_key_db(no_certificado)
-            certificado_texto = sellador_temp.obtener_certificado_db(no_certificado)
+            # Obtener CER, KEY, Certificado y contraseña de la base de datos
+            cer_bytes = cls.obtener_cer_db(no_certificado)
+            key_bytes = cls.obtener_key_db(no_certificado)
+            certificado_texto = cls.obtener_certificado_db(no_certificado)
+            pwd_cer_db = cls.obtener_password_db(no_certificado)
             
-            if not cer_b64 or not key_b64:
+            if not cer_bytes or not key_bytes:
                 return {"error": "No se encontraron CER o KEY en la base de datos para el noCertificado proporcionado."}
             
             if not certificado_texto:
                 return {"error": "No se encontró el campo Certificado en la base de datos para el noCertificado proporcionado."}
 
-            # Agregar el campo Certificado al XML si no existe
-            if "datos_xml" in data and "cfdi:Comprobante" in data["datos_xml"]:
-                if "Certificado" not in data["datos_xml"]["cfdi:Comprobante"]:
-                    data["datos_xml"]["cfdi:Comprobante"]["Certificado"] = certificado_texto
-                    print("[LOG] Campo Certificado agregado automáticamente desde la BD")
+            # Establecer el campo Certificado desde la base de datos (sobrescribir si existe)
+            xml_tree.set('Certificado', certificado_texto)
+            xml_generado = etree.tostring(xml_tree, encoding='utf-8', xml_declaration=True).decode('utf-8')
 
-            # Generar XML
-            convertir = ConvertirJson(data["datos_xml"])
-            xml_generado = convertir.GenerarXmlCFDI()
+            # Obtener password del certificado desde la base de datos
+            pwd_cer = pwd_cer_db if pwd_cer_db else None
 
-            # Obtener pwdCER de JSON (ahora es opcional, con valor por defecto vacío)
-            pwd_cer = ""
-            if "certificado" in data and isinstance(data["certificado"], dict):
-                pwd_cer = data["certificado"].get("pwdCER", "")
-
-            # Crear archivos temporales de CER y KEY
-            cer_path = sellador_temp.archivar_cer(cer_b64, "temp_cert.cer")
-            key_path = sellador_temp.archivar_key(key_b64, "temp_key.key")
-
-            # Crear configuración con rutas de archivos temporales
-            certificado_json = {
-                "CER": cer_path,
-                "KEY": key_path,
-                "pwdCER": pwd_cer
-            }
-            raw_body = json.dumps({"certificado": certificado_json})
-            fernet_key = Fernet.generate_key().decode()
-            configuracion = ConfiguracionSello(raw_body, fernet_key.encode())
-
-            # Crear sellador y generar sello
-            sellador = cls(1, configuracion, xml_generado)
+            # Crear sellador con los bytes obtenidos de la BD
+            sellador = cls(
+                id=1,
+                xml=xml_generado,
+                cer_bytes=cer_bytes,
+                key_bytes=key_bytes,
+                password=pwd_cer
+            )
             
-            try:
-                xml_con_sello = sellador.GenerarSello(convertir)
-                # Eliminar archivos temporales
-                sellador.limpiar_temporal(cer_path)
-                sellador.limpiar_temporal(key_path)
-                return {
-                    "xml_con_sello": xml_con_sello,
-                    "cadena_original": sellador.cadena_original  # Retornar la cadena original
-                }
-            except Exception as e:
-                # Eliminar archivos temporales en caso de error
-                sellador.limpiar_temporal(cer_path)
-                sellador.limpiar_temporal(key_path)
-                return {"error": str(e)}
+            # Generar sello
+            xml_con_sello = sellador.GenerarSello()
+            
+            return {
+                "xml_con_sello": xml_con_sello,
+                "cadena_original": sellador.cadena_original
+            }
                 
         except Exception as e:
             return {"error": f"Error general en el proceso de sellado: {str(e)}"}
 
-    def GenerarSello(self, xml_convertidor: Optional[ConvertirJson] = None) -> str:
-        if xml_convertidor is not None:
-            self.xml = xml_convertidor.GenerarXmlCFDI()
-
-        # Agregar atributo Sello="" si no existe (Hecho por Copilot)
+    def GenerarSello(self) -> str:
+        """
+        Genera el sello digital del CFDI.
+        """
+        # Agregar atributo Sello="" si no existe
         from lxml import etree
         xml_tree = etree.fromstring(self.xml.encode('utf-8'))
         if 'Sello' not in xml_tree.attrib:
             xml_tree.set('Sello', '')
         self.xml = etree.tostring(xml_tree, encoding='utf-8', xml_declaration=True).decode('utf-8')
 
+        # Crear CFDI y firmar
         cfdi = CFDI.from_string(self.xml.encode('utf-8'))
         signer = self._load_signer()
         cfdi.sign(signer)
 
         # Guardar la cadena original generada
         self.cadena_original = cfdi.cadena_original()
-        print(f"[LOG] Cadena original generada: {self.cadena_original[:100]}...")  # Imprimir primeros 100 caracteres
 
+        # Generar XML sellado
         self.xmlSellado = cfdi.xml_bytes(pretty_print=True).decode('utf-8')
         return self.xmlSellado

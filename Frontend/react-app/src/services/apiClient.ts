@@ -147,6 +147,8 @@ export interface Certificate {
   telefono?: string;
   CER: string;
   KEY: string;
+  Certificado: string;
+  pwdCER: string;
   activo?: boolean;
 }
 
@@ -160,6 +162,8 @@ export interface CertificateFormData {
   telefono?: string;
   CER: string;
   KEY: string;
+  Certificado?: string;
+  pwdCER: string;
 }
 
 export const apiClient = new ApiClient();
