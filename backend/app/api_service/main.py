@@ -42,7 +42,7 @@ app = FastAPI(
     title="DocuSeal Service API",
     version="1.6.0",
     description="API pública para servicios de sellado y timbrado de CFDI. "
-                "Soporta XML directo (campo datos_xml) y JSON estructurado.",
+                "Soporta 'xml' (string XML) y 'datosXML' (estructura JSON).",
     openapi_tags=openapi_tags,
 )
 

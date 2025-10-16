@@ -16,13 +16,7 @@ class PreferenciasCliente:
         if generar_pdf is None:
             generar_pdf = data.get("enviarPDF", False)
         
-        # Leer idPreferencia (opcional)
-        id_pref = data.get("idPreferencia")
-        if not isinstance(id_pref, int):
-            id_pref = None
-        
         return cls(
-            idPreferencia=id_pref,
             enviarEmail=enviar_email,
             enviarPDF=generar_pdf
         )

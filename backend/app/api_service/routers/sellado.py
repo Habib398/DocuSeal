@@ -26,16 +26,16 @@ router = APIRouter(
 @router.post(
     "/sellar/",
     summary="Sellar CFDI",
-    description="Sellado de un CFDI."
+    description="Sellado de un CFDI. Acepta 'xml' (string XML) o 'datosXML' (estructura JSON). "
                 "Requiere credenciales del certificado (pwdCER) para desencriptar la llave privada.",
     tags=["Sellado"]
 )
 async def sellar_endpoint(
     data: dict = Body(
         ...,
-        description="Objeto JSON con 'datos_xml' (XML string u objeto JSON con estructura del comprobante) y credenciales del certificado.",
+        description="Objeto JSON con 'xml' (XML string) o 'datosXML' (estructura JSON del comprobante) y credenciales del certificado.",
         example={
-            "datos_xml": {
+            "datosXML": {
                 "cfdi:Comprobante": {
                     "Version": "4.0",
                     "Serie": "A",
@@ -55,17 +55,17 @@ async def sellar_endpoint(
 @router.post(
     "/timbrarSellar/",
     summary="Sellar y timbrar CFDI",
-    description="Realiza el sellado y timbrado. Acepta JSON con estructura o 'datos_xml'. "
+    description="Realiza el sellado y timbrado. Acepta 'xml' (string XML) o 'datosXML' (estructura JSON). "
                 "Opcionalmente genera PDF y envía correo.",
     tags=["Timbrado y Sellado"]
 )
 async def timbrar_sellar_endpoint(
     data: dict = Body(
         ...,
-        description="JSON con datos del comprobante o 'datos_xml' con XML. "
+        description="JSON con 'xml' (string XML) o 'datosXML' (estructura JSON del comprobante). "
                     "Incluir PAC para timbrado, flags para PDF/correo.",
         example={
-            "datos_xml": "<Comprobante ...>...</Comprobante>",
+            "xml": "<Comprobante ...>...</Comprobante>",
             "PAC": {"usuario": "miUsuarioPAC", "contrasena": "miContrasenaPAC"},
             "generarPDF": True,
             "enviarCorreo": False

@@ -29,7 +29,14 @@ class InyectorPDF:
     
     def extraer_datos_json(self, datos_json: dict, xml_sellado: str = None, cadena_original: str = None) -> dict:
         # Obtener el nodo principal del CFDI
-        comprobante = datos_json.get("datos_xml", {}).get("cfdi:Comprobante", {})
+        # Puede venir como "datosXML" (estructura JSON) o "xml" (string o dict)
+        comprobante_data = datos_json.get("datosXML") or datos_json.get("xml", {})
+        
+        # Si es un dict, buscar el nodo Comprobante
+        if isinstance(comprobante_data, dict):
+            comprobante = comprobante_data.get("cfdi:Comprobante", comprobante_data)
+        else:
+            comprobante = {}
         
         # Extraer datos del Emisor
         emisor_data = comprobante.get("cfdi:Emisor", {})
@@ -141,7 +148,7 @@ class InyectorPDF:
 if __name__ == "__main__":
     # Ejemplo de JSON de entrada (simplificado)
     ejemplo_json = {
-        "datos_xml": {
+        "datosXML": {
             "cfdi:Comprobante": {
                 "Fecha": "2025-10-03T10:30:00",
                 "Serie": "A",

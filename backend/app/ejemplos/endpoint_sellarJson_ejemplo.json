@@ -1,6 +1,6 @@
-{
-  "datosXML": {
-  "cfdi:Comprobante": {
+﻿{
+    "datosXML": {
+    "cfdi:Comprobante": {
     "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
     "xsi:schemaLocation": "http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd",
     "xmlns:cfdi": "http://www.sat.gob.mx/cfd/4",

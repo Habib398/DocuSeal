@@ -5,8 +5,8 @@ from typing import List, Dict, Any
 class ValidadorCFDI:
     """Valida reglas básicas antes de timbrar."""
 
-    def __init__(self, datos_xml: Dict[str, Any]):
-        self.datos = datos_xml or {}
+    def __init__(self, xml: Dict[str, Any]):
+        self.datos = xml or {}
         self.comprobante = self.datos.get("cfdi:Comprobante", {})
         self.resultado: List[Dict[str, str]] = []
 

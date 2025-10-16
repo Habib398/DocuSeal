@@ -1,6 +1,6 @@
 """
 ServicioTimbrado.py - Service Layer para operaciones de timbrado de CFDI
-Solo acepta XML en formato string (datos_xml)
+Solo acepta XML en formato string (xml)
 """
 
 import logging
@@ -23,9 +23,9 @@ class ServicioTimbrado:
         logger.info("Iniciando proceso de timbrado desde XML")
         
         # Extraer XML
-        xml_input = data.get('datos_xml')
+        xml_input = data.get('xml')
         if not xml_input:
-            return {"error": "Falta campo 'datos_xml' en el cuerpo de la petición"}
+            return {"error": "Falta campo 'xml' en el cuerpo de la petición"}
         
         # Extraer NoCertificado del XML para obtener credenciales PAC de la BD
         from lxml import etree

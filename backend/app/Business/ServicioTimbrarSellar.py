@@ -1,6 +1,8 @@
 """
 ServicioTimbrarSellar.py - Service Layer para operaciones completas de sellado y timbrado
-Solo acepta XML en formato string (datos_xml)
+Acepta:
+- "xml": string XML
+- "datosXML": estructura JSON (dict)
 """
 
 import logging
@@ -21,16 +23,24 @@ class ServicioTimbrarSellar:
     @staticmethod
     def procesar(data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Procesa un CFDI completo desde XML: sellado y timbrado.
+        Procesa un CFDI completo: sellado y timbrado.
+        Acepta:
+        - "xml": string XML
+        - "datosXML": estructura JSON (dict)
         """
-        logger.info("Iniciando proceso completo de timbrarSellar desde XML")
+        logger.info("Iniciando proceso completo de timbrarSellar")
         
-        # Validar que venga datos_xml
-        xml_input = data.get('datos_xml')
-        if not xml_input:
-            return {"error": "Falta campo 'datos_xml' en el cuerpo de la petición"}
+        # Validar que venga al menos uno de los dos formatos
+        xml_input = data.get('xml')
+        json_input = data.get('datosXML')
         
-        logger.info(f"Procesando XML (longitud: {len(xml_input)} caracteres)")
+        if not xml_input and not json_input:
+            return {"error": "Debe proporcionar 'xml' (string XML) o 'datosXML' (estructura JSON)"}
+        
+        if xml_input:
+            logger.info(f"Procesando XML string (longitud: {len(xml_input)} caracteres)")
+        else:
+            logger.info("Procesando estructura JSON en 'datosXML'")
         
         # Sellado
         logger.info("Iniciando sellado")

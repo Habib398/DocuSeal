@@ -3,6 +3,7 @@ SellarXML.py - Clase para el sellado de CFDI
 Maneja el sellado criptográfico de documentos CFDI usando certificados de la base de datos.
 """
 
+from asyncio.log import logger
 from typing import Optional
 from DB.DBManager import DBManager
 import base64
@@ -103,19 +104,47 @@ class SellarXML:
     def sellar_cfdi(cls, data: dict) -> dict:
         """
         Método principal para sellar un CFDI.
-        Acepta datos_xml como string (XML).
+        Acepta:
+        - "xml": string XML
+        - "datosXML": estructura JSON (dict)
         """
         try:
-            # Obtener NoCertificado del XML
-            if "datos_xml" not in data or not isinstance(data["datos_xml"], str):
-                return {"error": "El campo 'datos_xml' debe ser un string XML"}
+            # Verificar qué formato viene
+            xml_string_input = data.get("xml")
+            json_input = data.get("datosXML")
+            
+            # CASO 1: Viene como estructura JSON en "datosXML"
+            if json_input and isinstance(json_input, dict):
+                logger.info("Sellando desde estructura JSON en 'datosXML'")
+                
+                # Convertir JSON a XML usando ConvertirJson
+                from .cfdi.ConvertirJson import ConvertirJson
+                try:
+                    converter = ConvertirJson(json_input)
+                    xml_input = converter.GenerarXmlCFDI()
+                    logger.info(f"XML generado desde JSON (longitud: {len(xml_input)} caracteres)")
+                except Exception as e:
+                    return {"error": f"Error al convertir JSON a XML: {str(e)}"}
+            
+            # CASO 2: Viene como XML string en "xml"
+            elif xml_string_input and isinstance(xml_string_input, str):
+                logger.info(f"Sellando XML string (longitud: {len(xml_string_input)} caracteres)")
+                xml_input = xml_string_input.strip()
+            
+            # CASO 3: No viene ninguno de los dos formatos válidos
+            else:
+                return {"error": "Debe proporcionar 'xml' (string XML) o 'datosXML' (estructura JSON)"}
+            
+            # Limpiar y normalizar el XML (eliminar espacios/saltos de línea innecesarios)
+            import re
+            xml_input = re.sub(r'>\s+<', '><', xml_input)
             
             from lxml import etree
             try:
-                xml_tree = etree.fromstring(data["datos_xml"].encode('utf-8'))
+                xml_tree = etree.fromstring(xml_input.encode('utf-8'))
                 no_certificado = xml_tree.get('NoCertificado')
             except Exception as e:
-                return {"error": f"Error al parsear XML en datos_xml: {str(e)}"}
+                return {"error": f"Error al parsear XML: {str(e)}"}
             
             if not no_certificado:
                 return {"error": "Falta el campo 'NoCertificado' en el XML"}
@@ -163,7 +192,7 @@ class SellarXML:
         """
         Genera el sello digital del CFDI.
         """
-        # Agregar atributo Sello="" si no existe
+        # Agregar atributo sello si no existe en xml
         from lxml import etree
         xml_tree = etree.fromstring(self.xml.encode('utf-8'))
         if 'Sello' not in xml_tree.attrib:

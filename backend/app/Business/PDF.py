@@ -4,7 +4,6 @@ from typing import Optional, Tuple
 
 # Añadir ruta al Frontend para acceder al Inyector
 current_dir = os.path.dirname(os.path.abspath(__file__))
-# Intentamos resolver la ruta correcta hacia Frontend/Templates donde está Inyector.py
 frontend_templates_path = os.path.abspath(os.path.join(current_dir, '..', '..', '..', 'Frontend', 'Templates'))
 frontend_templates_file = os.path.join(frontend_templates_path, 'Inyector.py')
 

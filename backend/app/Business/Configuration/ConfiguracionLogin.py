@@ -25,28 +25,9 @@ class ConfiguracionLogin:
     """Clase para manejar la lógica de autenticación de usuarios."""
     
     def __init__(self, db_manager):
-        """
-        Inicializa el servicio de login.
-        
-        Args:
-            db_manager: Instancia de DBManager para operaciones de BD
-        """
         self.db_manager = db_manager
     
     def verificar_password(self, password_plano: str, password_hash: str) -> bool:
-        """
-        Verifica que la contraseña coincida con el hash almacenado.
-        
-        Args:
-            password_plano: Contraseña en texto plano
-            password_hash: Hash de la contraseña almacenado en BD
-            
-        Returns:
-            True si coinciden, False en caso contrario
-            
-        Raises:
-            RuntimeError: Si bcrypt no está disponible
-        """
         if bcrypt is None:
             raise RuntimeError("bcrypt no está instalado. Instale con: pip install bcrypt")
         
@@ -59,15 +40,6 @@ class ConfiguracionLogin:
             return False
     
     def obtener_usuario(self, email: str) -> Optional[Dict[str, Any]]:
-        """
-        Obtiene un usuario por su email.
-        
-        Args:
-            email: Email del usuario
-            
-        Returns:
-            Diccionario con datos del usuario o None si no existe
-        """
         try:
             usuario = self.db_manager.get_usuario_by_email(email)
             return usuario
@@ -76,19 +48,6 @@ class ConfiguracionLogin:
             return None
     
     def autenticar_usuario(self, credenciales: UsuarioLoginRequest) -> Dict[str, Any]:
-        """
-        Autentica un usuario con sus credenciales.
-        
-        Args:
-            credenciales: Credenciales del usuario (email y password)
-            
-        Returns:
-            Diccionario con resultado de autenticación
-            
-        Raises:
-            ValueError: Si las credenciales son inválidas
-            RuntimeError: Si hay error en el proceso
-        """
         try:
             # Buscar usuario por email
             usuario = self.obtener_usuario(credenciales.email)
@@ -110,7 +69,7 @@ class ConfiguracionLogin:
             # Login exitoso
             logger.info(f"Login exitoso: {credenciales.email}")
             
-            # Preparar respuesta (sin incluir la contraseña)
+            # Preparar respuesta
             return {
                 "success": True,
                 "message": "Login exitoso",
@@ -132,33 +91,14 @@ class ConfiguracionLogin:
             raise RuntimeError(f"Error en el proceso de autenticación: {str(e)}")
     
     def validar_sesion_activa(self, user_id: int) -> bool:
-        """
-        Valida si un usuario tiene una sesión activa (implementación futura).
-        
-        Args:
-            user_id: ID del usuario
-            
-        Returns:
-            True si la sesión es válida
-            
-        Note:
-            Esta función está preparada para futuras implementaciones
-            con tokens JWT o sesiones en base de datos.
-        """
+        """"Implementacion futura"""
         # TODO: Implementar validación de sesión con tokens
         # Por ahora siempre retorna True
         return True
     
     def registrar_ultimo_login(self, user_id: int) -> None:
         """
-        Registra la fecha del último login (implementación futura).
-        
-        Args:
-            user_id: ID del usuario
-            
-        Note:
-            Esta función está preparada para futuras implementaciones
-            que requieran registrar el último acceso del usuario.
+        Implementación futura.
         """
         # TODO: Implementar registro de último login en BD
         # Requeriría añadir campo last_login en la tabla usuarios
