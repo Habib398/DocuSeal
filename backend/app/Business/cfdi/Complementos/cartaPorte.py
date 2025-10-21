@@ -2,7 +2,7 @@ from decimal import Decimal
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from satcfdi.cfdi import CFDI
-from satcfdi.create.cfd.cartaporte30 import CartaPorte
+from satcfdi.create.cfd.cartaporte31 import CartaPorte
 
 
 class CartaPorteExtractor:

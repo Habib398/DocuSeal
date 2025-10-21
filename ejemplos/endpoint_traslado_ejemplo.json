@@ -1,0 +1,52 @@
+{
+  "datosXML": {
+    "cfdi:Comprobante": {
+    "xmlns:cfdi": "http://www.sat.gob.mx/cfd/4",
+    "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+    "xsi:schemaLocation": "http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd",
+    "Version": "4.0",
+    "Serie": "T",
+    "Folio": "0001",
+    "Fecha": "2025-10-21T10:00:00",
+    "NoCertificado": "30001000000300023708",
+    "Certificado": "",
+    "SubTotal": "0",
+    "Moneda": "XXX",
+    "Total": "0",
+    "TipoDeComprobante": "T",
+    "Exportacion": "01",
+    "LugarExpedicion": "64000",
+
+    "cfdi:Emisor": {
+      "Rfc": "EKU9003173C9",
+      "Nombre": "ESCUELA KEMPER URGATE",
+      "RegimenFiscal": "601"
+    },
+
+    "cfdi:Receptor": {
+      "Rfc": "XAXX010101000",
+      "Nombre": "PUBLICO EN GENERAL",
+      "DomicilioFiscalReceptor": "64000",
+      "RegimenFiscalReceptor": "616",
+      "UsoCFDI": "S01"
+    },
+
+    "cfdi:Conceptos": {
+      "cfdi:Concepto": {
+        "ClaveProdServ": "01010101",
+        "NoIdentificacion": "TRL001",
+        "Cantidad": "1",
+        "ClaveUnidad": "H87",
+        "Unidad": "Pieza",
+        "Descripcion": "Traslado de mercancía sin valor comercial",
+        "ValorUnitario": "0",
+        "Importe": "0",
+        "ObjetoImp": "01"
+      }
+    }
+  }
+},
+    "enviarCorreo": false,
+    "generarPDF": false,
+    "claveUsuario": "001"
+}

@@ -50,6 +50,6 @@ def extraer_carta_porte_desde_xml(xml_input: Union[str]) -> Dict[str, Any]:
     Retorna un dict con los datos o None si no hay complemento.
     """
     cfdi = parse_cfdi_from_string(xml_input)
-    from ..Data.cartaPorte import CartaPorteExtractor
+    from .cfdi.Complementos.cartaPorte import CartaPorteExtractor
     extractor = CartaPorteExtractor(cfdi)
     return extractor.obtener_datos_carta_porte()

@@ -11,13 +11,13 @@ import sys
 import os
 
 # Añadir rutas al path PRIMERO
-backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+backend_path = os.path.dirname(__file__)
 sys.path.insert(0, backend_path)
 
 # Importar routers
 from routers import timbrado, sellado, utilities
 
-# OpenAPI tag metadata shown in Swagger UI
+# OpenAPI Swagger UI
 openapi_tags = [
     {
         "name": "Timbrado",
@@ -37,7 +37,7 @@ openapi_tags = [
     }
 ]
 
-# Crear aplicación FastAPI
+# Inicializando FastAPI
 app = FastAPI(
     title="DocuSeal Service API",
     version="1.6.0",
@@ -59,4 +59,3 @@ app.add_middleware(
 app.include_router(timbrado.router)
 app.include_router(sellado.router)
 app.include_router(utilities.router)
-app.include_router(sellado.router)

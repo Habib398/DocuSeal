@@ -19,7 +19,7 @@ class ComprobanteFactory:
     @classmethod
     def crear_comprobante(cls, datos_json: Dict[str, Any]) -> Union[ComprobanteIngreso, ComprobanteTraslado]:
 
-        comprobante_data = datos_json.get("cfdi:Comprobante", {})
+        comprobante_data = datos_json.get("cfdi:Comprobante", datos_json)
         tipo = comprobante_data.get("TipoDeComprobante", "I")
         
         logger.info(f"ComprobanteFactory: Detectado TipoDeComprobante = '{tipo}'")
@@ -83,7 +83,6 @@ class ComprobanteFactory:
                 "warnings": []
             }
         except Exception as e:
-            logger.exception(f"Error inesperado al procesar comprobante: {str(e)}")
             return {
                 "valido": False,
                 "xml": None,

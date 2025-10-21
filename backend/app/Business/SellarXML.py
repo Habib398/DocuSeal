@@ -115,20 +115,17 @@ class SellarXML:
             
             # CASO 1: Viene como estructura JSON en "datosXML"
             if json_input and isinstance(json_input, dict):
-                logger.info("Sellando desde estructura JSON en 'datosXML'")
                 
                 # Convertir JSON a XML usando ConvertirJson
                 from .cfdi.ConvertirJson import ConvertirJson
                 try:
                     converter = ConvertirJson(json_input)
                     xml_input = converter.GenerarXmlCFDI()
-                    logger.info(f"XML generado desde JSON (longitud: {len(xml_input)} caracteres)")
                 except Exception as e:
                     return {"error": f"Error al convertir JSON a XML: {str(e)}"}
             
             # CASO 2: Viene como XML string en "xml"
             elif xml_string_input and isinstance(xml_string_input, str):
-                logger.info(f"Sellando XML string (longitud: {len(xml_string_input)} caracteres)")
                 xml_input = xml_string_input.strip()
             
             # CASO 3: No viene ninguno de los dos formatos válidos

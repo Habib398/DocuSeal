@@ -7,7 +7,7 @@ delegando toda la lógica de negocio a ServicioTimbrado.
 
 from fastapi import APIRouter, Body
 import sys
-import os
+import os   
 
 # Añadir ruta del backend al path
 backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
@@ -25,15 +25,14 @@ router = APIRouter(
 
 @router.post("/timbrar/",
     summary="Timbrar CFDI",
-    description="Timbrado de un XML de CFDI previamente sellado. Requiere credenciales del PAC."
+    description="Timbrado de un XML de CFDI previamente sellado. Las credenciales del PAC se obtienen automáticamente de la BD usando el NoCertificado del XML."
 )
 async def timbrar_endpoint(
     data: dict = Body(
         ...,
+        description="Objeto JSON con 'xml' (string XML sellado completo). Las credenciales PAC se recuperan automáticamente según el NoCertificado.",
         example={
-            "xml": "<Comprobante>...xml...</Comprobante>",
-            "usuario_pac": "miUsuarioPAC",
-            "contrasena_pac": "miContrasenaPAC",
+            "xml": "",
             "pruebas": True
         }
     )

@@ -28,8 +28,8 @@ class ComprobanteTraslado:
         
         self._validar_tipo_comprobante()
         self._validar_total_cero()
-        self._validar_sin_metodo_pago()
-        self._validar_sin_impuestos_comprobante()
+        self._validar_metodo_pago()
+        self._validar_impuestos_comprobante()
         self._validar_subtotal()
         
         return {
@@ -67,7 +67,7 @@ class ComprobanteTraslado:
                 "mensaje": "Total no es un valor numérico válido"
             })
     
-    def _validar_sin_metodo_pago(self):
+    def _validar_metodo_pago(self):
         """
         Valida que NO exista MetodoPago
         """
@@ -79,7 +79,7 @@ class ComprobanteTraslado:
                 "mensaje": f"MetodoPago debe omitirse para comprobantes de Traslado. Se encontró: '{metodo_pago}' (Regla CFDI40125)"
             })
     
-    def _validar_sin_impuestos_comprobante(self):
+    def _validar_impuestos_comprobante(self):
         """
         Valida que NO exista elemento cfdi:Impuestos a nivel comprobante
         """
@@ -171,19 +171,20 @@ class ComprobanteTraslado:
         Genera el XML del comprobante usando ConvertirJson
         con ajustes específicos para Traslado
         """
-        logger.info("Generando XML para comprobante tipo Traslado")
         
         from ..ConvertirJson import ConvertirJson
         
         # Ajustar datos antes de generar
         datos_ajustados = self.ajustar_datos()
-        
-        # Generar XML
-        conversor = ConvertirJson(datos_ajustados)
-        xml_resultado = conversor.GenerarXmlCFDI()
-        
-        logger.info(f"XML generado exitosamente (longitud: {len(xml_resultado)} caracteres)")
-        return xml_resultado
+
+        if "datos_xml" in self.datos:
+            # Generar XML si se recibio XML
+            return self.datos["datos_xml"]
+        else:
+            # Por defecto, asumir JSON y generar XML
+            conversor = ConvertirJson(datos_ajustados)
+            xml_resultado = conversor.GenerarXmlCFDI()
+            return xml_resultado
 
 
 __all__ = ["ComprobanteTraslado"]

@@ -111,7 +111,6 @@ class DBManager:
             return _normalize_cert_keys(dict(result)) if result else None
             
         except psycopg2.Error as e:
-            logger.error(f"Error obteniendo certificado por usuario: {e}")
             if conn:
                 conn.close()
             raise
@@ -132,7 +131,6 @@ class DBManager:
             return _normalize_cert_keys(dict(result)) if result else None
             
         except psycopg2.Error as e:
-            logger.error(f"Error obteniendo certificado por número: {e}")
             if conn:
                 conn.close()
             raise

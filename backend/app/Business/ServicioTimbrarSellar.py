@@ -7,6 +7,8 @@ Acepta:
 
 import logging
 from typing import Dict, Any
+
+from Business.cfdi import ComprobanteFactory
 from .SellarXML import SellarXML
 from .Timbrado import TimbradoService
 from .PDF import PDF
@@ -41,6 +43,14 @@ class ServicioTimbrarSellar:
             logger.info(f"Procesando XML string (longitud: {len(xml_input)} caracteres)")
         else:
             logger.info("Procesando estructura JSON en 'datosXML'")
+            # Validar JSON con ComprobanteFactory
+            resultado_validacion = ComprobanteFactory.procesar_comprobante(json_input)
+            if not resultado_validacion["valido"]:
+                return {
+                    "error": "Errores de validación en el comprobante",
+                    "errores": resultado_validacion["errores"],
+                    "warnings": resultado_validacion["warnings"]
+                }
         
         # Sellado
         logger.info("Iniciando sellado")
@@ -52,6 +62,13 @@ class ServicioTimbrarSellar:
         xml_sellado = resultado_sellado["xml_con_sello"]
         cadena_original = resultado_sellado.get("cadena_original", "")
         logger.info("Sellado exitoso")
+        
+        # IMPRIMIR XML GENERADO
+        print("\n" + "="*80)
+        print("XML SELLADO GENERADO:")
+        print("="*80)
+        print(xml_sellado)
+        print("="*80 + "\n")
         
         # Extraer NoCertificado del XML sellado para obtener credenciales PAC de la BD
         from lxml import etree
@@ -78,7 +95,6 @@ class ServicioTimbrarSellar:
             certificado = config_cert.obtener_por_numero(no_certificado)
             
             if not certificado:
-                logger.error(f"No se encontró certificado con NoCertificado: {no_certificado}")
                 return {
                     "error": "Certificado no encontrado",
                     "detalle": f"No se encontró certificado con NoCertificado {no_certificado} en la base de datos",
@@ -90,7 +106,6 @@ class ServicioTimbrarSellar:
             contrasena_pac = certificado.get('contrasenaPAC')
             
             if not usuario_pac or not contrasena_pac:
-                logger.error(f"Certificado {no_certificado} no tiene credenciales PAC completas")
                 return {
                     "error": "Credenciales PAC incompletas",
                     "detalle": f"El certificado {no_certificado} no tiene usuarioPAC o contrasenaPAC configurados",
@@ -98,7 +113,6 @@ class ServicioTimbrarSellar:
                     "cadena_original": cadena_original
                 }
             
-            logger.info(f"Credenciales PAC obtenidas de la BD para certificado {no_certificado}")
             
         except Exception as e:
             logger.error(f"Error al obtener credenciales PAC de la BD: {str(e)}")
@@ -111,8 +125,14 @@ class ServicioTimbrarSellar:
         
         pruebas = data.get("pruebas", True)
         
+        # IMPRIMIR XML ANTES DE TIMBRAR
+        print("\n" + "="*80)
+        print("XML QUE SE ENVIARÁ AL PAC:")
+        print("="*80)
+        print(xml_sellado)
+        print("="*80 + "\n")
+        
         # Timbrado
-        logger.info(f"Iniciando timbrado con PAC (pruebas={pruebas})")
         resultado_timbrado = TimbradoService.timbrar_cfdi(
             xml_sellado,
             usuario_pac,
@@ -128,13 +148,10 @@ class ServicioTimbrarSellar:
         # Generar PDF si se solicita
         preferencias = PreferenciasCliente.from_json(data)
         if preferencias.enviarPDF:
-            logger.info("Generando PDF según solicitud del usuario")
             uuid = resultado_timbrado.get("uuid", "temp")
             pdf_info = PDF.generar_desde_datos(data, xml_sellado, cadena_original, uuid)
-            logger.info("PDF generado exitosamente")
             respuesta.update(pdf_info)
         else:
-            logger.info("Usuario no solicitó generación de PDF")
             respuesta["html_generado"] = False
         
         return respuesta

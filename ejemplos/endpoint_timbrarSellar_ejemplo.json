@@ -1,0 +1,86 @@
+{
+  "datosXML": {
+  "cfdi:Comprobante": {
+    "Version": "4.0",
+    "Serie": "CD",
+    "Folio": "92090",
+    "Fecha": "2025-08-13T08:28:41",
+    "FormaPago": "99",
+    "NoCertificado": "30001000000300023708",
+    "CondicionesDePago": "Credito 15 di­as",
+    "SubTotal": "100.00",
+    "Moneda": "MXN",
+    "Total": "112.00",
+    "TipoDeComprobante": "I",
+    "Exportacion": "01",
+    "MetodoPago": "PPD",
+    "LugarExpedicion": "88283",
+    "cfdi:Emisor": {
+      "Rfc": "FAS081215JJ1",
+      "Nombre": "FASTERRAMA",
+      "RegimenFiscal": "624"
+    },
+    "cfdi:Receptor": {
+      "Rfc": "LTT110818MX7",
+      "Nombre": "LESS THAN TRUCKLOAD JABE",
+      "DomicilioFiscalReceptor": "55270",
+      "RegimenFiscalReceptor": "626",
+      "UsoCFDI": "G03"
+    },
+    "cfdi:Conceptos": {
+      "cfdi:Concepto": {
+        "ClaveProdServ": "78101802",
+        "Cantidad": "1",
+        "ClaveUnidad": "E48",
+        "Unidad": "U.SERV",
+        "Descripcion": "SERVICIO DE FLETES",
+        "ValorUnitario": "100.00",
+        "Importe": "100.00",
+        "ObjetoImp": "02",
+        "cfdi:Impuestos": {
+          "cfdi:Traslados": {
+            "cfdi:Traslado": {
+              "Base": "100.00",
+              "Impuesto": "002",
+              "TipoFactor": "Tasa",
+              "TasaOCuota": "0.160000",
+              "Importe": "16.00"
+            }
+          },
+          "cfdi:Retenciones": {
+            "cfdi:Retencion": {
+              "Base": "100.00",
+              "Impuesto": "002",
+              "TipoFactor": "Tasa",
+              "TasaOCuota": "0.040000",
+              "Importe": "4.00"
+            }
+          }
+        }
+      }
+    },
+    "cfdi:Impuestos": {
+      "TotalImpuestosRetenidos": "4.00",
+      "TotalImpuestosTrasladados": "16.00",
+      "cfdi:Retenciones": {
+        "cfdi:Retencion": {
+          "Impuesto": "002",
+          "Importe": "4.00"
+        }
+      },
+      "cfdi:Traslados": {
+        "cfdi:Traslado": {
+          "Base": "100.00",
+          "Impuesto": "002",
+          "TipoFactor": "Tasa",
+          "TasaOCuota": "0.160000",
+          "Importe": "16.00"
+        }
+      }
+    }
+  }
+},
+    "enviarCorreo": false,
+    "generarPDF": false,
+    "claveUsuario": "001"
+}

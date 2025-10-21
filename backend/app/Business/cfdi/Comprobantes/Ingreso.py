@@ -155,19 +155,26 @@ class ComprobanteIngreso:
         """
         Genera el XML del comprobante usando ConvertirJson
         """
-        logger.info("Generando XML para comprobante tipo Ingreso")
         
         from ..ConvertirJson import ConvertirJson
         
         # Ajustar datos antes de generar
         datos_ajustados = self.ajustar_datos()
         
-        # Generar XML
-        conversor = ConvertirJson(datos_ajustados)
-        xml_resultado = conversor.GenerarXmlCFDI()
+        if "datos_xml" in self.datos:
+            # Se considera que se recibe datos como JSON, generar XML
+            conversor = ConvertirJson(datos_ajustados)
+            xml_resultado = conversor.GenerarXmlCFDI()
+            return xml_resultado
+        elif "xml" in self.datos:
+            # Se considera que se recibe un XML directamente
+            return self.datos["xml"]
+        else:
+            # Por defecto, asumir JSON y generar XML
+            conversor = ConvertirJson(datos_ajustados)
+            xml_resultado = conversor.GenerarXmlCFDI()
+            return xml_resultado
         
-        logger.info(f"XML generado exitosamente (longitud: {len(xml_resultado)} caracteres)")
-        return xml_resultado
 
 
 __all__ = ["ComprobanteIngreso"]
