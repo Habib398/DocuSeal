@@ -1,309 +1,396 @@
-from lxml import etree
-from collections import OrderedDict
+from satcfdi.create.cfd import cfdi40
+from typing import Dict, Any, List
 
 
 class ConvertirJson:
+    
+    def __init__(self):
+        self.comprobante = None
+        self.datos_emisor = None
+        self.datos_receptor = None
+        self.conceptos = []
+    
+    def convertir_a_cfdi(self, datos_json: Dict[str, Any]) -> cfdi40.Comprobante:
+        self.datos_emisor = self._procesar_emisor(datos_json)
+        self.datos_receptor = self._procesar_receptor(datos_json)
+        self.conceptos = self._procesar_conceptos(datos_json)
+        atributos_comprobante = self._procesar_atributos_comprobante(datos_json)
+        
+        # Extraer y eliminar lugar_expedicion del diccionario para pasarlo como argumento
+        lugar_expedicion = atributos_comprobante.pop('lugar_expedicion')
+        self.comprobante = cfdi40.Comprobante(
+            emisor=self.datos_emisor,
+            lugar_expedicion=lugar_expedicion,
+            receptor=self.datos_receptor,
+            conceptos=self.conceptos,
+            **atributos_comprobante
+        )
+        
+        # Procesar complementos si se detectan
+        self._procesar_complementos(datos_json)
+        
+        return self.comprobante
+    
+    def _procesar_emisor(self, datos_json: Dict[str, Any]) -> cfdi40.Emisor:
+        emisor_data = None
 
-    _SCHEMA_LOCATION_DEFAULT = (
-        "http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd "
-        "http://www.sat.gob.mx/CartaPorte31 http://www.sat.gob.mx/sitio_internet/cfd/CartaPorte/CartaPorte31.xsd"
-    )
-
-    def __init__(self, xml: dict, schema_location: str = _SCHEMA_LOCATION_DEFAULT):
-        self.datos_xml = xml
-        self.schema_location = schema_location
-
-    def tiene_carta_porte(self) -> bool:
+        if datos_json.get('datosXML', {}).get('cfdi:Comprobante', {}).get('cfdi:Emisor'):
+            emisor_data = datos_json['datosXML']['cfdi:Comprobante']['cfdi:Emisor']
+        elif datos_json.get('datosXML', {}).get('emisor'):
+            emisor_data = datos_json['datosXML']['emisor']
+        elif datos_json.get('emisor'):
+            emisor_data = datos_json['emisor']
+        
+        if not emisor_data:
+            raise ValueError("Faltan datos del emisor en el JSON")
+        
+        # Extraer RFC (campo obligatorio)
+        rfc = emisor_data.get('Rfc') or emisor_data.get('rfc') or emisor_data.get('RFC')
+        if not rfc:
+            raise ValueError("El RFC del emisor es obligatorio")
+        
+        # Extraer Nombre (campo obligatorio)
+        nombre = emisor_data.get('Nombre') or emisor_data.get('nombre')
+        if not nombre:
+            raise ValueError("El nombre del emisor es obligatorio")
+        
+        # Extraer Régimen Fiscal (campo obligatorio)
+        regimen_fiscal = (emisor_data.get('RegimenFiscal') or 
+                         emisor_data.get('regimen_fiscal') or 
+                         emisor_data.get('RegimenFiscal'))
+        if not regimen_fiscal:
+            raise ValueError("El régimen fiscal del emisor es obligatorio")
+        
+        # Crear objeto Emisor con los datos extraídos
+        emisor = cfdi40.Emisor(
+            rfc=rfc,
+            nombre=nombre,
+            regimen_fiscal=regimen_fiscal
+        )
+        
+        return emisor
+    
+    def _procesar_receptor(self, datos_json: Dict[str, Any]) -> cfdi40.Receptor:
+        receptor_data = None
+        
+        # Buscar datos del receptor en diferentes ubicaciones
+        if datos_json.get('datosXML', {}).get('cfdi:Comprobante', {}).get('cfdi:Receptor'):
+            receptor_data = datos_json['datosXML']['cfdi:Comprobante']['cfdi:Receptor']
+        elif datos_json.get('datosXML', {}).get('receptor'):
+            receptor_data = datos_json['datosXML']['receptor']
+        elif datos_json.get('receptor'):
+            receptor_data = datos_json['receptor']
+        
+        if not receptor_data:
+            raise ValueError("No se encontraron datos del receptor en el JSON")
+        
+        # Extraer RFC (campo obligatorio)
+        rfc = receptor_data.get('Rfc') or receptor_data.get('rfc') or receptor_data.get('RFC')
+        if not rfc:
+            raise ValueError("El RFC del receptor es obligatorio")
+        
+        # Extraer Nombre (campo obligatorio)
+        nombre = receptor_data.get('Nombre') or receptor_data.get('nombre')
+        if not nombre:
+            raise ValueError("El nombre del receptor es obligatorio")
+        
+        # Extraer Domicilio Fiscal Receptor (campo obligatorio CFDI 4.0)
+        domicilio_fiscal = (receptor_data.get('DomicilioFiscalReceptor') or 
+                           receptor_data.get('domicilio_fiscal_receptor'))
+        if not domicilio_fiscal:
+            raise ValueError("El domicilio fiscal del receptor es obligatorio")
+        
+        # Extraer Régimen Fiscal Receptor (campo obligatorio CFDI 4.0)
+        regimen_fiscal = (receptor_data.get('RegimenFiscalReceptor') or 
+                         receptor_data.get('regimen_fiscal_receptor'))
+        if not regimen_fiscal:
+            raise ValueError("El régimen fiscal del receptor es obligatorio")
+        
+        # Extraer Uso CFDI (campo obligatorio)
+        uso_cfdi = receptor_data.get('UsoCFDI') or receptor_data.get('uso_cfdi')
+        if not uso_cfdi:
+            raise ValueError("El uso CFDI del receptor es obligatorio")
+        
+        # Crear objeto Receptor con los datos extraídos
+        receptor = cfdi40.Receptor(
+            rfc=rfc,
+            nombre=nombre,
+            domicilio_fiscal_receptor=domicilio_fiscal,
+            regimen_fiscal_receptor=regimen_fiscal,
+            uso_cfdi=uso_cfdi
+        )
+        
+        return receptor
+    
+    def _procesar_atributos_comprobante(self, datos_json: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Verifica si el JSON tiene complemento Carta Porte.
+        Procesa los atributos principales del comprobante desde el JSON.
+        Extrae los datos desde datosXML->cfdi:Comprobante o estructura plana.
+        Retorna un diccionario con los atributos para crear el Comprobante.
+        
+        Nota: SubTotal, Total y Descuento se calculan automáticamente por satcfdi
+        a partir de los conceptos, por lo que NO se incluyen en los atributos.
         """
-        comprobante_data = self.datos_xml.get("cfdi:Comprobante", self.datos_xml)
-        complemento_data = comprobante_data.get("cfdi:Complemento") or comprobante_data.get("Complemento", {})
-        carta_porte_data = complemento_data.get("cartaporte30:CartaPorte") or complemento_data.get("CartaPorte")
-        return carta_porte_data is not None
-
-    def GenerarXmlCFDI(self):
-        # OrderedDict para intentar preservar el orden de declaración de namespaces
-        nsmap = OrderedDict([
-            ('xsi', 'http://www.w3.org/2001/XMLSchema-instance'),
-            ('cfdi', 'http://www.sat.gob.mx/cfd/4'),
-            ('cartaporte31', 'http://www.sat.gob.mx/CartaPorte31'),
-        ])
-
-        comprobante_data = self.datos_xml.get("cfdi:Comprobante", self.datos_xml)
-
-        #  Agrega atributos unicamente con valor en json
-        comprobante_attrib = {
-            k: str(v)
-            for k, v in comprobante_data.items()
-            if v is not None and (v != "" if isinstance(v, str) else True)
-            and not isinstance(v, dict)
-            and not isinstance(v, list)
-            and not k.startswith("xmlns")
-            and ":" not in k
+        comprobante_data = None
+        atributos = {}
+        
+        # Buscar datos del comprobante en diferentes ubicaciones
+        if datos_json.get('datosXML', {}).get('cfdi:Comprobante'):
+            comprobante_data = datos_json['datosXML']['cfdi:Comprobante']
+        elif datos_json.get('xml'):
+            comprobante_data = datos_json['xml']
+        elif datos_json.get('datosXML'):
+            comprobante_data = datos_json['datosXML']
+        
+        if not comprobante_data:
+            raise ValueError("No se encontraron datos del comprobante en el JSON")
+        
+        # Lugar de Expedición (campo obligatorio)
+        lugar_expedicion = (comprobante_data.get('LugarExpedicion') or 
+                           comprobante_data.get('lugar_expedicion'))
+        if not lugar_expedicion:
+            raise ValueError("El lugar de expedición es obligatorio")
+        atributos['lugar_expedicion'] = lugar_expedicion
+        
+        # Moneda (campo obligatorio, default='MXN')
+        moneda = comprobante_data.get('Moneda') or comprobante_data.get('moneda')
+        if moneda:
+            atributos['moneda'] = moneda
+        
+        # Tipo de Comprobante (campo obligatorio, default='I')
+        tipo_comprobante = (comprobante_data.get('TipoDeComprobante') or 
+                           comprobante_data.get('tipo_de_comprobante') or 
+                           comprobante_data.get('TipoComprobante'))
+        if tipo_comprobante:
+            atributos['tipo_de_comprobante'] = tipo_comprobante
+        
+        # Exportación (campo obligatorio CFDI 4.0, default='01')
+        exportacion = comprobante_data.get('Exportacion') or comprobante_data.get('exportacion')
+        if exportacion:
+            atributos['exportacion'] = exportacion
+        
+        # Serie (opcional)
+        serie = comprobante_data.get('Serie') or comprobante_data.get('serie')
+        if serie:
+            atributos['serie'] = serie
+        
+        # Folio (opcional)
+        folio = comprobante_data.get('Folio') or comprobante_data.get('folio')
+        if folio:
+            atributos['folio'] = folio
+        
+        # Fecha (opcional, si no se proporciona usa la fecha actual)
+        fecha = comprobante_data.get('Fecha') or comprobante_data.get('fecha')
+        if fecha:
+            from datetime import datetime
+            try:
+                atributos['fecha'] = datetime.fromisoformat(fecha)
+            except ValueError:
+                # Si no es formato ISO, intentar otros formatos comunes
+                try:
+                    atributos['fecha'] = datetime.strptime(fecha, '%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    raise ValueError(f"Formato de fecha inválido: {fecha}. Use formato ISO 8601 (YYYY-MM-DDTHH:MM:SS)")
+        
+        # Forma de Pago (condicional)
+        forma_pago = comprobante_data.get('FormaPago') or comprobante_data.get('forma_pago')
+        if forma_pago:
+            atributos['forma_pago'] = forma_pago
+        
+        # Condiciones de Pago (opcional)
+        condiciones_pago = comprobante_data.get('CondicionesDePago') or comprobante_data.get('condiciones_de_pago')
+        if condiciones_pago:
+            atributos['condiciones_de_pago'] = condiciones_pago
+        
+        # Tipo de Cambio (condicional - obligatorio si moneda != MXN)
+        tipo_cambio = comprobante_data.get('TipoCambio') or comprobante_data.get('tipo_cambio')
+        if tipo_cambio:
+            atributos['tipo_cambio'] = tipo_cambio
+        
+        # Método de Pago (condicional)
+        metodo_pago = comprobante_data.get('MetodoPago') or comprobante_data.get('metodo_pago')
+        if metodo_pago:
+            atributos['metodo_pago'] = metodo_pago
+        
+        # Confirmación (opcional)
+        confirmacion = comprobante_data.get('Confirmacion') or comprobante_data.get('confirmacion')
+        if confirmacion:
+            atributos['confirmacion'] = confirmacion
+        
+        # Filtrar campos que no son atributos del comprobante (metadatos XML)
+        campos_a_excluir = {
+            'xmlns:cfdi', 'xmlns:xsi', 'xsi:schemaLocation', 'Version',
+            'cfdi:Emisor', 'cfdi:Receptor', 'cfdi:Conceptos', 'cfdi:Impuestos',
+            'cfdi:Complemento', 'cfdi:Addenda'
         }
-        # Crear elemento raíz Comprobante con namespaces
-        comprobante = etree.Element('{http://www.sat.gob.mx/cfd/4}Comprobante', nsmap=nsmap)
-        if self.schema_location:
-            comprobante.set(
-                "{http://www.w3.org/2001/XMLSchema-instance}schemaLocation",
-                self.schema_location,
-            )
-        if 'Version' in comprobante_attrib:
-            comprobante.set('Version', comprobante_attrib['Version'])
-        for k, v in comprobante_attrib.items():
-            if k == 'Version':
-                continue
-            comprobante.set(k, v)
-
-        # Emisor
-        emisor_data = comprobante_data.get("cfdi:Emisor") or comprobante_data.get("Emisor", {})
-        emisor_attrib = {k: str(v) for k, v in emisor_data.items() if v is not None and (v != "" if isinstance(v, str) else True) and not isinstance(v, dict) and not isinstance(v, list)}
-        # Coloca elemento Emisor
-        etree.SubElement(comprobante, '{http://www.sat.gob.mx/cfd/4}Emisor', **emisor_attrib)
-
-        # Receptor
-        receptor_data = comprobante_data.get("cfdi:Receptor") or comprobante_data.get("Receptor", {})
-        receptor_attrib = {k: str(v) for k, v in receptor_data.items() if v is not None and (v != "" if isinstance(v, str) else True) and not isinstance(v, dict) and not isinstance(v, list)}
-        etree.SubElement(comprobante, '{http://www.sat.gob.mx/cfd/4}Receptor', **receptor_attrib)
-
-        # Conceptos
-        conceptos_data = comprobante_data.get("cfdi:Conceptos") or comprobante_data.get("Conceptos", {})
-        if isinstance(conceptos_data, list) and conceptos_data:
-            # Si es una lista de conceptos
-            concepto_data = conceptos_data[0]  # Tomar el primer concepto
-        else:
-            # Si es un diccionario o está vacío
-            concepto_data = conceptos_data if isinstance(conceptos_data, dict) else {}
         
-        # Extraer datos reales del concepto si está envuelto
-        concepto_data = concepto_data.get("cfdi:Concepto") or concepto_data.get("Concepto") or concepto_data
+        # Remover campos que no son atributos válidos del comprobante
+        atributos_filtrados = {k: v for k, v in atributos.items() if k not in campos_a_excluir}
         
-        if isinstance(concepto_data, list):
-            concepto_data = concepto_data[0] if concepto_data else {}
+        return atributos_filtrados
+    
+    def _procesar_conceptos(self, datos_json: Dict[str, Any]) -> List[cfdi40.Concepto]:
+
+        seq_conceptos = []
+        conceptos_data = None
         
-        conceptos = etree.SubElement(comprobante, '{http://www.sat.gob.mx/cfd/4}Conceptos')
-        concepto_attrib = {k: str(v) for k, v in concepto_data.items() if v is not None and (v != "" if isinstance(v, str) else True) and not isinstance(v, dict) and not isinstance(v, list)}
-        concepto = etree.SubElement(conceptos, '{http://www.sat.gob.mx/cfd/4}Concepto', **concepto_attrib)
-
-        # Impuestos a nivel Concepto
-        concepto_impuestos_data = concepto_data.get("cfdi:Impuestos") or concepto_data.get("Impuestos", {})
-        if concepto_impuestos_data:
-            c_impuestos = etree.SubElement(concepto, '{http://www.sat.gob.mx/cfd/4}Impuestos')
-            # Traslados
-            traslados_data = concepto_impuestos_data.get("cfdi:Traslados") or concepto_impuestos_data.get("Traslados")
-            if traslados_data:
-                c_traslados = etree.SubElement(c_impuestos, '{http://www.sat.gob.mx/cfd/4}Traslados')
-                if isinstance(traslados_data, list) and traslados_data:
-                    for traslado_data in traslados_data:
-                        c_traslado_attrib = {k: str(v) for k, v in traslado_data.items() if v is not None and (v != "" if isinstance(v, str) else True) and not isinstance(v, dict) and not isinstance(v, list)}
-                        etree.SubElement(c_traslados, '{http://www.sat.gob.mx/cfd/4}Traslado', **c_traslado_attrib)
-                elif isinstance(traslados_data, dict):
-                    traslado_data = traslados_data.get("cfdi:Traslado") or traslados_data.get("Traslado") or traslados_data
-                    if isinstance(traslado_data, dict):
-                        c_traslado_attrib = {k: str(v) for k, v in traslado_data.items() if v is not None and (v != "" if isinstance(v, str) else True) and not isinstance(v, dict) and not isinstance(v, list)}
-                        etree.SubElement(c_traslados, '{http://www.sat.gob.mx/cfd/4}Traslado', **c_traslado_attrib)
-                    elif isinstance(traslado_data, list):
-                        for t_data in traslado_data:
-                            c_traslado_attrib = {k: str(v) for k, v in t_data.items() if v is not None and (v != "" if isinstance(v, str) else True) and not isinstance(v, dict) and not isinstance(v, list)}
-                            etree.SubElement(c_traslados, '{http://www.sat.gob.mx/cfd/4}Traslado', **c_traslado_attrib)
-            # Retenciones
-            retenciones_data = concepto_impuestos_data.get("cfdi:Retenciones") or concepto_impuestos_data.get("Retenciones")
-            if retenciones_data:
-                c_retenciones = etree.SubElement(c_impuestos, '{http://www.sat.gob.mx/cfd/4}Retenciones')
-                if isinstance(retenciones_data, list) and retenciones_data:
-                    for retencion_data in retenciones_data:
-                        c_retencion_attrib = {k: str(v) for k, v in retencion_data.items() if v is not None and (v != "" if isinstance(v, str) else True) and not isinstance(v, dict) and not isinstance(v, list)}
-                        etree.SubElement(c_retenciones, '{http://www.sat.gob.mx/cfd/4}Retencion', **c_retencion_attrib)
-                elif isinstance(retenciones_data, dict):
-                    retencion_data = retenciones_data.get("cfdi:Retencion") or retenciones_data.get("Retencion") or retenciones_data
-                    if isinstance(retencion_data, dict):
-                        c_retencion_attrib = {k: str(v) for k, v in retencion_data.items() if v is not None and (v != "" if isinstance(v, str) else True) and not isinstance(v, dict) and not isinstance(v, list)}
-                        etree.SubElement(c_retenciones, '{http://www.sat.gob.mx/cfd/4}Retencion', **c_retencion_attrib)
-                    elif isinstance(retencion_data, list):
-                        for r_data in retencion_data:
-                            c_retencion_attrib = {k: str(v) for k, v in r_data.items() if v is not None and (v != "" if isinstance(v, str) else True) and not isinstance(v, dict) and not isinstance(v, list)}
-                            etree.SubElement(c_retenciones, '{http://www.sat.gob.mx/cfd/4}Retencion', **c_retencion_attrib)
-
-        # Impuestos
-        impuestos_data = comprobante_data.get("cfdi:Impuestos") or comprobante_data.get("Impuestos", {})
-        if impuestos_data:
-            # Atributos de totales (TotalImpuestosRetenidos / TotalImpuestosTrasladados) u otros permitidos
-            impuestos_attrib = {
-                k: str(v)
-                for k, v in impuestos_data.items()
-                if v is not None and v != "" and not isinstance(v, dict) and ":" not in k
-            }
-
-            # Calcular totales si faltan o si es tipo T/P (traslados/pagos)
-            tipo_comprobante = comprobante_data.get("TipoDeComprobante", "I")
-            if ("TotalImpuestosTrasladados" not in impuestos_attrib or "TotalImpuestosRetenidos" not in impuestos_attrib) or tipo_comprobante in ["T", "P"]:
-                total_tras = None
-                total_ret = None
-                # Traslados suma
-                try:
-                    traslados_data = impuestos_data.get("cfdi:Traslados") or impuestos_data.get("Traslados")
-                    if traslados_data:
-                        if isinstance(traslados_data, list) and traslados_data:
-                            total_tras = sum(float(t.get("Importe", 0) or t.get("importe", 0)) for t in traslados_data if isinstance(t, dict))
-                        elif isinstance(traslados_data, dict):
-                            traslado_data = traslados_data.get("cfdi:Traslado") or traslados_data.get("Traslado") or traslados_data
-                            if isinstance(traslado_data, dict):
-                                importe_t = traslado_data.get("Importe") or traslado_data.get("importe")
-                                if importe_t not in (None, ""):
-                                    total_tras = float(importe_t)
-                            elif isinstance(traslado_data, list):
-                                total_tras = sum(float(t.get("Importe", 0) or t.get("importe", 0)) for t in traslado_data if isinstance(t, dict))
-                except Exception:
-                    pass
-                # Retenciones suma
-                try:
-                    retenciones_data = impuestos_data.get("cfdi:Retenciones") or impuestos_data.get("Retenciones")
-                    if retenciones_data:
-                        if isinstance(retenciones_data, list) and retenciones_data:
-                            total_ret = sum(float(r.get("Importe", 0) or r.get("importe", 0)) for r in retenciones_data if isinstance(r, dict))
-                        elif isinstance(retenciones_data, dict):
-                            retencion_data = retenciones_data.get("cfdi:Retencion") or retenciones_data.get("Retencion") or retenciones_data
-                            if isinstance(retencion_data, dict):
-                                importe_r = retencion_data.get("Importe") or retencion_data.get("importe")
-                                if importe_r not in (None, ""):
-                                    total_ret = float(importe_r)
-                            elif isinstance(retencion_data, list):
-                                total_ret = sum(float(r.get("Importe", 0) or r.get("importe", 0)) for r in retencion_data if isinstance(r, dict))
-                except Exception:
-                    pass
-                # Solo asignar si hay valor real y no existía, o siempre para T/P
-                if total_tras is not None and ("TotalImpuestosTrasladados" not in impuestos_attrib or tipo_comprobante in ["T", "P"]):
-                    impuestos_attrib["TotalImpuestosTrasladados"] = f"{total_tras:.2f}".rstrip('0').rstrip('.') if '.' in f"{total_tras:.2f}" else f"{total_tras:.2f}"
-                if total_ret is not None and ("TotalImpuestosRetenidos" not in impuestos_attrib or tipo_comprobante in ["T", "P"]):
-                    impuestos_attrib["TotalImpuestosRetenidos"] = f"{total_ret:.2f}".rstrip('0').rstrip('.') if '.' in f"{total_ret:.2f}" else f"{total_ret:.2f}"
-            impuestos = etree.SubElement(comprobante, '{http://www.sat.gob.mx/cfd/4}Impuestos', **impuestos_attrib)
-            # Retenciones
-            retenciones_data = impuestos_data.get("cfdi:Retenciones") or impuestos_data.get("Retenciones")
-            if retenciones_data:
-                retenciones = etree.SubElement(impuestos, '{http://www.sat.gob.mx/cfd/4}Retenciones')
-                if isinstance(retenciones_data, list) and retenciones_data:
-                    for retencion_data in retenciones_data:
-                        retencion_attrib = {k: str(v) for k, v in retencion_data.items() if v is not None and (v != "" if isinstance(v, str) else True) and not isinstance(v, dict) and not isinstance(v, list)}
-                        etree.SubElement(retenciones, '{http://www.sat.gob.mx/cfd/4}Retencion', **retencion_attrib)
-                elif isinstance(retenciones_data, dict):
-                    retencion_data = retenciones_data.get("cfdi:Retencion") or retenciones_data.get("Retencion") or retenciones_data
-                    if isinstance(retencion_data, dict):
-                        retencion_attrib = {k: str(v) for k, v in retencion_data.items() if v is not None and (v != "" if isinstance(v, str) else True) and not isinstance(v, dict) and not isinstance(v, list)}
-                        etree.SubElement(retenciones, '{http://www.sat.gob.mx/cfd/4}Retencion', **retencion_attrib)
-                    elif isinstance(retencion_data, list):
-                        for r_data in retencion_data:
-                            retencion_attrib = {k: str(v) for k, v in r_data.items() if v is not None and (v != "" if isinstance(v, str) else True) and not isinstance(v, dict) and not isinstance(v, list)}
-                            etree.SubElement(retenciones, '{http://www.sat.gob.mx/cfd/4}Retencion', **retencion_attrib)
-            # Traslados
-            traslados_data = impuestos_data.get("cfdi:Traslados") or impuestos_data.get("Traslados")
-            if traslados_data:
-                traslados = etree.SubElement(impuestos, '{http://www.sat.gob.mx/cfd/4}Traslados')
-                if isinstance(traslados_data, list) and traslados_data:
-                    for traslado_data in traslados_data:
-                        traslado_attrib = {k: str(v) for k, v in traslado_data.items() if v is not None and (v != "" if isinstance(v, str) else True) and not isinstance(v, dict) and not isinstance(v, list)}
-                        etree.SubElement(traslados, '{http://www.sat.gob.mx/cfd/4}Traslado', **traslado_attrib)
-                elif isinstance(traslados_data, dict):
-                    traslado_data = traslados_data.get("cfdi:Traslado") or traslados_data.get("Traslado") or traslados_data
-                    if isinstance(traslado_data, dict):
-                        traslado_attrib = {k: str(v) for k, v in traslado_data.items() if v is not None and (v != "" if isinstance(v, str) else True) and not isinstance(v, dict) and not isinstance(v, list)}
-                        etree.SubElement(traslados, '{http://www.sat.gob.mx/cfd/4}Traslado', **traslado_attrib)
-                    elif isinstance(traslado_data, list):
-                        for t_data in traslado_data:
-                            traslado_attrib = {k: str(v) for k, v in t_data.items() if v is not None and (v != "" if isinstance(v, str) else True) and not isinstance(v, dict) and not isinstance(v, list)}
-                            etree.SubElement(traslados, '{http://www.sat.gob.mx/cfd/4}Traslado', **traslado_attrib)
-
-        # CfdiRelacionados
-        cfdi_relacionados_data = comprobante_data.get("CfdiRelacionados")
-        if cfdi_relacionados_data:
-            tipo_relacion = cfdi_relacionados_data.get("tipo_relacion")
-            cfdi_relacionado = cfdi_relacionados_data.get("cfdi_relacionado")
-            if tipo_relacion and cfdi_relacionado:
-                cfdi_rel = etree.SubElement(comprobante, '{http://www.sat.gob.mx/cfd/4}CfdiRelacionados', TipoRelacion=tipo_relacion)
-                etree.SubElement(cfdi_rel, '{http://www.sat.gob.mx/cfd/4}CfdiRelacionado', UUID=cfdi_relacionado)
-
-        # Complemento
-        complemento_data = comprobante_data.get("cfdi:Complemento") or comprobante_data.get("Complemento", {})
-        if complemento_data:
-            complemento = etree.SubElement(comprobante, '{http://www.sat.gob.mx/cfd/4}Complemento')
+        # Buscar conceptos en diferentes ubicaciones
+        if datos_json.get('datosXML', {}).get('cfdi:Comprobante', {}).get('cfdi:Conceptos', {}).get('cfdi:Concepto'):
+            conceptos_data = datos_json['datosXML']['cfdi:Comprobante']['cfdi:Conceptos']['cfdi:Concepto']
+        elif datos_json.get('datosXML', {}).get('conceptos'):
+            conceptos_data = datos_json['datosXML']['conceptos']
+        elif datos_json.get('conceptos'):
+            conceptos_data = datos_json['conceptos']
+        
+        if not conceptos_data:
+            raise ValueError("No se encontraron conceptos en el JSON")
+        
+        # Asegurar que conceptos_data sea una lista
+        if not isinstance(conceptos_data, list):
+            conceptos_data = [conceptos_data]
+        
+        # Iterar sobre cada concepto
+        for idx, concepto_json in enumerate(conceptos_data, 1):
+            # ClaveProdServ (campo obligatorio)
+            clave_prod = concepto_json.get('ClaveProdServ') or concepto_json.get('clave_prod_serv')
+            if not clave_prod:
+                raise ValueError(f"ClaveProdServ es obligatorio en el concepto {idx}")
             
-            # Carta Porte
-            carta_porte_data = complemento_data.get("cartaporte31:CartaPorte") or complemento_data.get("cartaporte30:CartaPorte") or complemento_data.get("CartaPorte")
-            if carta_porte_data:
-                self._add_carta_porte(complemento, carta_porte_data)
-
-        xml_cfdi = etree.tostring(comprobante, pretty_print=True, encoding='utf-8', xml_declaration=True)
-        xml_resultado = xml_cfdi.decode('utf-8')
-        xml_resultado = xml_resultado.replace("<?xml version='1.0' encoding='UTF-8'?>", "<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
+            # Cantidad (campo obligatorio) - convertir a decimal
+            cantidad_str = concepto_json.get('Cantidad') or concepto_json.get('cantidad')
+            if not cantidad_str:
+                raise ValueError(f"Cantidad es obligatoria en el concepto {idx}")
+            try:
+                from decimal import Decimal
+                cantidad = Decimal(str(cantidad_str))
+            except:
+                raise ValueError(f"Cantidad inválida en el concepto {idx}: {cantidad_str}")
+            
+            # Clave Unidad (campo obligatorio)
+            clave_unidad = concepto_json.get('ClaveUnidad') or concepto_json.get('clave_unidad')
+            if not clave_unidad:
+                raise ValueError(f"ClaveUnidad es obligatoria en el concepto {idx}")
+            
+            # Descripción (campo obligatorio)
+            descripcion = concepto_json.get('Descripcion') or concepto_json.get('descripcion')
+            if not descripcion:
+                raise ValueError(f"Descripción es obligatoria en el concepto {idx}")
+            
+            # Valor Unitario (campo obligatorio) - convertir a decimal
+            valor_unitario_str = concepto_json.get('ValorUnitario') or concepto_json.get('valor_unitario')
+            if not valor_unitario_str:
+                raise ValueError(f"ValorUnitario es obligatorio en el concepto {idx}")
+            try:
+                valor_unitario = Decimal(str(valor_unitario_str))
+            except:
+                raise ValueError(f"ValorUnitario inválido en el concepto {idx}: {valor_unitario_str}")
+            
+            # Objeto de Impuesto (campo obligatorio CFDI 4.0)
+            objeto_imp = concepto_json.get('ObjetoImp') or concepto_json.get('objeto_imp')
+            if not objeto_imp:
+                raise ValueError(f"ObjetoImp es obligatorio en el concepto {idx} (CFDI 4.0)")
+            
+            # Crear objeto Concepto con los datos extraídos
+            # Nota: El importe se calcula automáticamente por satcfdi (cantidad * valor_unitario - descuento)
+            renglon = cfdi40.Concepto(
+                clave_prod_serv=clave_prod,
+                cantidad=cantidad,
+                clave_unidad=clave_unidad,
+                descripcion=descripcion,
+                valor_unitario=valor_unitario,
+                objeto_imp=objeto_imp
+            )
+            
+            # Campos opcionales
+            no_identificacion = concepto_json.get('NoIdentificacion') or concepto_json.get('no_identificacion')
+            if no_identificacion:
+                renglon.no_identificacion = no_identificacion
+            
+            unidad = concepto_json.get('Unidad') or concepto_json.get('unidad')
+            if unidad:
+                renglon.unidad = unidad
+            
+            descuento_str = concepto_json.get('Descuento') or concepto_json.get('descuento')
+            if descuento_str:
+                try:
+                    renglon.descuento = Decimal(str(descuento_str))
+                except:
+                    pass  # Si no se puede convertir, ignorar el descuento
+            
+            # Agregar el concepto a la lista
+            seq_conceptos.append(renglon)
         
-        # Ajuste para compatibilidad: cambiar namespace de cartaporte31 a cartaporte30 para signing
-        xml_resultado = xml_resultado.replace('cartaporte31', 'cartaporte30')
-        xml_resultado = xml_resultado.replace('http://www.sat.gob.mx/CartaPorte31', 'http://www.sat.gob.mx/CartaPorte30')
+        # Validar que haya al menos un concepto
+        if len(seq_conceptos) == 0:
+            raise ValueError("Debe haber al menos un concepto válido")
         
-        return xml_resultado
-
-    def _add_carta_porte(self, complemento, carta_porte_data):
+        return seq_conceptos
+    
+    def _procesar_complementos(self, datos_json: Dict[str, Any]) -> None:
+        # Verificar si hay complementos
+        if datos_json.get('datosXML', {}).get('complemento'):
+            complemento_data = datos_json['datosXML']['complemento']
+            
+            # Carta Porte 3.1
+            if complemento_data.get('cartaporte31'):
+                from .Complementos.cartaPorte import CartaPorteBuilder
+                builder = CartaPorteBuilder()
+                carta_porte = builder.construir_desde_json(complemento_data['cartaporte31'])
+                
+                # Agregar el complemento al comprobante
+                if not hasattr(self.comprobante, 'complemento') or self.comprobante.complemento is None:
+                    from satcfdi.create.cfd import cartaporte31
+                    self.comprobante.complemento = cartaporte31.Complemento()
+                
+                self.comprobante.complemento.carta_porte = carta_porte
+            
+            # Otros complementos pueden agregarse aquí
+            # Ejemplo: Pago 2.0, Terceros, etc.
+    
+    @staticmethod
+    def validar_estructura_json(datos_json: Dict[str, Any]) -> bool:
         """
-        Agrega el elemento CartaPorte al complemento.
+        Valida que el JSON tenga la estructura mínima requerida.
+        Soporta múltiples formatos de JSON (estructura plana o con datosXML).
         """
-        # Atributos del CartaPorte
-        carta_porte_attrib = {k: str(v) for k, v in carta_porte_data.items() if k not in ['cartaporte31:Ubicaciones', 'Ubicaciones', 'cartaporte31:Mercancias', 'Mercancias', 'cartaporte31:FiguraTransporte', 'FiguraTransporte'] and v is not None and not isinstance(v, dict) and not isinstance(v, list)}
-        carta_porte = etree.SubElement(complemento, '{http://www.sat.gob.mx/CartaPorte31}CartaPorte', **carta_porte_attrib)
+        if not isinstance(datos_json, dict):
+            raise ValueError("El JSON debe ser un diccionario")
         
-        # Ubicaciones
-        ubicaciones_data = carta_porte_data.get('cartaporte31:Ubicaciones') or carta_porte_data.get('cartaporte30:Ubicaciones') or carta_porte_data.get('Ubicaciones')
-        if ubicaciones_data and isinstance(ubicaciones_data, dict):
-            ubicaciones = etree.SubElement(carta_porte, '{http://www.sat.gob.mx/CartaPorte31}Ubicaciones')
-            ubicacion_list = ubicaciones_data.get('cartaporte31:Ubicacion') or ubicaciones_data.get('cartaporte30:Ubicacion') or ubicaciones_data.get('Ubicacion')
-            if isinstance(ubicacion_list, list):
-                for ubicacion_data in ubicacion_list:
-                    if isinstance(ubicacion_data, dict):
-                        ubicacion_attrib = {k: str(v) for k, v in ubicacion_data.items() if k != 'cartaporte31:Domicilio' and k != 'cartaporte30:Domicilio' and v is not None and not isinstance(v, dict) and not isinstance(v, list)}
-                        ubicacion = etree.SubElement(ubicaciones, '{http://www.sat.gob.mx/CartaPorte31}Ubicacion', **ubicacion_attrib)
-                        # Domicilio
-                        domicilio_data = ubicacion_data.get('cartaporte31:Domicilio') or ubicacion_data.get('cartaporte30:Domicilio') or ubicacion_data.get('Domicilio')
-                        if domicilio_data and isinstance(domicilio_data, dict):
-                            domicilio_attrib = {k: str(v) for k, v in domicilio_data.items() if v is not None and not isinstance(v, dict) and not isinstance(v, list)}
-                            etree.SubElement(ubicacion, '{http://www.sat.gob.mx/CartaPorte31}Domicilio', **domicilio_attrib)
+        # Verificar si existe la estructura datosXML
+        if 'datosXML' in datos_json:
+            # Validar estructura con namespace cfdi:
+            if 'cfdi:Comprobante' in datos_json['datosXML']:
+                comprobante = datos_json['datosXML']['cfdi:Comprobante']
+                
+                # Validar emisor
+                if 'cfdi:Emisor' not in comprobante:
+                    raise ValueError("Falta la sección 'cfdi:Emisor' en datosXML->cfdi:Comprobante")
+                
+                # Validar receptor
+                if 'cfdi:Receptor' not in comprobante:
+                    raise ValueError("Falta la sección 'cfdi:Receptor' en datosXML->cfdi:Comprobante")
+                
+                # Validar conceptos
+                if 'cfdi:Conceptos' not in comprobante:
+                    raise ValueError("Falta la sección 'cfdi:Conceptos' en datosXML->cfdi:Comprobante")
+                
+                return True
+            # Validar estructura sin namespace
+            elif 'emisor' in datos_json['datosXML'] or 'receptor' in datos_json['datosXML']:
+                if 'emisor' not in datos_json['datosXML']:
+                    raise ValueError("Falta la sección 'emisor' en datosXML")
+                if 'receptor' not in datos_json['datosXML']:
+                    raise ValueError("Falta la sección 'receptor' en datosXML")
+                return True
         
-        # Mercancias
-        mercancias_data = carta_porte_data.get('cartaporte31:Mercancias') or carta_porte_data.get('cartaporte30:Mercancias') or carta_porte_data.get('Mercancias')
-        if mercancias_data and isinstance(mercancias_data, dict):
-            mercancias_attrib = {k: str(v) for k, v in mercancias_data.items() if k not in ['cartaporte31:Mercancia', 'cartaporte30:Mercancia', 'Mercancia', 'cartaporte31:Autotransporte', 'cartaporte30:Autotransporte'] and v is not None and not isinstance(v, dict) and not isinstance(v, list)}
-            mercancias = etree.SubElement(carta_porte, '{http://www.sat.gob.mx/CartaPorte31}Mercancias', **mercancias_attrib)
-            mercancia_data = mercancias_data.get('cartaporte31:Mercancia') or mercancias_data.get('cartaporte30:Mercancia') or mercancias_data.get('Mercancia')
-            if mercancia_data and isinstance(mercancia_data, dict):
-                mercancia_attrib = {k: str(v) for k, v in mercancia_data.items() if v is not None and not isinstance(v, dict) and not isinstance(v, list)}
-                etree.SubElement(mercancias, '{http://www.sat.gob.mx/CartaPorte31}Mercancia', **mercancia_attrib)
-            # Autotransporte
-            autotransporte_data = mercancias_data.get('cartaporte31:Autotransporte') or mercancias_data.get('cartaporte30:Autotransporte') or mercancias_data.get('Autotransporte')
-            if autotransporte_data and isinstance(autotransporte_data, dict):
-                autotransporte_attrib = {k: str(v) for k, v in autotransporte_data.items() if k not in ['cartaporte31:IdentificacionVehicular', 'cartaporte30:IdentificacionVehicular', 'cartaporte31:Seguros', 'cartaporte30:Seguros', 'cartaporte31:Remolques', 'cartaporte30:Remolques'] and v is not None and not isinstance(v, dict) and not isinstance(v, list)}
-                autotransporte = etree.SubElement(mercancias, '{http://www.sat.gob.mx/CartaPorte31}Autotransporte', **autotransporte_attrib)
-                # IdentificacionVehicular
-                ident_data = autotransporte_data.get('cartaporte31:IdentificacionVehicular') or autotransporte_data.get('cartaporte30:IdentificacionVehicular') or autotransporte_data.get('IdentificacionVehicular')
-                if ident_data and isinstance(ident_data, dict):
-                    ident_attrib = {k: str(v) for k, v in ident_data.items() if v is not None and not isinstance(v, dict) and not isinstance(v, list)}
-                    etree.SubElement(autotransporte, '{http://www.sat.gob.mx/CartaPorte31}IdentificacionVehicular', **ident_attrib)
-                # Seguros
-                seguros_data = autotransporte_data.get('cartaporte31:Seguros') or autotransporte_data.get('cartaporte30:Seguros') or autotransporte_data.get('Seguros')
-                if seguros_data and isinstance(seguros_data, dict):
-                    seguros_attrib = {k: str(v) for k, v in seguros_data.items() if v is not None and not isinstance(v, dict) and not isinstance(v, list)}
-                    etree.SubElement(autotransporte, '{http://www.sat.gob.mx/CartaPorte31}Seguros', **seguros_attrib)
-                # Remolques
-                remolques_data = autotransporte_data.get('cartaporte31:Remolques') or autotransporte_data.get('cartaporte30:Remolques') or autotransporte_data.get('Remolques')
-                if remolques_data and isinstance(remolques_data, dict):
-                    remolques = etree.SubElement(autotransporte, '{http://www.sat.gob.mx/CartaPorte31}Remolques')
-                    remolque_data = remolques_data.get('cartaporte31:Remolque') or remolques_data.get('cartaporte30:Remolque') or remolques_data.get('Remolque')
-                    if remolque_data and isinstance(remolque_data, dict):
-                        remolque_attrib = {k: str(v) for k, v in remolque_data.items() if v is not None and not isinstance(v, dict) and not isinstance(v, list)}
-                        etree.SubElement(remolques, '{http://www.sat.gob.mx/CartaPorte31}Remolque', **remolque_attrib)
+        # Validar estructura plana (sin datosXML)
+        if 'emisor' not in datos_json:
+            raise ValueError("Falta la sección 'emisor' en el JSON")
         
-        # FiguraTransporte
-        figura_data = carta_porte_data.get('cartaporte31:FiguraTransporte') or carta_porte_data.get('cartaporte30:FiguraTransporte') or carta_porte_data.get('FiguraTransporte')
-        if figura_data and isinstance(figura_data, dict):
-            figura = etree.SubElement(carta_porte, '{http://www.sat.gob.mx/CartaPorte31}FiguraTransporte')
-            tipos_figura_data = figura_data.get('cartaporte31:TiposFigura') or figura_data.get('cartaporte30:TiposFigura') or figura_data.get('TiposFigura')
-            if tipos_figura_data and isinstance(tipos_figura_data, dict):
-                tipos_attrib = {k: str(v) for k, v in tipos_figura_data.items() if v is not None and not isinstance(v, dict) and not isinstance(v, list)}
-                etree.SubElement(figura, '{http://www.sat.gob.mx/CartaPorte31}TiposFigura', **tipos_attrib)
+        if 'receptor' not in datos_json:
+            raise ValueError("Falta la sección 'receptor' en el JSON")
+        
+        if 'conceptos' not in datos_json:
+            raise ValueError("Falta la sección 'conceptos' en el JSON")
+        
+        return True

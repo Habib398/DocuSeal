@@ -177,14 +177,19 @@ class ComprobanteTraslado:
         # Ajustar datos antes de generar
         datos_ajustados = self.ajustar_datos()
 
-        if "datos_xml" in self.datos:
-            # Generar XML si se recibio XML
-            return self.datos["datos_xml"]
-        else:
-            # Por defecto, asumir JSON y generar XML
-            conversor = ConvertirJson(datos_ajustados)
-            xml_resultado = conversor.GenerarXmlCFDI()
-            return xml_resultado
+        # Siempre generar XML desde JSON cuando viene de ComprobanteFactory
+        conversor = ConvertirJson()
+        cfdi_objeto = conversor.convertir_a_cfdi({"datosXML": datos_ajustados})
+        xml_element = cfdi_objeto.to_xml()
+        
+        # Agregar NoCertificado al XML si está presente en los datos originales
+        no_certificado = self.comprobante.get('NoCertificado')
+        if no_certificado:
+            xml_element.set('NoCertificado', str(no_certificado))
+        
+        from lxml import etree
+        xml_resultado = etree.tostring(xml_element, encoding='unicode', pretty_print=True)
+        return xml_resultado
 
 
 __all__ = ["ComprobanteTraslado"]

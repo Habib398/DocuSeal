@@ -81,6 +81,5 @@
   }
 },
     "enviarCorreo": false,
-    "generarPDF": false,
-    "claveUsuario": "001"
+    "generarPDF": false
 }

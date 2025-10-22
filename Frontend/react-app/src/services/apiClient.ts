@@ -27,12 +27,15 @@ export interface RegisterData {
   email: string;
   password: string;
   confirm_password: string;
+  api_key: string; // Clave única generada en el cliente
 }
 
 export interface User {
   id: number;
   name: string;
   email: string;
+  // api_key: Nota - La clave API NO se devuelve desde el backend por seguridad
+  // Solo se usa internamente en el servidor
 }
 
 export interface ApiResponse<T> {
@@ -46,6 +49,26 @@ class ApiClient {
 
   constructor() {
     this.baseURL = API_URL;
+  }
+
+  // Método auxiliar para obtener la clave API del usuario (si está disponible)
+  // TODO: En el futuro, esto se usará para autenticar requests al servicio backend
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private getApiKey(): string | null {
+    // Por ahora retorna null, se implementará cuando el backend esté listo
+    // La clave se guardará de forma segura después del login
+    return sessionStorage.getItem('user_api_key');
+  }
+
+  // Método para guardar la clave API temporalmente (solo después del login)
+  // TODO: Este método se usará cuando el backend devuelva la clave al hacer login
+  public setApiKey(apiKey: string): void {
+    sessionStorage.setItem('user_api_key', apiKey);
+  }
+
+  // Método para limpiar la clave API al cerrar sesión
+  public clearApiKey(): void {
+    sessionStorage.removeItem('user_api_key');
   }
 
   private async request<T>(
@@ -141,7 +164,7 @@ export interface Certificate {
   usuarioPAC: string;
   contrasenaPAC: string;
   nombreEmpresa?: string;
-  noCertificado: string;
+  noCertificado: string; // Se mantendrá por compatibilidad, pero se usará api_key internamente
   vigencia: string;
   correo?: string;
   telefono?: string;
@@ -150,6 +173,8 @@ export interface Certificate {
   Certificado: string;
   pwdCER: string;
   activo?: boolean;
+  // api_key: NO se expone en el frontend por seguridad
+  // El backend lo usará internamente para validar acceso
 }
 
 export interface CertificateFormData {

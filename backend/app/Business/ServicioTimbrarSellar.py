@@ -61,6 +61,7 @@ class ServicioTimbrarSellar:
         
         xml_sellado = resultado_sellado["xml_con_sello"]
         cadena_original = resultado_sellado.get("cadena_original", "")
+        logger.info(f"Cadena original generada: {cadena_original}")
         logger.info("Sellado exitoso")
         
         # IMPRIMIR XML GENERADO
@@ -81,8 +82,7 @@ class ServicioTimbrarSellar:
             return {
                 "error": "Error al procesar XML sellado",
                 "detalle": f"No se pudo extraer NoCertificado: {str(e)}",
-                "xml_sellado": xml_sellado,
-                "cadena_original": cadena_original
+                "xml_sellado": xml_sellado
             }
         
         # Obtener credenciales PAC de la base de datos
@@ -98,8 +98,7 @@ class ServicioTimbrarSellar:
                 return {
                     "error": "Certificado no encontrado",
                     "detalle": f"No se encontró certificado con NoCertificado {no_certificado} en la base de datos",
-                    "xml_sellado": xml_sellado,
-                    "cadena_original": cadena_original
+                    "xml_sellado": xml_sellado
                 }
             
             usuario_pac = certificado.get('usuarioPAC')
@@ -119,8 +118,7 @@ class ServicioTimbrarSellar:
             return {
                 "error": "Error al acceder a la base de datos",
                 "detalle": f"No se pudieron obtener las credenciales PAC: {str(e)}",
-                "xml_sellado": xml_sellado,
-                "cadena_original": cadena_original
+                "xml_sellado": xml_sellado
             }
         
         pruebas = data.get("pruebas", True)
@@ -142,7 +140,6 @@ class ServicioTimbrarSellar:
         
         # Preparar respuesta
         respuesta = resultado_timbrado.copy()
-        respuesta["cadena_original"] = cadena_original
         logger.info("Timbrado exitoso")
         
         # Generar PDF si se solicita

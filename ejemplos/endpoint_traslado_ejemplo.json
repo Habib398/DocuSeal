@@ -18,16 +18,16 @@
     "LugarExpedicion": "64000",
 
     "cfdi:Emisor": {
-      "Rfc": "EKU9003173C9",
-      "Nombre": "ESCUELA KEMPER URGATE",
+      "Rfc": "AAA010101AAA",
+      "Nombre": "PRUEBA",
       "RegimenFiscal": "601"
     },
 
     "cfdi:Receptor": {
-      "Rfc": "XAXX010101000",
-      "Nombre": "PUBLICO EN GENERAL",
-      "DomicilioFiscalReceptor": "64000",
-      "RegimenFiscalReceptor": "616",
+      "Rfc": "AIP100526IK6",
+      "Nombre": "DESARROLLO SUSTENTABLE",
+      "DomicilioFiscalReceptor": "45900",
+      "RegimenFiscalReceptor": "601",
       "UsoCFDI": "S01"
     },
 

@@ -1,0 +1,146 @@
+{
+  "datosXML": {
+    "cfdi:Comprobante": {
+    "xmlns:cfdi": "http://www.sat.gob.mx/cfd/4",
+    "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+    "xsi:schemaLocation": "http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd",
+    "Version": "4.0",
+    "Serie": "T",
+    "Folio": "0001",
+    "Fecha": "2025-10-21T10:00:00",
+    "NoCertificado": "30001000000300023708",
+    "Certificado": "",
+    "SubTotal": "0",
+    "Moneda": "XXX",
+    "Total": "0",
+    "TipoDeComprobante": "T",
+    "Exportacion": "01",
+    "LugarExpedicion": "64000",
+
+    "cfdi:Emisor": {
+      "Rfc": "AAA010101AAA",
+      "Nombre": "PRUEBA",
+      "RegimenFiscal": "601"
+    },
+
+    "cfdi:Receptor": {
+      "Rfc": "AIP100526IK6",
+      "Nombre": "DESARROLLO SUSTENTABLE",
+      "DomicilioFiscalReceptor": "45900",
+      "RegimenFiscalReceptor": "601",
+      "UsoCFDI": "S01"
+    },
+
+    "cfdi:Conceptos": {
+      "cfdi:Concepto": {
+        "ClaveProdServ": "01010101",
+        "NoIdentificacion": "TRL001",
+        "Cantidad": "1",
+        "ClaveUnidad": "H87",
+        "Unidad": "Pieza",
+        "Descripcion": "Traslado de mercancía sin valor comercial",
+        "ValorUnitario": "0",
+        "Importe": "0",
+        "ObjetoImp": "01"
+      }
+    }
+  },
+      "cfdi:Complemento": {
+      "cartaporte31:CartaPorte": {
+        "Version": "3.1",
+        "IdCCP": "CCCb127b-f2f8-4e18-8a23-03440aa40dbf",
+        "TranspInternac": "No",
+        "TotalDistRec": "1000",
+        "cartaporte31:Ubicaciones": {
+          "cartaporte31:Ubicacion": [
+            {
+              "TipoUbicacion": "Origen",
+              "RFCRemitenteDestinatario": "LTT110818MX7",
+              "NombreRemitenteDestinatario": "  LESS THAN TRUCKLOAD JABE   SA DE CV",
+              "FechaHoraSalidaLlegada": "2025-09-25T15:04:00",
+              "cartaporte31:Domicilio": {
+                "Calle": "REFUGIO VILCHIS  MANZANA 84 LOTE 29             ",
+                "NumeroExterior": "60 ",
+                "Colonia": "3632",
+                "Localidad": "05",
+                "Municipio": "033",
+                "Estado": "MEX",
+                "Pais": "MEX",
+                "CodigoPostal": "55270"
+              }
+            },
+            {
+              "TipoUbicacion": "Destino",
+              "RFCRemitenteDestinatario": "LTT110818MX7",
+              "NombreRemitenteDestinatario": "  LESS THAN TRUCKLOAD JABE   SA DE CV",
+              "FechaHoraSalidaLlegada": "2025-09-25T15:04:00",
+              "DistanciaRecorrida": "1000",
+              "cartaporte31:Domicilio": {
+                "Calle": "REFUGIO VILCHIS  MANZANA 84 LOTE 29             ",
+                "NumeroExterior": "60 ",
+                "Estado": "TX",
+                "Pais": "USA",
+                "CodigoPostal": "78045"
+              }
+            }
+          ]
+        },
+        "cartaporte31:Mercancias": {
+          "PesoBrutoTotal": "1",
+          "UnidadPeso": "KGM",
+          "NumTotalMercancias": "1",
+          "cartaporte31:Mercancia": {
+            "BienesTransp": "01010101",
+            "Descripcion": "No existe en el catÃ¡logo (Puede especificar los datos para Material Peligroso)",
+            "Cantidad": "1",
+            "ClaveUnidad": "H87",
+            "MaterialPeligroso": "No",
+            "PesoEnKg": "1.00"
+          },
+          "cartaporte31:Autotransporte": {
+            "PermSCT": "TPAF01",
+            "NumPermisoSCT": "2858STT10082011021001012",
+            "cartaporte31:IdentificacionVehicular": {
+              "ConfigVehicular": "T3S2",
+              "PesoBrutoVehicular": "2.84",
+              "PlacaVM": "59AE3X",
+              "AnioModeloVM": "2011"
+            },
+            "cartaporte31:Seguros": {
+              "AseguraRespCivil": "HDI SEGUROS, S.A. DE C.V. ",
+              "PolizaRespCivil": "62-48161-8"
+            },
+            "cartaporte31:Remolques": {
+              "cartaporte31:Remolque": {
+                "SubTipoRem": "CTR007",
+                "Placa": "05UE5T"
+              }
+            }
+          }
+        },
+        "cartaporte31:FiguraTransporte": {
+          "cartaporte31:TiposFigura": {
+            "TipoFigura": "01",
+            "RFCFigura": "MARE830117IT8",
+            "NumLicencia": "TAMPS239794",
+            "NombreFigura": "ERICK EZEQUIEL MARAVILLA REYNA"
+          }
+        }
+      },
+      "tfd:TimbreFiscalDigital": {
+        "xmlns:tfd": "http://www.sat.gob.mx/TimbreFiscalDigital",
+        "xsi:schemaLocation": "http://www.sat.gob.mx/TimbreFiscalDigital http://www.sat.gob.mx/sitio_internet/cfd/TimbreFiscalDigital/TimbreFiscalDigitalv11.xsd",
+        "SelloSAT": "Uog8ANMWbOlTJ5r1CdCgfTcdl8VloC7Jb000Ef1KbDbdK5v0h2XHAgQC2R+rxCYdAjVdbnAKTejp+3VSOktZqKe+S7sDgKyYK2BaZbDc6hu2wEV8p7f9LYfSbmCST6izEyqMg2MUWsf5PkBiT149IE6Wd2s71hgBMR96wsDCagQ+vgKDbkurVEVp/h32I7gT1jEEIbh/GKBi/zdJ1zIdpq66xikghgFmqrXp5uBgUB1Jd9FHfJbZhPdjuTbKPEc50gJ6mwxoA2PVKPp+uVCFV7cGPGVuFt51sdyYu+TZNTb99/sGbkHM95DTo41iO8tjEbjbJcFd8kwg/R5SimOr2A==",
+        "NoCertificadoSAT": "30001000000400002495",
+        "SelloCFD": "nxoMTmbMz1ruKvMXyVbqoILHuWq0hXVxb+rs4DQQ7OblMFkfHWKqxuMKLLJXWFcFZRngAxddB3wQGcigq0EgMQ0/gG5NZyTXiXzWhIGnmZCcokYdOol+uBDGJ9QSOrDzsPeAtn9RXQ8VC7qYTWu16FA7Hg2dgfinJtObs5zVTGGO+RIVY+93xTSDs9opxeKa2g9gznlnNJi+Ga2z/tVkcZcvxY/STHfbVE/gevVjXlqHm/BPU058ZeyXH9bCTj/WwkAlHAVG9MAQ31pEa96SrzCZQHujEQImnBFBC9fkRdOl6lUXKt5Vk44JZBqbcoOi3yDgFsKRgZXZ7SRioYgLgA==",
+        "RfcProvCertif": "SPR190613I52",
+        "FechaTimbrado": "2025-09-25T15:51:32",
+        "UUID": "0ED15293-8730-2F47-B6B9-8A522378844F",
+        "Version": "1.1"
+      }
+    }
+},
+    "enviarCorreo": false,
+    "generarPDF": false,
+    "claveUsuario": "001"
+}
