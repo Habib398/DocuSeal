@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  base: '/admin/',  // Base URL para los assets en producción
   server: {
     port: 3000,
     host: true, // Escuchar en todas las interfaces de red
@@ -17,12 +18,12 @@ export default defineConfig({
     ],
     proxy: {
       '/api': {
-        target: 'http://localhost:8002',
+        target: 'http://localhost:8000/admin',
         changeOrigin: true,
         secure: false,
       },
       '/static': {
-        target: 'http://localhost:8002',
+        target: 'http://localhost:8000/admin',
         changeOrigin: true,
         secure: false,
       }

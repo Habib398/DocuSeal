@@ -1,20 +1,29 @@
 // Configuración de API - Detectar automáticamente si estamos en Cloudflare o local
 const API_URL = (() => {
   const currentOrigin = window.location.origin;
-  // Si estamos en un dominio de Cloudflare o el mismo origen, usar rutas relativas
+  
+  // Si estamos en un dominio de Cloudflare, usar rutas relativas
   if (currentOrigin && currentOrigin.includes('trycloudflare.com')) {
-    return currentOrigin + '/api';
+    return currentOrigin + '/admin/api';
   }
+  
   // Si estamos en localhost con Vite (puerto 3000), usar proxy relativo
   if (currentOrigin && currentOrigin.includes('localhost:3000')) {
-    return '/api'; // El proxy de Vite redirigirá a localhost:8002
+    return '/api'; // El proxy de Vite redirigirá a localhost:8000/admin
   }
-  // Si estamos en localhost accediendo al HTML directamente, usar el puerto del admin
+  
+  // Si estamos en localhost:8000 (servidor unificado)
+  if (currentOrigin && currentOrigin.includes('localhost:8000')) {
+    return currentOrigin + '/admin/api';
+  }
+  
+  // Si estamos en localhost:8002 (API Admin por separado - legacy)
   if (currentOrigin && currentOrigin.includes('localhost:8002')) {
     return currentOrigin + '/api';
   }
-  // Fallback: API Admin en puerto 8002
-  return 'http://localhost:8002/api';
+  
+  // Fallback: API Admin en servidor unificado (puerto 8000)
+  return 'http://localhost:8000/admin/api';
 })();
 
 export interface LoginCredentials {
@@ -53,7 +62,7 @@ class ApiClient {
 
   // Método auxiliar para obtener la clave API del usuario (si está disponible)
   // TODO: En el futuro, esto se usará para autenticar requests al servicio backend
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // @ts-ignore - Método reservado para uso futuro
   private getApiKey(): string | null {
     // Por ahora retorna null, se implementará cuando el backend esté listo
     // La clave se guardará de forma segura después del login

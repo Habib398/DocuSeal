@@ -137,55 +137,39 @@ npm install
 ```
 5.  Ejecutar el Proyecto
 
-   Opción 1: Ejecutar Todo con un Solo Script (Windows)
-
-   Desde la raíz del proyecto:
-
-   ```powershell
-   .\Scripts\start_all.ps1
-   ```
-
-   Este script iniciará automáticamente:
-   - API Admin (puerto 8000)
-   - API Service (puerto 8001)
-   - Frontend React (puerto 5173)
-
-   Opción 2: Ejecutar Servicios Individualmente
-
-   ### Backend - API Admin (Puerto 8000)
+   ## Modo de Ejecución
+   Desde la raíz del proyecto en Windows:
 
    ```powershell
-   # Windows
-   .\Scripts\start_admin.ps1
-
-   # Linux/macOS
-   cd backend/app/api_admin
-   uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+   .\Scripts\start_DocuSeal.ps1
    ```
+   
+   ### URLs de Acceso:
+   - **Aplicación Web**: http://localhost:8000/admin
+   - **Service API**: http://localhost:8000/service
+   - **Service API Docs**: http://localhost:8000/service/docs
 
-   Documentación disponible en: http://localhost:8000/docs
+   ## Modo de Desarrollo (Si se requiere)
+   Si necesitas trabajar con el frontend o backend por separado:
 
-   ### Backend - API Service (Puerto 8001)
-
+   ### Terminal 1 - Backend:
    ```powershell
-   # Windows
-   .\Scripts\start_service.ps1
-
-   # Linux/macOS
-   cd backend/app/api_service
-   uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+   # Navegar a la raíz del proyecto
+   cd backend/app
+   
+   # Activar entorno virtual (si existe)
+   .\.venv\Scripts\Activate.ps1
+   
+   # Iniciar servidor unificado
+   python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
    ```
 
-   Documentación disponible en: http://localhost:8001/docs
-
-   ### Frontend - Aplicación React (Puerto 5173)
-
+   ### Terminal 2 - Frontend:
    ```bash
    cd Frontend/react-app
    npm run dev
    ```
-
-   Aplicación disponible en: http://localhost:5173
+   En este modo, el frontend estará disponible en http://localhost:3000
 
 6. Documentación Adicional
 

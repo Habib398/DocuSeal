@@ -16,10 +16,12 @@ from DB.DBManager import DBManager
 app = FastAPI(
     title="DocuSeal Admin API",
     version="1.0.0",
-    description="API administrativa para gestión de usuarios y certificados"
+    description="API administrativa para gestión de usuarios y certificados",
+    root_path="/admin/api"  # Configuración para sub-aplicación montada en /admin/api
 )
 
 # Configurar CORS para el frontend administrativo
+# Nota: Si se monta en la app principal, el CORS se maneja globalmente
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # En producción, especificar el dominio del frontend
@@ -56,7 +58,7 @@ async def root():
 
 # ==================== ENDPOINTS DE AUTENTICACIÓN ====================
 
-@app.post("/api/register", status_code=status.HTTP_201_CREATED)
+@app.post("/register", status_code=status.HTTP_201_CREATED)
 async def register_usuario(usuario: UsuarioRegistroRequest):
     """
     Registra un nuevo usuario en el sistema.
@@ -84,7 +86,7 @@ async def register_usuario(usuario: UsuarioRegistroRequest):
             detail=f"Error inesperado al registrar usuario: {str(e)}"
         )
 
-@app.post("/api/login")
+@app.post("/login")
 async def login_usuario(credenciales: UsuarioLoginRequest):
     """
     Autentica un usuario en el sistema.
@@ -113,7 +115,7 @@ async def login_usuario(credenciales: UsuarioLoginRequest):
 
 # ==================== ENDPOINTS DE CERTIFICADOS ====================
 
-@app.get("/api/v1/certificados/")
+@app.get("/v1/certificados/")
 async def get_all_certificados():
     """
     Obtiene todos los certificados almacenados.
@@ -131,7 +133,7 @@ async def get_all_certificados():
             detail=f"Error inesperado al obtener certificados: {str(e)}"
         )
 
-@app.get("/api/v1/certificados/usuario/{usuario_pac}")
+@app.get("/v1/certificados/usuario/{usuario_pac}")
 async def get_certificado_by_usuario(usuario_pac: str):
     """
     Obtiene un certificado por nombre de usuario PAC.
@@ -157,7 +159,7 @@ async def get_certificado_by_usuario(usuario_pac: str):
             detail=f"Error inesperado al obtener certificado: {str(e)}"
         )
 
-@app.get("/api/v1/certificados/numero/{no_certificado}")
+@app.get("/v1/certificados/numero/{no_certificado}")
 async def get_certificado_by_numero(no_certificado: str):
     """
     Obtiene un certificado por número de certificado.
@@ -183,7 +185,7 @@ async def get_certificado_by_numero(no_certificado: str):
             detail=f"Error inesperado al obtener certificado: {str(e)}"
         )
 
-@app.post("/api/v1/certificados/", status_code=status.HTTP_201_CREATED)
+@app.post("/v1/certificados/", status_code=status.HTTP_201_CREATED)
 async def create_certificado(certificado: dict = Body(...)):
     """
     Crea un nuevo certificado en el sistema.
@@ -206,7 +208,7 @@ async def create_certificado(certificado: dict = Body(...)):
             detail=f"Error inesperado al crear certificado: {str(e)}"
         )
 
-@app.put("/api/v1/certificados/{cert_id}")
+@app.put("/v1/certificados/{cert_id}")
 async def update_certificado(cert_id: int, certificado: dict = Body(...)):
     """
     Actualiza un certificado existente.
@@ -231,7 +233,7 @@ async def update_certificado(cert_id: int, certificado: dict = Body(...)):
             detail=f"Error inesperado al actualizar certificado: {str(e)}"
         )
 
-@app.delete("/api/v1/certificados/{cert_id}")
+@app.delete("/v1/certificados/{cert_id}")
 async def delete_certificado(cert_id: int):
     """
     Desactiva un certificado del sistema (soft delete).
@@ -255,7 +257,7 @@ async def delete_certificado(cert_id: int):
             detail=f"Error inesperado al desactivar certificado: {str(e)}"
         )
 
-@app.get("/api/v1/certificados/inactivos")
+@app.get("/v1/certificados/inactivos")
 async def get_certificados_inactivos():
     """
     Obtiene todos los certificados inactivos.
@@ -273,7 +275,7 @@ async def get_certificados_inactivos():
             detail=f"Error inesperado al obtener certificados inactivos: {str(e)}"
         )
 
-@app.patch("/api/v1/certificados/{cert_id}/reactivar")
+@app.patch("/v1/certificados/{cert_id}/reactivar")
 async def reactivar_certificado(cert_id: int):
     """
     Reactiva un certificado inactivo.

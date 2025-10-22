@@ -44,9 +44,11 @@ app = FastAPI(
     description="API pública para servicios de sellado y timbrado de CFDI. "
                 "Soporta 'xml' (string XML) y 'datosXML' (estructura JSON).",
     openapi_tags=openapi_tags,
+    root_path="/service"  # Configuración para sub-aplicación montada
 )
 
 # Configurar CORS permisivo para servicio público
+# Nota: Si se monta en la app principal, el CORS se maneja globalmente
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
