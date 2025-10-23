@@ -26,15 +26,16 @@ router = APIRouter(
 @router.post(
     "/sellar/",
     summary="Sellar CFDI",
-    description="Sellado de un CFDI. Acepta 'xml' (string XML) o 'datosXML' (estructura JSON con cfdi:Comprobante).",
+    description="Sellado de un CFDI. Acepta 'xml' (string XML) o 'datosXML' (estructura JSON con cfdi:Comprobante). Requiere 'claveUsuario'.",
     tags=["Sellado"]
 )
 async def sellar_endpoint(
     data: dict = Body(
         ...,
-        description="Objeto JSON con 'xml' (string XML) o 'datosXML' (estructura JSON del comprobante).",
+        description="Objeto JSON con 'xml' (string XML) o 'datosXML' (estructura JSON del comprobante) y 'claveUsuario'.",
         example={
             "datosXML(JSON) o xml(String xml)": "",
+            "claveUsuario": "550e8400-e29b-41d4-a716-446655440000",
             "enviarCorreo": False,
             "generarPDF": False
         }
@@ -64,16 +65,17 @@ async def sellar_endpoint(
     "/timbrarSellar/",
     summary="Sellar y timbrar CFDI",
     description="Realiza el sellado y timbrado completo. Acepta 'xml' (string XML) o 'datosXML' (estructura JSON con cfdi:Comprobante). "
-                "Opcionalmente genera PDF y envía correo. Las credenciales PAC se obtienen automáticamente de la BD.",
+                "Opcionalmente genera PDF y envía correo. Requiere 'claveUsuario' para obtener credenciales PAC.",
     tags=["Timbrado y Sellado"]
 )
 async def timbrar_sellar_endpoint(
     data: dict = Body(
         ...,
-        description="JSON con 'xml' (string XML) o 'datosXML' (estructura JSON del comprobante). "
-                    "Las credenciales PAC se obtienen automáticamente según el NoCertificado.",
+        description="JSON con 'xml' (string XML) o 'datosXML' (estructura JSON del comprobante) y 'claveUsuario'. "
+                    "Las credenciales PAC se obtienen automáticamente.",
         example={
             "datosXML(JSON) o xml(String xml)": {},
+            "claveUsuario": "550e8400-e29b-41d4-a716-446655440000",
             "enviarCorreo": False,
             "generarPDF": False,
             "pruebas": True

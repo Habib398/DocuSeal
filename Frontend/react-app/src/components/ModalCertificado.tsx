@@ -37,10 +37,17 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
   useEffect(() => {
     if (certificate) {
       // Popula el formulario con los datos del certificado existente
-      setFormData({
+      const certificateData = {
         ...emptyFormData,
         ...certificate,
-      });
+      };
+      
+      // Si el certificado existente no tiene claveUsuario, generarla automáticamente
+      if (!certificateData.claveUsuario) {
+        certificateData.claveUsuario = crypto.randomUUID();
+      }
+      
+      setFormData(certificateData);
     } else {
       // Reset form para nuevo certificado
       setFormData(emptyFormData);
@@ -134,7 +141,13 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
     e.preventDefault();
     setLoading(true);
     try {
-      await onSave(formData);
+      // Asegurar que siempre haya una claveUsuario (generada automáticamente si no existía)
+      const dataToSave = {
+        ...formData,
+        claveUsuario: formData.claveUsuario || crypto.randomUUID(),
+      };
+      
+      await onSave(dataToSave);
       onClose();
     } catch (error) {
       console.error('Error saving certificate:', error);
@@ -240,6 +253,38 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
                       disabled={loading}
                     />
                   </div>
+                  
+                  {/* Mostrar clave de usuario solo cuando se está editando un certificado existente */}
+                  {certificate && formData.claveUsuario && (
+                    <div className="col-md-6">
+                      <label htmlFor="claveUsuario" className="form-label">
+                        Clave de Usuario
+                      </label>
+                      <div className="input-group">
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="claveUsuario"
+                          value={formData.claveUsuario}
+                          readOnly
+                          disabled
+                        />
+                        <button
+                          className="btn btn-outline-secondary"
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(formData.claveUsuario || '');
+                            // Opcional: mostrar feedback visual
+                          }}
+                          title="Copiar clave"
+                        >
+                          <i className="fas fa-copy"></i>
+                        </button>
+                      </div>
+                      <div className="field-help">Clave única para acceder a este certificado desde el servicio.</div>
+                    </div>
+                  )}
+                  
                   <div className="col-md-6">
                     <label htmlFor="correo" className="form-label">
                       Correo electrónico

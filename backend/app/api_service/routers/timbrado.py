@@ -25,14 +25,15 @@ router = APIRouter(
 
 @router.post("/timbrar/",
     summary="Timbrar CFDI",
-    description="Timbrado de un XML de CFDI previamente sellado. Las credenciales del PAC se obtienen automáticamente de la BD usando el NoCertificado del XML."
+    description="Timbrado de un XML de CFDI previamente sellado. Se requiere claveUsuario para identificar el certificado."
 )
 async def timbrar_endpoint(
     data: dict = Body(
         ...,
-        description="Objeto JSON con 'xml' (string XML sellado completo). Las credenciales PAC se recuperan automáticamente según el NoCertificado.",
+        description="Objeto JSON con 'xml' (string XML sellado completo) y 'claveUsuario' para obtener credenciales PAC.",
         example={
             "xml": "",
+            "claveUsuario": "550e8400-e29b-41d4-a716-446655440000",
             "pruebas": True
         }
     )

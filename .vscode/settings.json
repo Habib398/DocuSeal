@@ -4,5 +4,6 @@
         "./backend/app/DB",
         "./backend/app",
         "./Frontend/Templates"
-    ]
+    ],
+    "python-envs.pythonProjects": []
 }

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, apiClient } from '../services/apiClient';
+import { User } from '../services/apiClient';
 
 interface AuthContextType {
   user: User | null;
@@ -29,16 +29,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = (user: User) => {
     setUser(user);
     localStorage.setItem('user', JSON.stringify(user));
-    // TODO: Cuando el backend esté listo, aquí se guardará la clave API
-    // que el backend devolverá al hacer login (encriptada)
-    // Por ahora, la clave solo se genera en el registro y no se persiste
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
-    // Limpiar la clave API de la sesión
-    apiClient.clearApiKey();
   };
 
   const isAuthenticated = user !== null;

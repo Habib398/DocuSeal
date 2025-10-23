@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { apiClient } from '../services/apiClient';
-import ApiKeyModal from './ApiKeyModal';
 
 interface RegisterModalProps {
   show: boolean;
@@ -14,13 +13,6 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ show, onClose }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [alert, setAlert] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
   const [loading, setLoading] = useState(false);
-  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
-  const [generatedApiKey, setGeneratedApiKey] = useState('');
-
-  // Función para generar UUID v4 usando crypto API del navegador
-  const generateApiKey = (): string => {
-    return crypto.randomUUID();
-  };
 
   const handleRegister = async () => {
     setAlert(null);
@@ -40,21 +32,19 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ show, onClose }) => {
     setLoading(true);
 
     try {
-      // Generar la clave API única
-      const apiKey = generateApiKey();
-
       const response = await apiClient.register({
         name,
         email,
         password,
         confirm_password: confirmPassword,
-        api_key: apiKey,
       });
 
       if (response.success) {
-        // Guardar la clave generada y mostrar el modal de API Key
-        setGeneratedApiKey(apiKey);
-        setShowApiKeyModal(true);
+        setAlert({ message: 'Usuario registrado exitosamente. Por favor inicia sesión.', type: 'success' });
+        setTimeout(() => {
+          resetForm();
+          onClose();
+        }, 2000);
       } else {
         setAlert({ message: response.detail || 'Error al registrar usuario', type: 'danger' });
       }
@@ -74,16 +64,9 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ show, onClose }) => {
     setPassword('');
     setConfirmPassword('');
     setAlert(null);
-    setGeneratedApiKey('');
   };
 
   const handleClose = () => {
-    resetForm();
-    onClose();
-  };
-
-  const handleApiKeyModalClose = () => {
-    setShowApiKeyModal(false);
     resetForm();
     onClose();
   };
@@ -190,13 +173,6 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ show, onClose }) => {
         </div>
       </div>
       <div className="modal-backdrop fade show"></div>
-
-      {/* Modal para mostrar la clave API generada */}
-      <ApiKeyModal 
-        show={showApiKeyModal} 
-        apiKey={generatedApiKey} 
-        onClose={handleApiKeyModalClose}
-      />
     </>
   );
 };

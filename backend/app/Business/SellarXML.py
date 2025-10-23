@@ -35,6 +35,38 @@ class SellarXML:
         return self.cadena_original
 
     @staticmethod
+    def obtener_datos_certificado_por_clave(claveUsuario: str) -> Optional[dict]:
+        """
+        Obtiene todos los datos del certificado usando claveUsuario.
+        """
+        from .Configuration.ConfiguracionCertificados import ConfiguracionCertificados
+        
+        db = DBManager()
+        config_cert = ConfiguracionCertificados(db)
+        certificado = config_cert.obtener_por_clave_usuario(claveUsuario)
+        
+        if not certificado:
+            return None
+        
+        # Decodificar CER y KEY de base64 a bytes
+        cer_b64 = certificado.get('CER')
+        key_b64 = certificado.get('KEY')
+        
+        try:
+            cer_bytes = base64.b64decode(cer_b64) if cer_b64 else None
+            key_bytes = base64.b64decode(key_b64) if key_b64 else None
+        except Exception as e:
+            raise ValueError(f"Error decodificando CER/KEY: {str(e)}")
+        
+        return {
+            'cer_bytes': cer_bytes,
+            'key_bytes': key_bytes,
+            'certificado_texto': certificado.get('Certificado'),
+            'pwd_cer': certificado.get('pwdCER', ''),
+            'no_certificado': certificado.get('noCertificado')
+        }
+
+    @staticmethod
     def obtener_cer_db(noCertificado: str) -> Optional[bytes]:
         """
         Obtiene el campo CER de la base de datos en formato bytes.
@@ -104,11 +136,18 @@ class SellarXML:
     def sellar_cfdi(cls, data: dict) -> dict:
         """
         Método principal para sellar un CFDI.
+        Requiere claveUsuario para obtener los certificados de la BD.
         Acepta:
         - "xml": string XML
         - "datosXML": estructura JSON (dict)
+        - "claveUsuario": clave única del certificado
         """
         try:
+            # Validar que venga claveUsuario
+            clave_usuario = data.get("claveUsuario")
+            if not clave_usuario:
+                return {"error": "Falta el campo 'claveUsuario' en la petición"}
+            
             # Verificar qué formato viene
             xml_string_input = data.get("xml")
             json_input = data.get("datosXML")
@@ -136,34 +175,37 @@ class SellarXML:
             import re
             xml_input = re.sub(r'>\s+<', '><', xml_input)
             
+            # Obtener datos del certificado usando claveUsuario
+            datos_cert = cls.obtener_datos_certificado_por_clave(clave_usuario)
+            if not datos_cert:
+                return {"error": f"No se encontró certificado con claveUsuario: {clave_usuario}"}
+            
+            cer_bytes = datos_cert['cer_bytes']
+            key_bytes = datos_cert['key_bytes']
+            certificado_texto = datos_cert['certificado_texto']
+            pwd_cer = datos_cert['pwd_cer']
+            no_certificado = datos_cert['no_certificado']
+            
+            if not cer_bytes or not key_bytes:
+                return {"error": "No se encontraron CER o KEY en la base de datos para el certificado proporcionado."}
+            
+            if not certificado_texto:
+                return {"error": "No se encontró el campo Certificado en la base de datos para el certificado proporcionado."}
+            
+            if not no_certificado:
+                return {"error": "No se encontró el noCertificado en la base de datos."}
+            
+            # Parsear XML y actualizar campos desde la BD
             from lxml import etree
             try:
                 xml_tree = etree.fromstring(xml_input.encode('utf-8'))
-                no_certificado = xml_tree.get('NoCertificado')
             except Exception as e:
                 return {"error": f"Error al parsear XML: {str(e)}"}
-            
-            if not no_certificado:
-                return {"error": "Falta el campo 'NoCertificado' en el XML"}
 
-            # Obtener CER, KEY, Certificado y contraseña de la base de datos
-            cer_bytes = cls.obtener_cer_db(no_certificado)
-            key_bytes = cls.obtener_key_db(no_certificado)
-            certificado_texto = cls.obtener_certificado_db(no_certificado)
-            pwd_cer_db = cls.obtener_password_db(no_certificado)
-            
-            if not cer_bytes or not key_bytes:
-                return {"error": "No se encontraron CER o KEY en la base de datos para el noCertificado proporcionado."}
-            
-            if not certificado_texto:
-                return {"error": "No se encontró el campo Certificado en la base de datos para el noCertificado proporcionado."}
-
-            # Establecer el campo Certificado desde la base de datos (sobrescribir si existe)
+            # Establecer NoCertificado y Certificado desde la base de datos
+            xml_tree.set('NoCertificado', no_certificado)
             xml_tree.set('Certificado', certificado_texto)
             xml_generado = etree.tostring(xml_tree, encoding='utf-8', xml_declaration=True).decode('utf-8')
-
-            # Obtener password del certificado desde la base de datos
-            pwd_cer = pwd_cer_db if pwd_cer_db else None
 
             # Crear sellador con los bytes obtenidos de la BD
             sellador = cls(

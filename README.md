@@ -6,19 +6,37 @@ Sistema completo para el sellado y timbrado de Comprobantes Fiscales Digitales p
 
 ### Software Necesario
 
-Python 3.8 (Deseable)
-Node.js 16.x (Deseable)
-PostgreSQL 12 (Deseable)
-Git(opcional, para clonar el repositorio)
+Python 3.10.x (Deseable): https://www.python.org/downloads/
+Node 22.x (Deseable): https://nodejs.org/en/download
+PostgreSQL 18 (Deseable): https://www.enterprisedb.com/downloads/postgres-postgresql-downloads
+Git(opcional, para clonar el repositorio): https://github.com/Habib398/DocuSeal.git
 
 ### Sistema Operativo
-Windows 10/11 (con PowerShell)
-Linux (Ubuntu 20.04+, Debian 10+)
-macOS 10.15+
+- Windows 10/11 (con PowerShell)
+- Windows Server 2016/2019/2022 (recomendado)
+- Linux (Ubuntu 20.04+, Debian 10+)
 
 ### Requerimientos del equipo
-   # Windows
-   # Linux 
+
+   #### Windows (10/11)
+   - **Procesador**: Quad-core (4 núcleos), 2.0 GHz+
+   - **Memoria RAM**: 8 GB mínimo (16 GB recomendado)
+   - **Espacio en Disco**: 15 GB de espacio libre o superior
+   - **Conexión a Internet**: Estable (requerida para timbrado con PAC)
+
+   #### Windows Server
+   - **Procesador**: Hexa-core (6 núcleos) o superior, 2.5 GHz+
+   - **Memoria RAM**: 16 GB mínimo (32 GB recomendado para alta concurrencia)
+   - **Espacio en Disco**: 50 GB de espacio libre o superior (SSD recomendado)
+   - **Conexión a Internet**: Dedicada y estable con ancho de banda adecuado
+
+   #### Linux
+   - **Procesador**: Quad-core (4 núcleos) o superior, 2.0 GHz+
+   - **Memoria RAM**: 8 GB mínimo (16 GB recomendado)
+   - **Espacio en Disco**: 15 GB de espacio libre o superior(50 GB para producción)
+   - **Conexión a Internet**: Estable (requerida para timbrado con PAC)
+
+   **Nota**: Para un entorno de producción con 100 peticiones cada 20 minutos, se recomienda Windows Server con la configuración superior
 
 ## Instalación
 
@@ -82,60 +100,26 @@ DB_SSL_MODE=prefer
 ```
 Reemplazar con los valores de configuración de postsgre asignados.
 
-3. Instalar Dependencias del Backend (Python)
+3. Instalar Dependencias
 
-   1. En Windows (PowerShell):
-
+   ## Instalación Automatizada ()
+   
+   ### En Windows (PowerShell):
    ```powershell
-   # Navegar a la carpeta del backend
-   cd backend\app
-
-   # Crear entorno virtual (recomendado)
-   python -m venv venv
-
-   # Activar entorno virtual
-   .\venv\Scripts\Activate.ps1
-
-   # Instalar dependencias
-   pip install -r requirements.txt
+   # Desde la raíz del proyecto
+   .\Scripts\install_dependencies.ps1
    ```
-
-   2. En Linux/macOS:
+   
+   ### En Linux:
    ```bash
-   # Navegar a la carpeta del backend
-   cd backend/app
-
-   # Crear entorno virtual
-   python3 -m venv venv
-
-   # Activar entorno virtual
-   source venv/bin/activate
-
-   # Instalar dependencias
-   pip install -r requirements.txt
+   # Desde la raíz del proyecto
+   chmod +x Scripts/install_dependencies.sh
+   ./Scripts/install_dependencies.sh
    ```
 
-   3. Dependencias principales incluidas:
-   - FastAPI - Framework web
-   - Uvicorn - Servidor ASGI
-   - psycopg2-binary - Conector PostgreSQL
-   - bcrypt - Encriptación de contraseñas
-   - pydantic - Validación de datos
-   - python-dotenv - Gestión de variables de entorno
+   El script instalará automáticamente todas las dependencias de backend y frontend.
 
-4. Instalar Dependencias del Frontend (React)
-
-```bash
-# Navegar a la carpeta del frontend
-cd Frontend/react-app
-
-# Instalar dependencias con npm
-npm install
-
-# O usar yarn si lo prefieres
-# yarn install
-```
-5.  Ejecutar el Proyecto
+4. Ejecutar el Proyecto
 
    ## Modo de Ejecución
    Desde la raíz del proyecto en Windows:

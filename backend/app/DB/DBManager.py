@@ -50,6 +50,7 @@ def _normalize_cert_keys(cert_dict):
         'correo': cert_dict.get('correo'),
         'telefono': cert_dict.get('telefono'),
         'activo': cert_dict.get('activo', True),
+        'claveUsuario': cert_dict.get('claveusuario'),  # Agregar claveUsuario
         'created_at': str(cert_dict.get('created_at')) if cert_dict.get('created_at') else None,
         'updated_at': str(cert_dict.get('updated_at')) if cert_dict.get('updated_at') else None
     }
@@ -62,7 +63,7 @@ class DBManager:
         # Obtiene una conexión a la base de datos
         return get_db_connection()
 
-    def insert_certificado(self, usuarioPAC, contrasenaPAC, nombreEmpresa, CER, KEY, vigencia, noCertificado, Certificado, pwdCER, correo=None, telefono=None):
+    def insert_certificado(self, usuarioPAC, contrasenaPAC, nombreEmpresa, CER, KEY, vigencia, noCertificado, Certificado, pwdCER, correo=None, telefono=None, claveUsuario=None):
         """Inserta un nuevo registro en la tabla certificados_pac."""
         conn = None
         try:
@@ -75,10 +76,10 @@ class DBManager:
             pwd_cer_value = pwdCER if pwdCER is not None else ''
 
             cursor.execute("""
-                INSERT INTO certificados_pac (usuarioPAC, contrasenaPAC, nombreEmpresa, CER, KEY, vigencia, noCertificado, Certificado, correo, telefono, pwdCER)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO certificados_pac (usuarioPAC, contrasenaPAC, nombreEmpresa, CER, KEY, vigencia, noCertificado, Certificado, correo, telefono, pwdCER, claveUsuario)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
-            """, (usuarioPAC, contrasenaPAC, nombreEmpresa, cer_param, key_param, vigencia, noCertificado, Certificado, correo, telefono, pwd_cer_value))
+            """, (usuarioPAC, contrasenaPAC, nombreEmpresa, cer_param, key_param, vigencia, noCertificado, Certificado, correo, telefono, pwd_cer_value, claveUsuario))
             
             new_id = cursor.fetchone()[0]
             conn.commit()
@@ -131,6 +132,27 @@ class DBManager:
             return _normalize_cert_keys(dict(result)) if result else None
             
         except psycopg2.Error as e:
+            if conn:
+                conn.close()
+            raise
+    
+    def get_certificado_by_claveUsuario(self, claveUsuario):
+        """Obtiene un certificado por su claveUsuario única."""
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("""
+                SELECT * FROM certificados_pac WHERE claveUsuario = %s AND activo = TRUE
+            """, (claveUsuario,))
+            result = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            
+            return _normalize_cert_keys(dict(result)) if result else None
+            
+        except psycopg2.Error as e:
+            logger.error(f"Error obteniendo certificado por claveUsuario: {e}")
             if conn:
                 conn.close()
             raise

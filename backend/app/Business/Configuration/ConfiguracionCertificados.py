@@ -65,6 +65,24 @@ class ConfiguracionCertificados:
             logger.error(f"Error obteniendo certificado por número: {e}")
             raise RuntimeError(f"Error al buscar certificado: {str(e)}")
     
+    def obtener_por_clave_usuario(self, clave_usuario: str) -> Optional[Dict[str, Any]]:
+        """Obtiene un certificado por claveUsuario única."""
+        if not clave_usuario or not clave_usuario.strip():
+            raise ValueError("La clave de usuario no puede estar vacía")
+        
+        try:
+            certificado = self.db_manager.get_certificado_by_claveUsuario(clave_usuario)
+            
+            if certificado:
+                logger.info(f"Certificado encontrado con claveUsuario: {clave_usuario}")
+            else:
+                logger.info(f"No se encontró certificado con claveUsuario: {clave_usuario}")
+            
+            return certificado
+        except Exception as e:
+            logger.error(f"Error obteniendo certificado por claveUsuario: {e}")
+            raise RuntimeError(f"Error al buscar certificado: {str(e)}")
+    
     def validar_datos_certificado(self, datos: Dict[str, Any], es_actualizacion: bool = False) -> tuple[bool, str]:
         # Valida los datos de un certificado antes de crear o actualizar.
         
@@ -147,7 +165,8 @@ class ConfiguracionCertificados:
                 Certificado=certificado_texto,
                 correo=datos.get('correo', ''),
                 telefono=datos.get('telefono', ''),
-                pwdCER=datos['pwdCER']  # Requerido
+                pwdCER=datos['pwdCER'],  # Requerido
+                claveUsuario=datos.get('claveUsuario')  # Nueva: clave única
             )
             
             logger.info(f"Certificado creado exitosamente con ID: {cert_id}")

@@ -29,8 +29,14 @@ class ServicioTimbrarSellar:
         Acepta:
         - "xml": string XML
         - "datosXML": estructura JSON (dict)
+        Requiere "claveUsuario" para obtener certificados de la BD.
         """
         logger.info("Iniciando proceso completo de timbrarSellar")
+        
+        # Validar claveUsuario
+        clave_usuario = data.get('claveUsuario')
+        if not clave_usuario:
+            return {"error": "Falta el campo 'claveUsuario' en la petición"}
         
         # Validar que venga al menos uno de los dos formatos
         xml_input = data.get('xml')
@@ -52,7 +58,40 @@ class ServicioTimbrarSellar:
                     "warnings": resultado_validacion["warnings"]
                 }
         
-        # Sellado
+        # Obtener credenciales PAC de la base de datos usando claveUsuario
+        from .Configuration.ConfiguracionCertificados import ConfiguracionCertificados
+        from DB.DBManager import DBManager
+        
+        try:
+            db_manager = DBManager()
+            config_cert = ConfiguracionCertificados(db_manager)
+            certificado = config_cert.obtener_por_clave_usuario(clave_usuario)
+            
+            if not certificado:
+                return {
+                    "error": "Certificado no encontrado",
+                    "detalle": f"No se encontró certificado con claveUsuario {clave_usuario} en la base de datos"
+                }
+            
+            usuario_pac = certificado.get('usuarioPAC')
+            contrasena_pac = certificado.get('contrasenaPAC')
+            
+            if not usuario_pac or not contrasena_pac:
+                return {
+                    "error": "Credenciales PAC incompletas",
+                    "detalle": f"El certificado {clave_usuario} no tiene usuarioPAC o contrasenaPAC configurados"
+                }
+            
+            logger.info(f"Credenciales PAC obtenidas para claveUsuario: {clave_usuario}")
+            
+        except Exception as e:
+            logger.error(f"Error al obtener credenciales PAC de la BD: {str(e)}")
+            return {
+                "error": "Error al acceder a la base de datos",
+                "detalle": f"No se pudieron obtener las credenciales PAC: {str(e)}"
+            }
+        
+        # Sellado (pasa claveUsuario)
         logger.info("Iniciando sellado")
         resultado_sellado = SellarXML.sellar_cfdi(data)
         if "error" in resultado_sellado:
@@ -70,56 +109,6 @@ class ServicioTimbrarSellar:
         print("="*80)
         print(xml_sellado)
         print("="*80 + "\n")
-        
-        # Extraer NoCertificado del XML sellado para obtener credenciales PAC de la BD
-        from lxml import etree
-        try:
-            xml_tree = etree.fromstring(xml_sellado.encode('utf-8'))
-            no_certificado = xml_tree.get('NoCertificado')
-            logger.info(f"NoCertificado extraído del XML sellado: {no_certificado}")
-        except Exception as e:
-            logger.error(f"Error al parsear XML sellado para extraer NoCertificado: {str(e)}")
-            return {
-                "error": "Error al procesar XML sellado",
-                "detalle": f"No se pudo extraer NoCertificado: {str(e)}",
-                "xml_sellado": xml_sellado
-            }
-        
-        # Obtener credenciales PAC de la base de datos
-        from .Configuration.ConfiguracionCertificados import ConfiguracionCertificados
-        from DB.DBManager import DBManager
-        
-        try:
-            db_manager = DBManager()
-            config_cert = ConfiguracionCertificados(db_manager)
-            certificado = config_cert.obtener_por_numero(no_certificado)
-            
-            if not certificado:
-                return {
-                    "error": "Certificado no encontrado",
-                    "detalle": f"No se encontró certificado con NoCertificado {no_certificado} en la base de datos",
-                    "xml_sellado": xml_sellado
-                }
-            
-            usuario_pac = certificado.get('usuarioPAC')
-            contrasena_pac = certificado.get('contrasenaPAC')
-            
-            if not usuario_pac or not contrasena_pac:
-                return {
-                    "error": "Credenciales PAC incompletas",
-                    "detalle": f"El certificado {no_certificado} no tiene usuarioPAC o contrasenaPAC configurados",
-                    "xml_sellado": xml_sellado,
-                    "cadena_original": cadena_original
-                }
-            
-            
-        except Exception as e:
-            logger.error(f"Error al obtener credenciales PAC de la BD: {str(e)}")
-            return {
-                "error": "Error al acceder a la base de datos",
-                "detalle": f"No se pudieron obtener las credenciales PAC: {str(e)}",
-                "xml_sellado": xml_sellado
-            }
         
         pruebas = data.get("pruebas", True)
         
@@ -142,12 +131,16 @@ class ServicioTimbrarSellar:
         respuesta = resultado_timbrado.copy()
         logger.info("Timbrado exitoso")
         
-        # Generar PDF si se solicita
-        preferencias = PreferenciasCliente.from_json(data)
-        if preferencias.enviarPDF:
-            uuid = resultado_timbrado.get("uuid", "temp")
-            pdf_info = PDF.generar_desde_datos(data, xml_sellado, cadena_original, uuid)
-            respuesta.update(pdf_info)
+        # Generar PDF solo si el timbrado fue exitoso y se solicita
+        if "error" not in resultado_timbrado:
+            preferencias = PreferenciasCliente.from_json(data)
+            if preferencias.enviarPDF:
+                uuid = resultado_timbrado.get("uuid", "temp")
+                # Ahora solo necesitamos pasar el xml_sellado y uuid
+                pdf_info = PDF.generar_desde_datos(xml_sellado, uuid)
+                respuesta.update(pdf_info)
+            else:
+                respuesta["html_generado"] = False
         else:
             respuesta["html_generado"] = False
         

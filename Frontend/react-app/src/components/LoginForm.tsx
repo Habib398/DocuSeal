@@ -65,11 +65,6 @@ const LoginForm: React.FC = () => {
             disabled={loading}
           />
         </div>
-        
-        {/* TODO: Implementar recuperación de clave API en el futuro */}
-        {/* Se agregará un enlace aquí para "¿Olvidaste tu clave de acceso?" */}
-        {/* que permitirá al usuario recuperar su API key mediante email */}
-        
         <div className="mb-3 text-start">
           <button
             className="btn btn-primary btn-lg px-4"

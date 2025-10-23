@@ -17,7 +17,12 @@ class ServicioSellado:
         Sella un CFDI recibido como:
         - "xml": string XML (sellado directo)
         - "datosXML": estructura JSON (validación + generación + sellado)
+        Requiere "claveUsuario" para obtener certificados de la BD.
         """
+
+        # Validar claveUsuario
+        if not data.get('claveUsuario'):
+            return {"error": "Falta el campo 'claveUsuario' en la petición"}
 
         # Verificar que venga uno de los dos formatos
         xml_input = data.get('xml')
@@ -52,9 +57,10 @@ class ServicioSellado:
                 xml_generado = resultado_factory["xml"]
                 logger.info(f"XML generado exitosamente (longitud: {len(xml_generado)} caracteres)")
                 
-                # Preparar data para sellado
+                # Preparar data para sellado (incluir claveUsuario)
                 data_para_sellar = {
                     "xml": xml_generado,
+                    "claveUsuario": data.get("claveUsuario"),
                     "enviarCorreo": data.get("enviarCorreo", False),
                     "generarPDF": data.get("generarPDF", False)
                 }
