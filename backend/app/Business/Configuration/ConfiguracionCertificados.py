@@ -5,6 +5,8 @@ import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 import base64
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -16,6 +18,64 @@ class ConfiguracionCertificados:
     
     def __init__(self, db_manager):
         self.db_manager = db_manager
+    
+    @staticmethod
+    def extraer_info_certificado(cer_bytes: bytes) -> Dict[str, str]:
+        """
+        Extrae información del certificado .cer (noCertificado y vigencia).
+        
+        Args:
+            cer_bytes: Contenido del archivo .cer en bytes (formato DER)
+        
+        Returns:
+            dict con 'noCertificado' (serial number en formato SAT de 20 dígitos) y 'vigencia' (fecha expiración YYYY-MM-DD)
+        
+        Raises:
+            ValueError: Si el certificado no se puede parsear
+        """
+        try:
+            # Cargar el certificado en formato DER
+            cert = x509.load_der_x509_certificate(cer_bytes, default_backend())
+            
+            # Extraer serial number en formato hexadecimal
+            serial_hex = format(cert.serial_number, 'x')
+            
+            # El SAT requiere el número de serie en formato de 20 dígitos
+            # El número hexadecimal debe convertirse a ASCII de cada par de caracteres
+            # Ejemplo: "3330303031303030303030333030303233373038" -> "30001000000300023708"
+            
+            # Asegurar que el hex tenga un número par de caracteres
+            if len(serial_hex) % 2 != 0:
+                serial_hex = '0' + serial_hex
+            
+            # Convertir hex a string ASCII (cada par de caracteres hex representa un byte ASCII)
+            try:
+                no_certificado = bytes.fromhex(serial_hex).decode('ascii')
+            except (ValueError, UnicodeDecodeError):
+                # Si no se puede decodificar como ASCII, usar el hex directamente
+                # Esto puede pasar con certificados que no siguen el estándar del SAT
+                no_certificado = serial_hex.upper()
+                logger.warning(f"No se pudo decodificar el serial como ASCII, usando hex: {no_certificado}")
+            
+            # Extraer fecha de expiración (vigencia) usando la nueva API
+            try:
+                # Usar not_valid_after_utc si está disponible (cryptography >= 42.0)
+                not_after = cert.not_valid_after_utc
+            except AttributeError:
+                # Fallback para versiones anteriores
+                not_after = cert.not_valid_after
+            
+            vigencia = not_after.strftime('%Y-%m-%d')
+            
+            logger.info(f"Información extraída del certificado: noCertificado={no_certificado}, vigencia={vigencia}")
+            
+            return {
+                'noCertificado': no_certificado,
+                'vigencia': vigencia
+            }
+        except Exception as e:
+            logger.error(f"Error al extraer información del certificado: {e}")
+            raise ValueError(f"No se pudo leer el certificado .cer: {str(e)}")
     
     def obtener_todos(self) -> List[Dict[str, Any]]:
         # Obtiene todos los certificados almacenados.
@@ -88,15 +148,16 @@ class ConfiguracionCertificados:
         
         if not es_actualizacion:
             # Validar campos requeridos solo en creación
+            # noCertificado y vigencia son opcionales (se extraen del CER automáticamente)
             # Certificado NO es requerido, se genera automáticamente desde CER
-            campos_requeridos = ['usuarioPAC', 'contrasenaPAC', 'noCertificado', 'vigencia', 'CER', 'KEY', 'pwdCER']
+            campos_requeridos = ['usuarioPAC', 'contrasenaPAC', 'CER', 'KEY', 'pwdCER']
             campos_faltantes = [campo for campo in campos_requeridos if campo not in datos or datos[campo] is None]
             
             if campos_faltantes:
                 return False, f"Campos requeridos faltantes: {', '.join(campos_faltantes)}"
         
         # Validar formato de vigencia si está presente
-        if 'vigencia' in datos:
+        if 'vigencia' in datos and datos['vigencia']:
             try:
                 # Intentar parsear la fecha
                 if isinstance(datos['vigencia'], str):
@@ -150,6 +211,29 @@ class ConfiguracionCertificados:
             else:
                 key_bytes = key_value
 
+            # Extraer noCertificado y vigencia del archivo .cer si no se proporcionaron
+            try:
+                info_certificado = self.extraer_info_certificado(cer_bytes)
+                
+                # Usar valores extraídos si no se proporcionaron manualmente
+                if not datos.get('noCertificado'):
+                    datos['noCertificado'] = info_certificado['noCertificado']
+                    logger.info(f"noCertificado extraído automáticamente: {datos['noCertificado']}")
+                else:
+                    logger.info(f"Usando noCertificado proporcionado manualmente: {datos['noCertificado']}")
+                
+                if not datos.get('vigencia'):
+                    datos['vigencia'] = info_certificado['vigencia']
+                    logger.info(f"Vigencia extraída automáticamente: {datos['vigencia']}")
+                else:
+                    logger.info(f"Usando vigencia proporcionada manualmente: {datos['vigencia']}")
+                    
+            except ValueError as e:
+                # Si falla la extracción y no se proporcionaron los valores, fallar
+                if not datos.get('noCertificado') or not datos.get('vigencia'):
+                    raise ValueError(f"No se pudo extraer información del certificado y no se proporcionaron manualmente: {str(e)}")
+                logger.warning(f"No se pudo extraer información del certificado, usando valores manuales: {str(e)}")
+
             # Si no viene Certificado, usar el mismo CER (es el mismo contenido en base64)
             certificado_texto = datos.get('Certificado', datos['CER'])
 
@@ -175,7 +259,9 @@ class ConfiguracionCertificados:
                 "success": True,
                 "id": cert_id,
                 "message": "Certificado creado exitosamente",
-                "usuarioPAC": datos['usuarioPAC']
+                "usuarioPAC": datos['usuarioPAC'],
+                "noCertificado": datos['noCertificado'],
+                "vigencia": datos['vigencia']
             }
             
         except ValueError as e:
