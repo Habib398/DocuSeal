@@ -35,7 +35,7 @@ if (-not (Test-Command "python")) {
 }
 
 $pythonVersion = python --version
-Write-Host "✓ Python encontrado: $pythonVersion" -ForegroundColor Green
+Write-Host "Python encontrado: $pythonVersion" -ForegroundColor Green
 Write-Host ""
 
 # Verificar Node.js
@@ -47,7 +47,7 @@ if (-not (Test-Command "node")) {
 }
 
 $nodeVersion = node --version
-Write-Host "✓ Node.js encontrado: $nodeVersion" -ForegroundColor Green
+Write-Host "Node.js encontrado: $nodeVersion" -ForegroundColor Green
 Write-Host ""
 
 # Instalar dependencias del Backend (Python)
@@ -65,9 +65,9 @@ if (-not (Test-Path "venv")) {
         Write-Host "ERROR: No se pudo crear el entorno virtual" -ForegroundColor Red
         exit 1
     }
-    Write-Host "✓ Entorno virtual creado" -ForegroundColor Green
+    Write-Host "Entorno virtual creado" -ForegroundColor Green
 } else {
-    Write-Host "✓ Entorno virtual ya existe" -ForegroundColor Green
+    Write-Host "Entorno virtual ya existe" -ForegroundColor Green
 }
 
 # Activar entorno virtual e instalar dependencias
@@ -81,7 +81,7 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-Write-Host "✓ Dependencias de Python instaladas correctamente" -ForegroundColor Green
+Write-Host "Dependencias de Python instaladas correctamente" -ForegroundColor Green
 deactivate
 Write-Host ""
 
@@ -100,7 +100,7 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-Write-Host "✓ Dependencias de Node.js instaladas correctamente" -ForegroundColor Green
+Write-Host "Dependencias de Node.js instaladas correctamente" -ForegroundColor Green
 Write-Host ""
 
 # Regresar al directorio raíz

@@ -1,5 +1,5 @@
 from satcfdi.create.cfd import cfdi40
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Union
 
 
 class ConvertirJson:
@@ -9,11 +9,13 @@ class ConvertirJson:
         self.datos_emisor = None
         self.datos_receptor = None
         self.conceptos = []
+        self.cfdi_relacionados = None
     
     def convertir_a_cfdi(self, datos_json: Dict[str, Any]) -> cfdi40.Comprobante:
         self.datos_emisor = self._procesar_emisor(datos_json)
         self.datos_receptor = self._procesar_receptor(datos_json)
         self.conceptos = self._procesar_conceptos(datos_json)
+        self.cfdi_relacionados = self._procesar_cfdi_relacionados(datos_json)
         atributos_comprobante = self._procesar_atributos_comprobante(datos_json)
         
         # Extraer y eliminar lugar_expedicion del diccionario para pasarlo como argumento
@@ -23,6 +25,7 @@ class ConvertirJson:
             lugar_expedicion=lugar_expedicion,
             receptor=self.datos_receptor,
             conceptos=self.conceptos,
+            cfdi_relacionados=self.cfdi_relacionados,
             **atributos_comprobante
         )
         
@@ -122,12 +125,100 @@ class ConvertirJson:
         
         return receptor
     
+    def _procesar_cfdi_relacionados(self, datos_json: Dict[str, Any]) -> Union[List[cfdi40.CfdiRelacionados], cfdi40.CfdiRelacionados, None]:
+        """
+        Procesa los CFDI relacionados desde el JSON.
+        Retorna una lista de objetos CfdiRelacionados o un solo objeto, o None si no hay.
+        """
+        relacionados_data = None
+        
+        # Buscar datos de CFDI relacionados en diferentes ubicaciones
+        if datos_json.get('datosXML', {}).get('cfdi:Comprobante', {}).get('cfdi:CfdiRelacionados'):
+            relacionados_data = datos_json['datosXML']['cfdi:Comprobante']['cfdi:CfdiRelacionados']
+        elif datos_json.get('datosXML', {}).get('CfdiRelacionados'):
+            relacionados_data = datos_json['datosXML']['CfdiRelacionados']
+        elif datos_json.get('datosXML', {}).get('cfdi_relacionados'):
+            relacionados_data = datos_json['datosXML']['cfdi_relacionados']
+        elif datos_json.get('cfdi_relacionados'):
+            relacionados_data = datos_json['cfdi_relacionados']
+        
+        # Si no hay CFDI relacionados, retornar None
+        if not relacionados_data:
+            return None
+        
+        # Asegurar que sea una lista
+        if not isinstance(relacionados_data, list):
+            relacionados_data = [relacionados_data]
+        
+        cfdi_relacionados_list = []
+        
+        for idx, rel_data in enumerate(relacionados_data, 1):
+            # Extraer TipoRelacion (obligatorio)
+            tipo_relacion = (rel_data.get('TipoRelacion') or 
+                           rel_data.get('tipo_relacion') or
+                           rel_data.get('TipoRelacion'))
+            
+            if not tipo_relacion:
+                raise ValueError(f"TipoRelacion es obligatorio en CfdiRelacionados #{idx}")
+            
+            # Extraer uno o mas CfdiRelacionado (obligatorio)
+            cfdi_relacionado = None
+            
+            # Buscar en diferentes formatos posibles
+            if rel_data.get('cfdi:CfdiRelacionado'):
+                cfdi_relacionado = rel_data['cfdi:CfdiRelacionado']
+            elif rel_data.get('CfdiRelacionado'):
+                cfdi_relacionado = rel_data['CfdiRelacionado']
+            elif rel_data.get('cfdi_relacionado'):
+                cfdi_relacionado = rel_data['cfdi_relacionado']
+            elif rel_data.get('UUID'):
+                cfdi_relacionado = rel_data['UUID']
+            elif rel_data.get('uuid'):
+                cfdi_relacionado = rel_data['uuid']
+            
+            if not cfdi_relacionado:
+                raise ValueError(f"CfdiRelacionado (UUID) es obligatorio en CfdiRelacionados #{idx}")
+            
+            # Si CfdiRelacionado es un diccionario o lista de diccionarios, extraer UUID
+            uuids = []
+            if isinstance(cfdi_relacionado, list):
+                for item in cfdi_relacionado:
+                    if isinstance(item, dict):
+                        uuid = item.get('UUID') or item.get('uuid')
+                        if uuid:
+                            uuids.append(uuid)
+                    elif isinstance(item, str):
+                        uuids.append(item)
+            elif isinstance(cfdi_relacionado, dict):
+                uuid = cfdi_relacionado.get('UUID') or cfdi_relacionado.get('uuid')
+                if uuid:
+                    uuids.append(uuid)
+            elif isinstance(cfdi_relacionado, str):
+                uuids.append(cfdi_relacionado)
+            
+            if not uuids:
+                raise ValueError(f"No se encontraron UUIDs válidos en CfdiRelacionados #{idx}")
+            
+            # Crear objeto CfdiRelacionados
+            # Si hay un solo UUID, pasar como string; si hay varios, pasar como lista
+            cfdi_rel_obj = cfdi40.CfdiRelacionados(
+                tipo_relacion=tipo_relacion,
+                cfdi_relacionado=uuids if len(uuids) > 1 else uuids[0]
+            )
+            
+            cfdi_relacionados_list.append(cfdi_rel_obj)
+        
+        # Si solo hay un objeto, retornarlo directamente; si hay varios, retornar la lista
+        if len(cfdi_relacionados_list) == 0:
+            return None
+        elif len(cfdi_relacionados_list) == 1:
+            return cfdi_relacionados_list[0]
+        else:
+            return cfdi_relacionados_list
+    
     def _procesar_atributos_comprobante(self, datos_json: Dict[str, Any]) -> Dict[str, Any]:
         """
         Procesa los atributos principales del comprobante desde el JSON.
-        Extrae los datos desde datosXML->cfdi:Comprobante o estructura plana.
-        Retorna un diccionario con los atributos para crear el Comprobante.
-        
         Nota: SubTotal, Total y Descuento se calculan automáticamente por satcfdi
         a partir de los conceptos, por lo que NO se incluyen en los atributos.
         """

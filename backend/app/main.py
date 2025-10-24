@@ -55,7 +55,6 @@ if os.path.exists(frontend_build_path):
         print(f"Carpeta de assets no encontrada: {assets_path}")
     
     # Endpoint para servir el SPA en rutas dinámicas de /admin
-    # Este DEBE ir después de montar los archivos estáticos
     @app.get("/admin/{full_path:path}")
     async def serve_admin_spa(full_path: str):
         """Servir el SPA de React para todas las rutas de /admin excepto /admin/api"""

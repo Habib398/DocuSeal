@@ -131,14 +131,7 @@ class ComprobanteTraslado:
     def ajustar_datos(self) -> Dict[str, Any]:
         """
         Aplica ajustes y normalizaciones específicas para tipo Traslado
-        
-        Ajustes aplicados:
-        - Forzar TipoDeComprobante = "T"
-        - Forzar Total = "0.00"
-        - Eliminar MetodoPago si existe
-        - Eliminar cfdi:Impuestos a nivel comprobante si existe
         """
-        logger.info("Ajustando datos para comprobante tipo Traslado")
         
         if "cfdi:Comprobante" not in self.datos:
             return self.datos
@@ -148,7 +141,6 @@ class ComprobanteTraslado:
         
         # Forzar Total = 0.00
         self.datos["cfdi:Comprobante"]["Total"] = "0.00"
-        logger.info("Total ajustado a 0.00 (requerido para Traslado)")
 
         # Validar UsoCFDI 
         self.datos["cfdi:Comprobante"].setdefault("UsoCFDI", "S01")
@@ -157,12 +149,10 @@ class ComprobanteTraslado:
         # Eliminar MetodoPago si existe
         if "MetodoPago" in self.datos["cfdi:Comprobante"]:
             del self.datos["cfdi:Comprobante"]["MetodoPago"]
-            logger.info("MetodoPago eliminado (no permitido en Traslado)")
         
         # Eliminar cfdi:Impuestos a nivel comprobante si existe
         if "cfdi:Impuestos" in self.datos["cfdi:Comprobante"]:
             del self.datos["cfdi:Comprobante"]["cfdi:Impuestos"]
-            logger.info("cfdi:Impuestos eliminado a nivel comprobante (no permitido en Traslado)")
         
         return self.datos
     

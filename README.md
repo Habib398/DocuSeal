@@ -9,7 +9,9 @@ Sistema completo para el sellado y timbrado de Comprobantes Fiscales Digitales p
 Python 3.10.x (Deseable): https://www.python.org/downloads/
 Node 22.x (Deseable): https://nodejs.org/en/download
 PostgreSQL 18 (Deseable): https://www.enterprisedb.com/downloads/postgres-postgresql-downloads
-Git(opcional, para clonar el repositorio): https://github.com/Habib398/DocuSeal.git
+Git(opcional, para clonar el repositorio): https://git-scm.com/install/windows
+Wkhtmltopdf: https://wkhtmltopdf.org/downloads.html
+   Nota: descargar en la ruta predeterminada que marca el instalador
 
 ### Sistema Operativo
 - Windows 10/11 (con PowerShell)
@@ -48,6 +50,7 @@ cd DocuSeal
 ```
 
 O descargar y extraer el archivo ZIP del proyecto.
+
 
 2. Configurar la Base de Datos (Aun en actualización)
    1. Crear la Base de Datos en PostgreSQL
