@@ -36,7 +36,6 @@ if (-not (Test-Command "python")) {
 
 $pythonVersion = python --version
 Write-Host "Python encontrado: $pythonVersion" -ForegroundColor Green
-Write-Host ""
 
 # Verificar Node.js
 Write-Host "[2/4] Verificando Node.js..." -ForegroundColor Green
@@ -54,9 +53,6 @@ Write-Host ""
 Write-Host "[3/4] Instalando dependencias del Backend (Python)..." -ForegroundColor Green
 Write-Host "----------------------------------------" -ForegroundColor Gray
 
-$backendPath = Join-Path $projectRoot "backend\app"
-Set-Location $backendPath
-
 # Crear entorno virtual si no existe
 if (-not (Test-Path "venv")) {
     Write-Host "Creando entorno virtual de Python..." -ForegroundColor Yellow
@@ -72,17 +68,29 @@ if (-not (Test-Path "venv")) {
 
 # Activar entorno virtual e instalar dependencias
 Write-Host "Instalando paquetes de Python..." -ForegroundColor Yellow
-& ".\venv\Scripts\Activate.ps1"
-pip install --upgrade pip
-pip install -r requirements.txt
+
+# Usar el python del entorno virtual directamente (evita problemas de activación)
+$venvPython = ".\venv\Scripts\python.exe"
+$venvPip = ".\venv\Scripts\pip.exe"
+
+# Actualizar pip silenciosamente
+Write-Host "Actualizando pip..." -ForegroundColor Gray
+& $venvPython -m pip install --upgrade pip --quiet 2>$null
+
+# Instalar dependencias
+Write-Host "Instalando dependencias desde requirements.txt..." -ForegroundColor Gray
+& $venvPip install -r requirements.txt --quiet
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: Falló la instalación de dependencias de Python" -ForegroundColor Red
-    exit 1
+    Write-Host "Intentando instalación detallada..." -ForegroundColor Yellow
+    & $venvPip install -r requirements.txt
+    if ($LASTEXITCODE -ne 0) {
+        exit 1
+    }
 }
 
 Write-Host "Dependencias de Python instaladas correctamente" -ForegroundColor Green
-deactivate
 Write-Host ""
 
 # Instalar dependencias del Frontend (Node.js)
@@ -93,11 +101,18 @@ $frontendPath = Join-Path $projectRoot "Frontend\react-app"
 Set-Location $frontendPath
 
 Write-Host "Instalando paquetes de Node.js (esto puede tardar varios minutos)..." -ForegroundColor Yellow
-npm install
+
+# Redirigir warnings de npm a null para salida más limpia
+$env:NPM_CONFIG_LOGLEVEL = "error"
+npm install --silent 2>$null
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "ERROR: Falló la instalación de dependencias de Node.js" -ForegroundColor Red
-    exit 1
+    Write-Host "Instalación con warnings, reintentando con salida completa..." -ForegroundColor Yellow
+    npm install
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "ERROR: Falló la instalación de dependencias de Node.js" -ForegroundColor Red
+        exit 1
+    }
 }
 
 Write-Host "Dependencias de Node.js instaladas correctamente" -ForegroundColor Green

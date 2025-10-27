@@ -44,8 +44,8 @@ Write-Host "IMPORTANTE: Accede a la aplicación desde: http://localhost:8000/adm
 Write-Host "Presiona Ctrl+C para detener el servidor" -ForegroundColor Red
 Write-Host ""
 
-# Preferir el python del entorno virtual .venv
-$venv_python = Join-Path $PSScriptRoot "..\.venv\Scripts\python.exe"
+# Preferir el python del entorno virtual venv
+$venv_python = Join-Path $PSScriptRoot "..\venv\Scripts\python.exe"
 
 try {
 	if (Test-Path $venv_python) {
