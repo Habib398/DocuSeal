@@ -45,7 +45,7 @@ Wkhtmltopdf: https://wkhtmltopdf.org/downloads.html
 1. Clonar o Descargar el Proyecto
 
 ```bash
-git clone https://github.com/Habib398/DocuSeal.git
+git clone https://github.com/Habib398/DocuSeal-main.git
 cd DocuSeal
 ```
 
