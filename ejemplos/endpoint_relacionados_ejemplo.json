@@ -1,0 +1,148 @@
+{
+  "datosXML": {
+    "cfdi:Comprobante": {
+      "cfdi:CfdiRelacionados": {
+        "cfdi:CfdiRelacionado": {
+          "UUID": "309440E7-3DBB-134A-B469-CC543457CCED"
+        },
+        "TipoRelacion": "05"
+      },
+      "cfdi:Emisor": {
+        "Rfc": "AAA010101AAA",
+        "Nombre": "FASTERRAMA, S.A. DE C.V.",
+        "RegimenFiscal": "624"
+      },
+      "cfdi:Receptor": {
+        "Rfc": "AAA010101AAA",
+        "Nombre": "FASTERRAMA, S.A. DE C.V.",
+        "DomicilioFiscalReceptor": "88283",
+        "RegimenFiscalReceptor": "624",
+        "UsoCFDI": "S01"
+      },
+      "cfdi:Conceptos": {
+        "cfdi:Concepto": {
+          "ClaveProdServ": "01010101",
+          "Cantidad": "1",
+          "ClaveUnidad": "H87",
+          "Unidad": "Pieza",
+          "Descripcion": "01010101 12141902 PRUEBAS",
+          "ValorUnitario": "0.00",
+          "Importe": "0.00",
+          "ObjetoImp": "01"
+        }
+      },
+      "cfdi:Complemento": {
+        "cartaporte31:CartaPorte": {
+          "Ubicaciones": {
+            "cartaporte31:Ubicacion": [
+              {
+                "cartaporte31:Domicilio": {
+                  "Calle": "INCALPA",
+                  "NumeroExterior": "1000-7",
+                  "Estado": "JAL",
+                  "Pais": "MEX",
+                  "CodigoPostal": "45615"
+                },
+                "TipoUbicacion": "Origen",
+                "RFCRemitenteDestinatario": "FAS081215JJ1",
+                "NombreRemitenteDestinatario": "FASTERRAMA GUADALAJARA",
+                "FechaHoraSalidaLlegada": "2025-10-06T09:06:25"
+              },
+              {
+                "cartaporte31:Domicilio": {
+                  "Calle": "SEGUNDO ANILLO PERIFERICO",
+                  "NumeroExterior": "10209",
+                  "Colonia": "0008",
+                  "Municipio": "027",
+                  "Estado": "TAM",
+                  "Pais": "MEX",
+                  "CodigoPostal": "88283"
+                },
+                "TipoUbicacion": "Destino",
+                "RFCRemitenteDestinatario": "FAS081215JJ1",
+                "NombreRemitenteDestinatario": "FASTERRAMA SA DE CV (NLD)",
+                "FechaHoraSalidaLlegada": "2025-10-06T09:06:25",
+                "DistanciaRecorrida": "10"
+              }
+            ]
+          },
+          "Mercancias": {
+            "cartaporte31:Mercancia": {
+              "BienesTransp": "01010101",
+              "Descripcion": "01010101 12141902 PRUEBAS",
+              "Cantidad": "1",
+              "ClaveUnidad": "H87",
+              "Unidad": "Pieza",
+              "MaterialPeligroso": "No",
+              "PesoEnKg": "10"
+            },
+            "cartaporte31:Autotransporte": {
+              "cartaporte31:IdentificacionVehicular": {
+                "ConfigVehicular": "T3S2",
+                "PesoBrutoVehicular": "9",
+                "PlacaVM": "42FA6M",
+                "AnioModeloVM": "2024"
+              },
+              "cartaporte31:Seguros": {
+                "AseguraRespCivil": "QUALTIAS ",
+                "PolizaRespCivil": "3170044234"
+              },
+              "cartaporte31:Remolques": {
+                "cartaporte31:Remolque": {
+                  "SubTipoRem": "CTR007",
+                  "Placa": "78US1P"
+                }
+              },
+              "PermSCT": "TPAF01",
+              "NumPermisoSCT": "2858RTN23022018133901000"
+            },
+            "PesoBrutoTotal": "10",
+            "UnidadPeso": "KGM",
+            "NumTotalMercancias": "1"
+          },
+          "FiguraTransporte": {
+            "cartaporte31:TiposFigura": {
+              "cartaporte31:TipoFigura": "01",
+              "RFCFigura": "LURP881111T10",
+              "NumLicencia": "750000064572",
+              "NombreFigura": "CESAR LUNA"
+            }
+          },
+          "Version": "3.1",
+          "IdCCP": "CCCEA0E7-A92C-4241-9472-14A8602BDA53",
+          "TranspInternac": "No",
+          "TotalDistRec": "10"
+        },
+        "tfd:TimbreFiscalDigital": {
+          "xmlns:tfd": "http://www.sat.gob.mx/TimbreFiscalDigital",
+          "xsi:schemaLocation": "http://www.sat.gob.mx/TimbreFiscalDigital http://www.sat.gob.mx/sitio_internet/cfd/TimbreFiscalDigital/TimbreFiscalDigitalv11.xsd",
+          "SelloSAT": "AbWJkVQH8NRbG81pr9ZGJGsvqDCegqy6WpdfNnwTfIOpPF5Jh/qY6Nu91Bb/dFi82/hDQaPVqTJBCBBxAUWQuNmV2P9rvKikhrtIlH9z6OeCa3Ia+9ItxQCESJOg8aSENvr7fy9geGBj6hDT7WgolhqCP1YMzSvmQbD1up3BK8DuFOhBh3qC1uHWElabLQvaUnoUktrykn5E9STE/bP7ABtIQ9Wn73snQKC8vH4ALeMRdRm7b7Py6N9icDfEPAub/qpqdDGsxJ/8xej/LmblkZjqM8i2qnaiVyBF190rzkuUtTZK2WOwEGI0NwJxPJQ/drOFkgFcvLU4qaQgdBlqkA==",
+          "NoCertificadoSAT": "30001000000400002495",
+          "SelloCFD": "DEhz1hI0wpTAJjf5Mn0uG11N5xcGIbQ/qNpQLceYA1oNZQjINEieYms3KlW5S3tdzfT1gguFjSwssJlZFs3DiyjKyLzzG/ZxCEstJNpRf684O+OhjeGBXHtlVQX5J0hRs+ZrQvq0f2h5AUyi3v2gEx+mGn6Q14znO60FAt2PuXWc/FtEoPoEhce/Lyzr5G9KjwrwVGE3vjn/B0zP1cfwT121V7M96I3SAMuL1wR5iBYTANCyquzSmbH/H9dRkm8jWBrspks1SR2pQguC4e+owxfmIFzbMhpUkMzhwcc4vJSpOu4yzoVOKXJlxAvrAxs4cZERG3mPwOhdVnpw4Lln9Q==",
+          "RfcProvCertif": "SPR190613I52",
+          "FechaTimbrado": "2025-10-06T09:06:10",
+          "UUID": "2E98CE8E-1F5C-834D-AD1B-9B1820511E7E",
+          "Version": "1.1"
+        }
+      },
+      "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+      "xmlns:cartaporte31": "http://www.sat.gob.mx/CartaPorte31",
+      "xmlns:cfdi": "http://www.sat.gob.mx/cfd/4",
+      "xsi:schemaLocation": "http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd http://www.sat.gob.mx/CartaPorte31 http://www.sat.gob.mx/sitio_internet/cfd/CartaPorte/CartaPorte31.xsd",
+      "Version": "4.0",
+      "Serie": "TR",
+      "Folio": "1395",
+      "Fecha": "2025-10-06T09:06:22",
+      "Sello": "DEhz1hI0wpTAJjf5Mn0uG11N5xcGIbQ/qNpQLceYA1oNZQjINEieYms3KlW5S3tdzfT1gguFjSwssJlZFs3DiyjKyLzzG/ZxCEstJNpRf684O+OhjeGBXHtlVQX5J0hRs+ZrQvq0f2h5AUyi3v2gEx+mGn6Q14znO60FAt2PuXWc/FtEoPoEhce/Lyzr5G9KjwrwVGE3vjn/B0zP1cfwT121V7M96I3SAMuL1wR5iBYTANCyquzSmbH/H9dRkm8jWBrspks1SR2pQguC4e+owxfmIFzbMhpUkMzhwcc4vJSpOu4yzoVOKXJlxAvrAxs4cZERG3mPwOhdVnpw4Lln9Q==",
+      "SubTotal": "0",
+      "Moneda": "XXX",
+      "Total": "0",
+      "TipoDeComprobante": "T",
+      "Exportacion": "01",
+      "LugarExpedicion": "88283"
+    }
+  },
+  "claveUsuario": "f1160109-5aab-46b9-bcbe-c8f811fe70b3",
+  "enviarCorreo": false,
+  "generarPDF": false
+}
