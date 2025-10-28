@@ -75,15 +75,40 @@ async def register_usuario(usuario: UsuarioRegistroRequest):
     except ValueError as e:
         # Errores de validación (contraseñas no coinciden, email duplicado, etc.)
         status_code = status.HTTP_409_CONFLICT if "ya está registrado" in str(e) else status.HTTP_400_BAD_REQUEST
-        raise HTTPException(status_code=status_code, detail=str(e))
+        codigo_error = "REG001" if "ya está registrado" in str(e) else "REG002"
+        raise HTTPException(
+            status_code=status_code, 
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": codigo_error,
+                    "mensaje": str(e)
+                }]
+            }
+        )
     except RuntimeError as e:
         # Errores del servidor
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "REG003",
+                    "mensaje": str(e)
+                }]
+            }
+        )
     except Exception as e:
         # Errores inesperados
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error inesperado al registrar usuario: {str(e)}"
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "REG004",
+                    "mensaje": f"Error inesperado al registrar usuario: {str(e)}"
+                }]
+            }
         )
 
 @app.post("/login")
@@ -102,15 +127,39 @@ async def login_usuario(credenciales: UsuarioLoginRequest):
         return resultado
     except ValueError as e:
         # Credenciales inválidas
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "AUTH001",
+                    "mensaje": str(e)
+                }]
+            }
+        )
     except RuntimeError as e:
         # Errores del servidor
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "AUTH002",
+                    "mensaje": str(e)
+                }]
+            }
+        )
     except Exception as e:
         # Errores inesperados
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error inesperado en el login: {str(e)}"
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "AUTH003",
+                    "mensaje": f"Error inesperado en el login: {str(e)}"
+                }]
+            }
         )
 
 # ==================== ENDPOINTS DE CERTIFICADOS ====================
@@ -126,11 +175,26 @@ async def get_all_certificados():
     try:
         return certificados_service.obtener_todos()
     except RuntimeError as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "CERT001",
+                    "mensaje": str(e)
+                }]
+            }
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error inesperado al obtener certificados: {str(e)}"
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "CERT002",
+                    "mensaje": f"Error inesperado al obtener certificados: {str(e)}"
+                }]
+            }
         )
 
 @app.get("/v1/certificados/usuario/{usuario_pac}")
@@ -147,16 +211,40 @@ async def get_certificado_by_usuario(usuario_pac: str):
     try:
         certificado = certificados_service.obtener_por_usuario(usuario_pac)
         if not certificado:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificado no encontrado")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, 
+                detail={
+                    "errores": [{
+                        "tipo": "error",
+                        "codigo": "CERT003",
+                        "mensaje": "Certificado no encontrado"
+                    }]
+                }
+            )
         return certificado
     except HTTPException:
         raise
     except RuntimeError as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "CERT004",
+                    "mensaje": str(e)
+                }]
+            }
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error inesperado al obtener certificado: {str(e)}"
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "CERT005",
+                    "mensaje": f"Error inesperado al obtener certificado: {str(e)}"
+                }]
+            }
         )
 
 @app.get("/v1/certificados/numero/{no_certificado}")
@@ -173,16 +261,40 @@ async def get_certificado_by_numero(no_certificado: str):
     try:
         certificado = certificados_service.obtener_por_numero(no_certificado)
         if not certificado:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificado no encontrado")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, 
+                detail={
+                    "errores": [{
+                        "tipo": "error",
+                        "codigo": "CERT006",
+                        "mensaje": "Certificado no encontrado"
+                    }]
+                }
+            )
         return certificado
     except HTTPException:
         raise
     except RuntimeError as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "CERT007",
+                    "mensaje": str(e)
+                }]
+            }
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error inesperado al obtener certificado: {str(e)}"
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "CERT008",
+                    "mensaje": f"Error inesperado al obtener certificado: {str(e)}"
+                }]
+            }
         )
 
 @app.post("/v1/certificados/", status_code=status.HTTP_201_CREATED)
@@ -199,13 +311,37 @@ async def create_certificado(certificado: dict = Body(...)):
     try:
         return certificados_service.crear_certificado(certificado)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "CERT009",
+                    "mensaje": str(e)
+                }]
+            }
+        )
     except RuntimeError as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "CERT010",
+                    "mensaje": str(e)
+                }]
+            }
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error inesperado al crear certificado: {str(e)}"
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "CERT011",
+                    "mensaje": f"Error inesperado al crear certificado: {str(e)}"
+                }]
+            }
         )
 
 @app.put("/v1/certificados/{cert_id}")
@@ -224,13 +360,38 @@ async def update_certificado(cert_id: int, certificado: dict = Body(...)):
         return certificados_service.actualizar_certificado(cert_id, certificado)
     except ValueError as e:
         status_code = status.HTTP_404_NOT_FOUND if "no encontrado" in str(e) else status.HTTP_400_BAD_REQUEST
-        raise HTTPException(status_code=status_code, detail=str(e))
+        codigo_error = "CERT012" if "no encontrado" in str(e) else "CERT013"
+        raise HTTPException(
+            status_code=status_code, 
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": codigo_error,
+                    "mensaje": str(e)
+                }]
+            }
+        )
     except RuntimeError as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "CERT014",
+                    "mensaje": str(e)
+                }]
+            }
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error inesperado al actualizar certificado: {str(e)}"
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "CERT015",
+                    "mensaje": f"Error inesperado al actualizar certificado: {str(e)}"
+                }]
+            }
         )
 
 @app.delete("/v1/certificados/{cert_id}")
@@ -248,13 +409,37 @@ async def delete_certificado(cert_id: int):
     try:
         return certificados_service.eliminar_certificado(cert_id)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "CERT016",
+                    "mensaje": str(e)
+                }]
+            }
+        )
     except RuntimeError as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "CERT017",
+                    "mensaje": str(e)
+                }]
+            }
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error inesperado al desactivar certificado: {str(e)}"
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "CERT018",
+                    "mensaje": f"Error inesperado al desactivar certificado: {str(e)}"
+                }]
+            }
         )
 
 @app.get("/v1/certificados/inactivos")
@@ -268,11 +453,26 @@ async def get_certificados_inactivos():
     try:
         return certificados_service.obtener_inactivos()
     except RuntimeError as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "CERT019",
+                    "mensaje": str(e)
+                }]
+            }
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error inesperado al obtener certificados inactivos: {str(e)}"
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "CERT020",
+                    "mensaje": f"Error inesperado al obtener certificados inactivos: {str(e)}"
+                }]
+            }
         )
 
 @app.patch("/v1/certificados/{cert_id}/reactivar")
@@ -289,12 +489,36 @@ async def reactivar_certificado(cert_id: int):
     try:
         return certificados_service.reactivar_certificado(cert_id)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "CERT021",
+                    "mensaje": str(e)
+                }]
+            }
+        )
     except RuntimeError as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "CERT022",
+                    "mensaje": str(e)
+                }]
+            }
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error inesperado al reactivar certificado: {str(e)}"
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "CERT023",
+                    "mensaje": f"Error inesperado al reactivar certificado: {str(e)}"
+                }]
+            }
         )
 

@@ -28,10 +28,22 @@ class ServicioTimbrado:
         clave_usuario = data.get('claveUsuario')
         
         if not xml_input:
-            return {"error": "Falta campo 'xml' en el cuerpo de la petición"}
+            return {
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "TIMB001",
+                    "mensaje": "Falta campo 'xml' en el cuerpo de la petición"
+                }]
+            }
         
         if not clave_usuario:
-            return {"error": "Falta campo 'claveUsuario' en el cuerpo de la petición"}
+            return {
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "TIMB002",
+                    "mensaje": "Falta campo 'claveUsuario' en el cuerpo de la petición"
+                }]
+            }
         
         # Obtener certificado de la base de datos usando claveUsuario
         from .Configuration.ConfiguracionCertificados import ConfiguracionCertificados
@@ -45,8 +57,12 @@ class ServicioTimbrado:
             if not certificado:
                 logger.error(f"No se encontró certificado con claveUsuario: {clave_usuario}")
                 return {
-                    "error": "Certificado no encontrado",
-                    "detalle": f"No se encontró certificado con claveUsuario {clave_usuario} en la base de datos"
+                    "errores": [{
+                        "tipo": "error",
+                        "codigo": "TIMB003",
+                        "mensaje": "Certificado no encontrado",
+                        "detalle": f"No se encontró certificado con claveUsuario {clave_usuario} en la base de datos"
+                    }]
                 }
             
             # Obtener credenciales PAC y noCertificado de la BD
@@ -57,15 +73,23 @@ class ServicioTimbrado:
             if not usuario_pac or not contrasena_pac:
                 logger.error(f"Certificado {clave_usuario} no tiene credenciales PAC completas")
                 return {
-                    "error": "Credenciales PAC incompletas",
-                    "detalle": f"El certificado {clave_usuario} no tiene usuarioPAC o contrasenaPAC configurados"
+                    "errores": [{
+                        "tipo": "error",
+                        "codigo": "TIMB004",
+                        "mensaje": "Credenciales PAC incompletas",
+                        "detalle": f"El certificado {clave_usuario} no tiene usuarioPAC o contrasenaPAC configurados"
+                    }]
                 }
             
             if not no_certificado:
                 logger.error(f"Certificado {clave_usuario} no tiene noCertificado")
                 return {
-                    "error": "NoCertificado faltante",
-                    "detalle": f"El certificado {clave_usuario} no tiene noCertificado configurado"
+                    "errores": [{
+                        "tipo": "error",
+                        "codigo": "TIMB005",
+                        "mensaje": "NoCertificado faltante",
+                        "detalle": f"El certificado {clave_usuario} no tiene noCertificado configurado"
+                    }]
                 }
             
             logger.info(f"Certificado obtenido de la BD con claveUsuario: {clave_usuario}")
@@ -74,8 +98,12 @@ class ServicioTimbrado:
         except Exception as e:
             logger.error(f"Error al obtener certificado de la BD: {str(e)}")
             return {
-                "error": "Error al acceder a la base de datos",
-                "detalle": f"No se pudo obtener el certificado: {str(e)}"
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "TIMB006",
+                    "mensaje": "Error al acceder a la base de datos",
+                    "detalle": f"No se pudo obtener el certificado: {str(e)}"
+                }]
             }
         
         # Actualizar NoCertificado en el XML con el valor de la BD
@@ -88,12 +116,38 @@ class ServicioTimbrado:
         except Exception as e:
             logger.error(f"Error al actualizar NoCertificado en XML: {str(e)}")
             return {
-                "error": "Error al procesar XML",
-                "detalle": f"No se pudo actualizar NoCertificado: {str(e)}"
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "TIMB007",
+                    "mensaje": "Error al procesar XML",
+                    "detalle": f"No se pudo actualizar NoCertificado: {str(e)}"
+                }]
             }
         
         pruebas = data.get('pruebas', True)
+        generar_pdf = data.get('generarPDF', False)
         
         # Ejecutar timbrado directamente
         logger.info(f"Timbrando XML con PAC (pruebas={pruebas})")
-        return TimbradoService.timbrar_cfdi(xml_input, usuario_pac, contrasena_pac, pruebas)
+        resultado_timbrado = TimbradoService.timbrar_cfdi(xml_input, usuario_pac, contrasena_pac, pruebas)
+        
+        # Generar PDF si se solicita y el timbrado fue exitoso
+        if generar_pdf and "errores" not in resultado_timbrado:
+            logger.info("Generando PDF después del timbrado")
+            try:
+                from .PDF import PDF
+                uuid = resultado_timbrado.get("uuid", "temp")
+                xml_timbrado = resultado_timbrado.get("cuerpo", xml_input)
+                
+                # Generar PDF desde el XML timbrado
+                pdf_info = PDF.generar_desde_datos(xml_timbrado, uuid)
+                resultado_timbrado.update(pdf_info)
+                logger.info("PDF generado exitosamente")
+            except Exception as e:
+                logger.error(f"Error al generar PDF: {str(e)}")
+                resultado_timbrado["html_generado"] = False
+                resultado_timbrado["pdf_error"] = str(e)
+        elif not generar_pdf:
+            resultado_timbrado["html_generado"] = False
+        
+        return resultado_timbrado

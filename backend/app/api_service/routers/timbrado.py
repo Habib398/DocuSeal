@@ -25,16 +25,17 @@ router = APIRouter(
 
 @router.post("/timbrar/",
     summary="Timbrar CFDI",
-    description="Timbrado de un XML de CFDI previamente sellado. Se requiere claveUsuario para identificar el certificado."
+    description="Timbrado de un XML de CFDI previamente sellado. Se requiere claveUsuario para identificar el certificado. Opcionalmente genera PDF."
 )
 async def timbrar_endpoint(
     data: dict = Body(
         ...,
-        description="Objeto JSON con 'xml' (string XML sellado completo) y 'claveUsuario' para obtener credenciales PAC.",
+        description="Objeto JSON con 'xml' (string XML sellado completo), 'claveUsuario' para obtener credenciales PAC, y 'generarPDF' (opcional).",
         example={
             "xml": "",
             "claveUsuario": "550e8400-e29b-41d4-a716-446655440000",
-            "pruebas": True
+            "pruebas": True,
+            "generarPDF": False
         }
     )
 ):

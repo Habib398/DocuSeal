@@ -146,7 +146,13 @@ class SellarXML:
             # Validar que venga claveUsuario
             clave_usuario = data.get("claveUsuario")
             if not clave_usuario:
-                return {"error": "Falta el campo 'claveUsuario' en la petición"}
+                return {
+                    "errores": [{
+                        "tipo": "error",
+                        "codigo": "SXML001",
+                        "mensaje": "Falta el campo 'claveUsuario' en la petición"
+                    }]
+                }
             
             # Verificar qué formato viene
             xml_string_input = data.get("xml")
@@ -161,7 +167,13 @@ class SellarXML:
                     converter = ConvertirJson(json_input)
                     xml_input = converter.GenerarXmlCFDI()
                 except Exception as e:
-                    return {"error": f"Error al convertir JSON a XML: {str(e)}"}
+                    return {
+                        "errores": [{
+                            "tipo": "error",
+                            "codigo": "SXML002",
+                            "mensaje": f"Error al convertir JSON a XML: {str(e)}"
+                        }]
+                    }
             
             # CASO 2: Viene como XML string en "xml"
             elif xml_string_input and isinstance(xml_string_input, str):
@@ -169,7 +181,13 @@ class SellarXML:
             
             # CASO 3: No viene ninguno de los dos formatos válidos
             else:
-                return {"error": "Debe proporcionar 'xml' (string XML) o 'datosXML' (estructura JSON)"}
+                return {
+                    "errores": [{
+                        "tipo": "error",
+                        "codigo": "SXML003",
+                        "mensaje": "Debe proporcionar 'xml' (string XML) o 'datosXML' (estructura JSON)"
+                    }]
+                }
             
             # Limpiar y normalizar el XML (eliminar espacios/saltos de línea innecesarios)
             import re
@@ -178,7 +196,13 @@ class SellarXML:
             # Obtener datos del certificado usando claveUsuario
             datos_cert = cls.obtener_datos_certificado_por_clave(clave_usuario)
             if not datos_cert:
-                return {"error": f"No se encontró certificado con claveUsuario: {clave_usuario}"}
+                return {
+                    "errores": [{
+                        "tipo": "error",
+                        "codigo": "SXML004",
+                        "mensaje": f"No se encontró certificado con claveUsuario: {clave_usuario}"
+                    }]
+                }
             
             cer_bytes = datos_cert['cer_bytes']
             key_bytes = datos_cert['key_bytes']
@@ -187,20 +211,44 @@ class SellarXML:
             no_certificado = datos_cert['no_certificado']
             
             if not cer_bytes or not key_bytes:
-                return {"error": "No se encontraron CER o KEY en la base de datos para el certificado proporcionado."}
+                return {
+                    "errores": [{
+                        "tipo": "error",
+                        "codigo": "SXML005",
+                        "mensaje": "No se encontraron CER o KEY en la base de datos para el certificado proporcionado."
+                    }]
+                }
             
             if not certificado_texto:
-                return {"error": "No se encontró el campo Certificado en la base de datos para el certificado proporcionado."}
+                return {
+                    "errores": [{
+                        "tipo": "error",
+                        "codigo": "SXML006",
+                        "mensaje": "No se encontró el campo Certificado en la base de datos para el certificado proporcionado."
+                    }]
+                }
             
             if not no_certificado:
-                return {"error": "No se encontró el noCertificado en la base de datos."}
+                return {
+                    "errores": [{
+                        "tipo": "error",
+                        "codigo": "SXML007",
+                        "mensaje": "No se encontró el noCertificado en la base de datos."
+                    }]
+                }
             
             # Parsear XML y actualizar campos desde la BD
             from lxml import etree
             try:
                 xml_tree = etree.fromstring(xml_input.encode('utf-8'))
             except Exception as e:
-                return {"error": f"Error al parsear XML: {str(e)}"}
+                return {
+                    "errores": [{
+                        "tipo": "error",
+                        "codigo": "SXML008",
+                        "mensaje": f"Error al parsear XML: {str(e)}"
+                    }]
+                }
 
             # Establecer NoCertificado y Certificado desde la base de datos
             xml_tree.set('NoCertificado', no_certificado)
@@ -224,7 +272,13 @@ class SellarXML:
             }
                 
         except Exception as e:
-            return {"error": f"Error general en el proceso de sellado: {str(e)}"}
+            return {
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "SXML009",
+                    "mensaje": f"Error general en el proceso de sellado: {str(e)}"
+                }]
+            }
 
     def GenerarSello(self) -> str:
         """

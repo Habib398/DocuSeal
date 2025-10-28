@@ -22,14 +22,26 @@ class ServicioSellado:
 
         # Validar claveUsuario
         if not data.get('claveUsuario'):
-            return {"error": "Falta el campo 'claveUsuario' en la petición"}
+            return {
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "SELL001",
+                    "mensaje": "Falta el campo 'claveUsuario' en la petición"
+                }]
+            }
 
         # Verificar que venga uno de los dos formatos
         xml_input = data.get('xml')
         json_input = data.get('datosXML')
         
         if not xml_input and not json_input:
-            return {"XML001": "Debe proporcionar 'xml' (string XML) o 'datosXML' (estructura JSON)"}
+            return {
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "SELL002",
+                    "mensaje": "Debe proporcionar 'xml' (string XML) o 'datosXML' (estructura JSON)"
+                }]
+            }
         
         # XML directo - sellar sin procesar
         if xml_input and isinstance(xml_input, str):
@@ -77,14 +89,22 @@ class ServicioSellado:
             except (ValueError, NotImplementedError) as e:
                 logger.exception(f"Error al procesar comprobante con Factory: {str(e)}")
                 return {
-                    "error": str(e),
-                    "detalle": "Error en ComprobanteFactory"
+                    "errores": [{
+                        "tipo": "error",
+                        "codigo": "SELL003",
+                        "mensaje": str(e),
+                        "detalle": "Error en ComprobanteFactory"
+                    }]
                 }
             except Exception as e:
                 logger.exception(f"Error inesperado al procesar JSON: {str(e)}")
                 return {
-                    "error": f"Error inesperado: {str(e)}",
-                    "detalle": "Error en procesamiento de JSON"
+                    "errores": [{
+                        "tipo": "error",
+                        "codigo": "SELL004",
+                        "mensaje": f"Error inesperado: {str(e)}",
+                        "detalle": "Error en procesamiento de JSON"
+                    }]
                 }
         
         # Fallback: intentar sellado tradicional

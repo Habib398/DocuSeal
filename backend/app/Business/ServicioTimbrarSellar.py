@@ -36,14 +36,26 @@ class ServicioTimbrarSellar:
         # Validar claveUsuario
         clave_usuario = data.get('claveUsuario')
         if not clave_usuario:
-            return {"error": "Falta el campo 'claveUsuario' en la petición"}
+            return {
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "TS001",
+                    "mensaje": "Falta el campo 'claveUsuario' en la petición"
+                }]
+            }
         
         # Validar que venga al menos uno de los dos formatos
         xml_input = data.get('xml')
         json_input = data.get('datosXML')
         
         if not xml_input and not json_input:
-            return {"error": "Debe proporcionar 'xml' (string XML) o 'datosXML' (estructura JSON)"}
+            return {
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "TS002",
+                    "mensaje": "Debe proporcionar 'xml' (string XML) o 'datosXML' (estructura JSON)"
+                }]
+            }
         
         if xml_input:
             logger.info(f"Procesando XML string (longitud: {len(xml_input)} caracteres)")
@@ -69,8 +81,12 @@ class ServicioTimbrarSellar:
             
             if not certificado:
                 return {
-                    "error": "Certificado no encontrado",
-                    "detalle": f"No se encontró certificado con claveUsuario {clave_usuario} en la base de datos"
+                    "errores": [{
+                        "tipo": "error",
+                        "codigo": "TS003",
+                        "mensaje": "Certificado no encontrado",
+                        "detalle": f"No se encontró certificado con claveUsuario {clave_usuario} en la base de datos"
+                    }]
                 }
             
             usuario_pac = certificado.get('usuarioPAC')
@@ -78,8 +94,12 @@ class ServicioTimbrarSellar:
             
             if not usuario_pac or not contrasena_pac:
                 return {
-                    "error": "Credenciales PAC incompletas",
-                    "detalle": f"El certificado {clave_usuario} no tiene usuarioPAC o contrasenaPAC configurados"
+                    "errores": [{
+                        "tipo": "error",
+                        "codigo": "TS004",
+                        "mensaje": "Credenciales PAC incompletas",
+                        "detalle": f"El certificado {clave_usuario} no tiene usuarioPAC o contrasenaPAC configurados"
+                    }]
                 }
             
             logger.info(f"Credenciales PAC obtenidas para claveUsuario: {clave_usuario}")
@@ -87,15 +107,19 @@ class ServicioTimbrarSellar:
         except Exception as e:
             logger.error(f"Error al obtener credenciales PAC de la BD: {str(e)}")
             return {
-                "error": "Error al acceder a la base de datos",
-                "detalle": f"No se pudieron obtener las credenciales PAC: {str(e)}"
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "TS005",
+                    "mensaje": "Error al acceder a la base de datos",
+                    "detalle": f"No se pudieron obtener las credenciales PAC: {str(e)}"
+                }]
             }
         
         # Sellado (pasa claveUsuario)
         logger.info("Iniciando sellado")
         resultado_sellado = SellarXML.sellar_cfdi(data)
-        if "error" in resultado_sellado:
-            logger.error(f"Error en sellado: {resultado_sellado['error']}")
+        if "errores" in resultado_sellado:
+            logger.error(f"Error en sellado: {resultado_sellado}")
             return resultado_sellado
         
         xml_sellado = resultado_sellado["xml_con_sello"]
@@ -132,12 +156,13 @@ class ServicioTimbrarSellar:
         logger.info("Timbrado exitoso")
         
         # Generar PDF solo si el timbrado fue exitoso y se solicita
-        if "error" not in resultado_timbrado:
+        if "errores" not in resultado_timbrado:
             preferencias = PreferenciasCliente.from_json(data)
             if preferencias.enviarPDF:
                 uuid = resultado_timbrado.get("uuid", "temp")
-                # Ahora solo necesitamos pasar el xml_sellado y uuid
-                pdf_info = PDF.generar_desde_datos(xml_sellado, uuid)
+                # Usar el XML timbrado para generar el PDF
+                xml_timbrado = resultado_timbrado.get("cuerpo", xml_sellado)
+                pdf_info = PDF.generar_desde_datos(xml_timbrado, uuid)
                 respuesta.update(pdf_info)
             else:
                 respuesta["html_generado"] = False

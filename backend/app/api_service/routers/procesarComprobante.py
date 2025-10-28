@@ -32,17 +32,35 @@ async def procesar_comprobante_endpoint(datos_json: Dict[str, Any]):
         # Errores de tipo inválido (de ComprobanteFactory)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"mensaje": f"Tipo de comprobante inválido: {str(e)}"}
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "PROC001",
+                    "mensaje": f"Tipo de comprobante inválido: {str(e)}"
+                }]
+            }
         )
     except NotImplementedError as e:
         # Tipo válido pero no implementado
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail={"mensaje": f"Tipo no implementado: {str(e)}"}
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "PROC002",
+                    "mensaje": f"Tipo no implementado: {str(e)}"
+                }]
+            }
         )
     except Exception as e:
         # Errores inesperados
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"mensaje": f"Error interno: {str(e)}"}
+            detail={
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "PROC003",
+                    "mensaje": f"Error interno: {str(e)}"
+                }]
+            }
         )
