@@ -45,6 +45,9 @@ def init_database():
             Certificado TEXT NOT NULL,
             correo VARCHAR(255),
             telefono VARCHAR(50),
+            pwdCER TEXT NOT NULL DEFAULT '',
+            activo BOOLEAN DEFAULT TRUE,
+            claveUsuario VARCHAR(255) UNIQUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
@@ -62,12 +65,26 @@ def init_database():
         );
         """)
         
+        # Asegurar que la función gen_random_uuid() esté disponible (pgcrypto)
+        cursor.execute("""
+        CREATE EXTENSION IF NOT EXISTS pgcrypto;
+        """)
+        
+        # Generar claves UUID para certificados existentes que no tienen una
+        cursor.execute("""
+        UPDATE certificados_pac 
+        SET claveUsuario = gen_random_uuid()::text 
+        WHERE claveUsuario IS NULL;
+        """)
+        
         # Confirmar cambios
         conn.commit()
         cursor.close()
         conn.close()
         
-        print("Base de datos PostgreSQL y tabla 'certificados_pac' creadas correctamente.")
+        print("Base de datos PostgreSQL y tablas creadas correctamente.")
+        print("✓ Tabla 'certificados_pac' creada/actualizada")
+        print("✓ Tabla 'usuarios' creada/actualizada")
         
     except psycopg2.Error as e:
         print(f"Error inicializando la base de datos: {e}")

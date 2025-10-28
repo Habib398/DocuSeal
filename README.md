@@ -6,7 +6,7 @@ Sistema completo para el sellado y timbrado de Comprobantes Fiscales Digitales p
 
 ### Software Necesario
 
-Python 3.10.x (Deseable): https://www.python.org/downloads/
+Python 3.13.9 (Deseable): https://www.python.org/downloads/
 Node 22.x (Deseable): https://nodejs.org/en/download
 PostgreSQL 18 (Deseable): https://www.enterprisedb.com/downloads/postgres-postgresql-downloads
 Git(opcional, para clonar el repositorio): https://git-scm.com/install/windows
@@ -61,6 +61,14 @@ CREATE DATABASE certificados_pac;
 ```
 
    2. Crear las Tablas
+   
+   **Opción A - Automática (Recomendado):**
+   Ejecutar el script de inicialización desde la raíz del proyecto:
+   ```powershell
+   python backend\app\DB\settings.py
+   ```
+   
+   **Opción B - Manual:**
    Conectarse a la base de datos y ejecutar:
 
 ```sql
@@ -68,16 +76,17 @@ CREATE TABLE certificados_pac (
     id SERIAL PRIMARY KEY,
     usuarioPAC VARCHAR(255) NOT NULL,
     contrasenaPAC VARCHAR(255) NOT NULL,
-    nombreEmpresa VARCHAR(255) NOT NULL,
-    CER BYTEA,
-    KEY BYTEA,
-    vigencia VARCHAR(100),
-    noCertificado VARCHAR(100),
-    Certificado TEXT,
-    pwdCER VARCHAR(255),
+    nombreEmpresa VARCHAR(255),
+    CER TEXT NOT NULL,
+    KEY TEXT NOT NULL,
+    vigencia VARCHAR(50) NOT NULL,
+    noCertificado VARCHAR(50) NOT NULL,
+    Certificado TEXT NOT NULL,
     correo VARCHAR(255),
     telefono VARCHAR(50),
+    pwdCER TEXT NOT NULL DEFAULT '',
     activo BOOLEAN DEFAULT TRUE,
+    claveUsuario VARCHAR(255) UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -91,7 +100,7 @@ CREATE TABLE usuarios (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
    3. Configurar Variables de Entorno
-   Crear el archivo `.env` en la carpeta `backend/app/DB/`:
+   Crear el archivo `.env` en la carpeta raiz:
 
 ```env
 DB_HOST=localhost
