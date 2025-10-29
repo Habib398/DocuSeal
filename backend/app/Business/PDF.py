@@ -14,10 +14,6 @@ except ImportError:
     PDFKIT_AVAILABLE = False
 
 try:
-    from reportlab.pdfgen import canvas
-    from reportlab.lib.pagesizes import letter
-    from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
     REPORTLAB_AVAILABLE = True
 except ImportError:
     REPORTLAB_AVAILABLE = False
@@ -53,23 +49,17 @@ class PDF:
         """
         try:
             # Parsear el XML usando satcfdi
-            print("[INFO] Parseando XML con satcfdi...")
             cfdi = CFDI.from_string(self.xml_sellado.encode('utf-8'))
             
             # Generar HTML usando las plantillas de satcfdi
-            print("[INFO] Generando HTML con plantillas satcfdi...")
             self.html_generado = html_str(cfdi)
             
             # No guardar archivo HTML en disco para hacerlo temporal
             self.html_path = None
             
-            print("[INFO] HTML del comprobante generado exitosamente (temporal en memoria)")
             return self.html_generado, self.html_path
             
         except Exception as e:
-            print(f"[ERROR] Error al generar HTML del comprobante: {e}")
-            import traceback
-            traceback.print_exc()
             return None, None
     
     def generar_pdf_base64(self) -> Optional[str]:
@@ -78,7 +68,6 @@ class PDF:
         Nota: Requiere que wkhtmltopdf esté instalado en la ruta por defecto del instalador.
         """
         if not PDFKIT_AVAILABLE:
-            print("[WARNING] pdfkit no está disponible. Instala con: pip install pdfkit")
             return None
         
         try:
@@ -89,8 +78,6 @@ class PDF:
             try:
                 pdfkit.from_string("<html><body>Test</body></html>", False, configuration=config)
             except OSError as e:
-                print(f"[ERROR] wkhtmltopdf no está instalado o no es accesible: {e}")
-                print("[INFO] Descarga wkhtmltopdf desde: https://wkhtmltopdf.org/downloads.html")
                 return None
             
             # Configurar opciones de pdfkit para mejor calidad
@@ -114,9 +101,6 @@ class PDF:
             return pdf_base64
             
         except Exception as e:
-            print(f"[ERROR] Error al generar PDF: {e}")
-            import traceback
-            traceback.print_exc()
             return None
     
     @classmethod

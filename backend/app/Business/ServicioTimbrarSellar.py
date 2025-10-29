@@ -31,7 +31,6 @@ class ServicioTimbrarSellar:
         - "datosXML": estructura JSON (dict)
         Requiere "claveUsuario" para obtener certificados de la BD.
         """
-        logger.info("Iniciando proceso completo de timbrarSellar")
         
         # Validar claveUsuario
         clave_usuario = data.get('claveUsuario')
@@ -58,9 +57,8 @@ class ServicioTimbrarSellar:
             }
         
         if xml_input:
-            logger.info(f"Procesando XML string (longitud: {len(xml_input)} caracteres)")
+            pass
         else:
-            logger.info("Procesando estructura JSON en 'datosXML'")
             # Validar JSON con ComprobanteFactory
             resultado_validacion = ComprobanteFactory.procesar_comprobante(json_input)
             if not resultado_validacion["valido"]:
@@ -102,7 +100,6 @@ class ServicioTimbrarSellar:
                     }]
                 }
             
-            logger.info(f"Credenciales PAC obtenidas para claveUsuario: {clave_usuario}")
             
         except Exception as e:
             logger.error(f"Error al obtener credenciales PAC de la BD: {str(e)}")
@@ -116,7 +113,7 @@ class ServicioTimbrarSellar:
             }
         
         # Sellado (pasa claveUsuario)
-        logger.info("Iniciando sellado")
+        
         resultado_sellado = SellarXML.sellar_cfdi(data)
         if "errores" in resultado_sellado:
             logger.error(f"Error en sellado: {resultado_sellado}")
@@ -124,25 +121,11 @@ class ServicioTimbrarSellar:
         
         xml_sellado = resultado_sellado["xml_con_sello"]
         cadena_original = resultado_sellado.get("cadena_original", "")
-        logger.info(f"Cadena original generada: {cadena_original}")
-        logger.info("Sellado exitoso")
         
-        # IMPRIMIR XML GENERADO
-        print("\n" + "="*80)
-        print("XML SELLADO GENERADO:")
-        print("="*80)
-        print(xml_sellado)
-        print("="*80 + "\n")
+        
         
         # Obtener el modo de pruebas desde el certificado
         pruebas = certificado.get('pruebas', True)
-        
-        # IMPRIMIR XML ANTES DE TIMBRAR
-        print("\n" + "="*80)
-        print("XML QUE SE ENVIARÁ AL PAC:")
-        print("="*80)
-        print(xml_sellado)
-        print("="*80 + "\n")
         
         # Timbrado
         resultado_timbrado = TimbradoService.timbrar_cfdi(
@@ -154,7 +137,6 @@ class ServicioTimbrarSellar:
         
         # Preparar respuesta
         respuesta = resultado_timbrado.copy()
-        logger.info("Timbrado exitoso")
         
         # Generar PDF solo si el timbrado fue exitoso y se solicita
         if "errores" not in resultado_timbrado:

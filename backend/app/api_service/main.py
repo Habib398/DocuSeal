@@ -30,10 +30,6 @@ openapi_tags = [
     {
         "name": "Timbrado y Sellado",
         "description": "Endpoint para timbrado y sellado de CFDI"
-    },
-    {
-        "name": "Utilities",
-        "description": "Health checks y endpoints utilitarios"
     }
 ]
 
@@ -60,4 +56,3 @@ app.add_middleware(
 # Llamada a routers
 app.include_router(timbrado.router)
 app.include_router(sellado.router)
-app.include_router(utilities.router)

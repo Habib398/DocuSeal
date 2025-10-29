@@ -298,7 +298,6 @@ class SellarXML:
 
         # Guardar la cadena original generada
         self.cadena_original = cfdi.cadena_original()
-        logger.info(f"Cadena original generada para CFDI: {self.cadena_original}")
 
         # Generar XML sellado
         self.xmlSellado = cfdi.xml_bytes(pretty_print=True).decode('utf-8')

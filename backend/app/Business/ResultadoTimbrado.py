@@ -95,7 +95,7 @@ class ResultadoTimbrado:
         # Si no se encontró código en la matriz, usar mensaje genérico
         if not codigo_cfdi:
             descripcion_error = msg
-            codigo_cfdi = "PAC000"  # Código genérico para errores del PAC sin código específico
+            codigo_cfdi = "PAC000"
 
         result = {
             "errores": [{

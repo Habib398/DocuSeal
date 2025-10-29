@@ -133,11 +133,6 @@ class ConfiguracionCertificados:
         try:
             certificado = self.db_manager.get_certificado_by_claveUsuario(clave_usuario)
             
-            if certificado:
-                logger.info(f"Certificado encontrado con claveUsuario: {clave_usuario}")
-            else:
-                logger.info(f"No se encontró certificado con claveUsuario: {clave_usuario}")
-            
             return certificado
         except Exception as e:
             logger.error(f"Error obteniendo certificado por claveUsuario: {e}")
