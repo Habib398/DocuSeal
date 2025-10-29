@@ -30,11 +30,10 @@ router = APIRouter(
 async def timbrar_endpoint(
     data: dict = Body(
         ...,
-        description="Objeto JSON con 'xml' (string XML sellado completo), 'claveUsuario' para obtener credenciales PAC, y 'generarPDF' (opcional).",
+        description="Objeto JSON con 'xml' (string XML sellado completo), 'claveUsuario' para identificar el certificado, y 'generarPDF' (opcional). El modo de pruebas se toma del certificado.",
         example={
             "xml": "",
             "claveUsuario": "550e8400-e29b-41d4-a716-446655440000",
-            "pruebas": True,
             "generarPDF": False
         }
     )

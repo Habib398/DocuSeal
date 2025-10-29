@@ -21,6 +21,7 @@ const emptyFormData: CertificateFormData = {
   KEY: '',
   Certificado: '',
   pwdCER: '',
+  pruebas: true, // Por defecto, los certificados nuevos son para pruebas
 };
 
 const CertificateModal: React.FC<CertificateModalProps> = ({
@@ -225,34 +226,40 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
                     />
                     <div className="field-help">Opcional: Nombre asociado a estos certificados.</div>
                   </div>
-                  <div className="col-md-6">
-                    <label htmlFor="noCertificado" className="form-label required-asterisk">
-                      No. Certificado
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="noCertificado"
-                      required
-                      value={formData.noCertificado}
-                      onChange={handleChange}
-                      disabled={loading}
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label htmlFor="vigencia" className="form-label required-asterisk">
-                      Vigencia
-                    </label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      id="vigencia"
-                      required
-                      value={formData.vigencia}
-                      onChange={handleChange}
-                      disabled={loading}
-                    />
-                  </div>
+                  
+                  {/* Mostrar noCertificado y vigencia solo en modo edición (valores automáticos del CER) */}
+                  {certificate && (
+                    <>
+                      <div className="col-md-6">
+                        <label htmlFor="noCertificado" className="form-label">
+                          No. Certificado
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="noCertificado"
+                          value={formData.noCertificado}
+                          readOnly
+                          disabled
+                        />
+                        <div className="field-help">Valor extraído automáticamente del certificado CER.</div>
+                      </div>
+                      <div className="col-md-6">
+                        <label htmlFor="vigencia" className="form-label">
+                          Vigencia
+                        </label>
+                        <input
+                          type="date"
+                          className="form-control"
+                          id="vigencia"
+                          value={formData.vigencia}
+                          readOnly
+                          disabled
+                        />
+                        <div className="field-help">Valor extraído automáticamente del certificado CER.</div>
+                      </div>
+                    </>
+                  )}
                   
                   {/* Mostrar clave de usuario solo cuando se está editando un certificado existente */}
                   {certificate && formData.claveUsuario && (
@@ -315,6 +322,31 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
                     />
                     <div className="field-help">Número de contacto.</div>
                   </div>
+                  
+                  {/* Checkbox para indicar si el certificado es para pruebas */}
+                  <div className="col-12">
+                    <div className="form-check">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        id="pruebas"
+                        checked={formData.pruebas ?? true}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          pruebas: e.target.checked
+                        })}
+                        disabled={loading}
+                      />
+                      <label className="form-check-label" htmlFor="pruebas">
+                        <strong>Usar certificado para pruebas</strong>
+                      </label>
+                    </div>
+                    <div className="field-help ms-4">
+                      Si está marcado, este certificado se usará en el ambiente de pruebas del PAC. 
+                      Desmarcar para usar en producción.
+                    </div>
+                  </div>
+                  
                   <div className="col-12">
                     <div className="divider"></div>
                     <div className="section-title">Archivos</div>

@@ -134,7 +134,8 @@ class ServicioTimbrarSellar:
         print(xml_sellado)
         print("="*80 + "\n")
         
-        pruebas = data.get("pruebas", True)
+        # Obtener el modo de pruebas desde el certificado
+        pruebas = certificado.get('pruebas', True)
         
         # IMPRIMIR XML ANTES DE TIMBRAR
         print("\n" + "="*80)

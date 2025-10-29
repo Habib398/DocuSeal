@@ -160,6 +160,7 @@ export interface Certificate {
   pwdCER: string;
   activo?: boolean;
   claveUsuario?: string; // Clave única generada por certificado
+  pruebas?: boolean; // Indica si el certificado es para pruebas (true) o producción (false)
 }
 
 export interface CertificateFormData {
@@ -175,6 +176,7 @@ export interface CertificateFormData {
   Certificado?: string;
   pwdCER: string;
   claveUsuario?: string; // Clave única generada automáticamente
+  pruebas?: boolean; // Indica si el certificado es para pruebas (true) o producción (false)
 }
 
 export const apiClient = new ApiClient();

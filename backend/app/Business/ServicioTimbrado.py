@@ -124,7 +124,8 @@ class ServicioTimbrado:
                 }]
             }
         
-        pruebas = data.get('pruebas', True)
+        # Obtener el modo de pruebas desde el certificado
+        pruebas = certificado.get('pruebas', True)
         generar_pdf = data.get('generarPDF', False)
         
         # Ejecutar timbrado directamente

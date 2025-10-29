@@ -41,13 +41,14 @@ const CertificatesTable: React.FC<CertificatesTableProps> = ({
                 <th>Empresa</th>
                 <th>No. Certificado</th>
                 <th>Vigencia</th>
+                <th>Modo</th>
                 <th>Correo</th>
                 <th>Teléfono</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td colSpan={7} className="text-center text-muted py-4">
+                <td colSpan={8} className="text-center text-muted py-4">
                   <i className="fas fa-inbox fa-2x mb-2 d-block"></i>
                   No hay certificados registrados
                 </td>
@@ -70,6 +71,7 @@ const CertificatesTable: React.FC<CertificatesTableProps> = ({
               <th>Empresa</th>
               <th>No. Certificado</th>
               <th>Vigencia</th>
+              <th>Modo</th>
               <th>Correo</th>
               <th>Teléfono</th>
             </tr>
@@ -90,6 +92,11 @@ const CertificatesTable: React.FC<CertificatesTableProps> = ({
                 <td>
                   <span className={`badge ${getVigenciaBadgeClass(cert.vigencia)}`}>
                     {formatDate(cert.vigencia)}
+                  </span>
+                </td>
+                <td>
+                  <span className={`badge ${cert.pruebas !== false ? 'bg-info' : 'bg-primary'}`}>
+                    {cert.pruebas !== false ? 'Pruebas' : 'Producción'}
                   </span>
                 </td>
                 <td>{cert.correo || '-'}</td>

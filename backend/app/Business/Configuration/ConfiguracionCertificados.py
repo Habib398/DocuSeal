@@ -250,7 +250,8 @@ class ConfiguracionCertificados:
                 correo=datos.get('correo', ''),
                 telefono=datos.get('telefono', ''),
                 pwdCER=datos['pwdCER'],  # Requerido
-                claveUsuario=datos.get('claveUsuario')  # Nueva: clave única
+                claveUsuario=datos.get('claveUsuario'),  # Nueva: clave única
+                pruebas=datos.get('pruebas', True)  # Nueva: indica si es para pruebas
             )
             
             logger.info(f"Certificado creado exitosamente con ID: {cert_id}")

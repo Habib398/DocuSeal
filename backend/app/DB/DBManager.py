@@ -51,6 +51,7 @@ def _normalize_cert_keys(cert_dict):
         'telefono': cert_dict.get('telefono'),
         'activo': cert_dict.get('activo', True),
         'claveUsuario': cert_dict.get('claveusuario'),  # Agregar claveUsuario
+        'pruebas': cert_dict.get('pruebas', True),  # Indica si el certificado es para pruebas
         'created_at': str(cert_dict.get('created_at')) if cert_dict.get('created_at') else None,
         'updated_at': str(cert_dict.get('updated_at')) if cert_dict.get('updated_at') else None
     }
@@ -63,7 +64,7 @@ class DBManager:
         # Obtiene una conexión a la base de datos
         return get_db_connection()
 
-    def insert_certificado(self, usuarioPAC, contrasenaPAC, nombreEmpresa, CER, KEY, vigencia, noCertificado, Certificado, pwdCER, correo=None, telefono=None, claveUsuario=None):
+    def insert_certificado(self, usuarioPAC, contrasenaPAC, nombreEmpresa, CER, KEY, vigencia, noCertificado, Certificado, pwdCER, correo=None, telefono=None, claveUsuario=None, pruebas=True):
         """Inserta un nuevo registro en la tabla certificados_pac."""
         conn = None
         try:
@@ -76,10 +77,10 @@ class DBManager:
             pwd_cer_value = pwdCER if pwdCER is not None else ''
 
             cursor.execute("""
-                INSERT INTO certificados_pac (usuarioPAC, contrasenaPAC, nombreEmpresa, CER, KEY, vigencia, noCertificado, Certificado, correo, telefono, pwdCER, claveUsuario)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO certificados_pac (usuarioPAC, contrasenaPAC, nombreEmpresa, CER, KEY, vigencia, noCertificado, Certificado, correo, telefono, pwdCER, claveUsuario, pruebas)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
-            """, (usuarioPAC, contrasenaPAC, nombreEmpresa, cer_param, key_param, vigencia, noCertificado, Certificado, correo, telefono, pwd_cer_value, claveUsuario))
+            """, (usuarioPAC, contrasenaPAC, nombreEmpresa, cer_param, key_param, vigencia, noCertificado, Certificado, correo, telefono, pwd_cer_value, claveUsuario, pruebas))
             
             new_id = cursor.fetchone()[0]
             conn.commit()

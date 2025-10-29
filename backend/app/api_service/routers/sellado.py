@@ -72,13 +72,12 @@ async def timbrar_sellar_endpoint(
     data: dict = Body(
         ...,
         description="JSON con 'xml' (string XML) o 'datosXML' (estructura JSON del comprobante) y 'claveUsuario'. "
-                    "Las credenciales PAC se obtienen automáticamente.",
+                    "Las credenciales PAC se obtienen automáticamente. El modo de pruebas se toma del certificado.",
         example={
             "datosXML(JSON) o xml(String xml)": {},
             "claveUsuario": "550e8400-e29b-41d4-a716-446655440000",
             "enviarCorreo": False,
-            "generarPDF": False,
-            "pruebas": True
+            "generarPDF": False
         }
     )
 ):
