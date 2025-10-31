@@ -1,183 +1,185 @@
 """
-Cancelacion.py - Business Logic para operaciones de cancelación de CFDI
-Maneja la cancelación de comprobantes usando el PAC Comercio Digital
+Cancelacion.py - Business Logic para operaciones de cancelación de CFDI.
 """
 
 import logging
-from typing import List
+import base64
+from typing import Dict, Any, Optional
 from datetime import datetime
-
-from satcfdi.create.cancela.cancelacion import Cancelacion as SatCFDICancelacion, Folio as SatCFDIFolio
-from satcfdi.pacs import Environment
 from satcfdi.pacs.comerciodigital import ComercioDigital
+from satcfdi.pacs import Environment, CancelReason
 from satcfdi.models import Signer
+from satcfdi.create.cancela.cancelacion import Cancelacion, Folio
 
 from .ResultadoCancelacion import ResultadoCancelacion
 
 logger = logging.getLogger(__name__)
 
-
 class CancelacionService:
     """
-    Servicio para cancelar CFDI utilizando el PAC de Comercio Digital.
+    Servicio para cancelar CFDI utilizando satcfdi y el PAC Comercio Digital.
     """
-
+    
+    # Mapeo de motivos numéricos a CancelReason
+    MOTIVOS_MAP = {
+        "01": CancelReason.COMPROBANTE_EMITIDO_CON_ERRORES_CON_RELACION,
+        "02": CancelReason.COMPROBANTE_EMITIDO_CON_ERRORES_SIN_RELACION,
+        "03": CancelReason.NO_SE_LLEVO_A_CABO_LA_OPERACION,
+        "04": CancelReason.OPERACION_NORMATIVA_RELACIONADA_EN_LA_FACTURA_GLOBAL
+    }
+    
     @classmethod
-    def cancelar_cfdi(
+    def cancelar_uuid(
         cls,
-        folios: List[dict],
-        cer_bytes: bytes,
-        key_bytes: bytes,
-        password: str,
+        uuid: str,
+        rfc_receptor: str,
+        total: str,
+        tipo_comprobante: str,
+        motivo: str,
         usuario_pac: str,
-        contrasena_pac: str,
+        password_pac: str,
+        certificado_base64: str,
+        key_base64: str,
+        password_key: str,
+        uuid_relacionado: Optional[str] = None,
+        email_emisor: Optional[str] = None,
+        email_receptor: Optional[str] = None,
+        guardar_acuse: bool = True,
         pruebas: bool = True
-    ) -> dict:
+    ) -> Dict[str, Any]:
+        """
+        Cancela un UUID de CFDI mediante satcfdi y el PAC Comercio Digital.
+        """
+        
         try:
-            # Validar que haya folios
-            if not folios or not isinstance(folios, list):
-                raise ValueError("Se requiere una lista de folios para cancelar")
+            # Validar motivo y UUID relacionado
+            if motivo not in cls.MOTIVOS_MAP:
+                return ResultadoCancelacion.ResultadoError(
+                    uuid,
+                    "Motivo inválido",
+                    f"El motivo debe ser uno de: 01, 02, 03, 04. Recibido: {motivo}"
+                )
             
-            # Crear Signer con los certificados
-            signer = Signer(cer_bytes, key_bytes, password)
+            if motivo == "01" and not uuid_relacionado:
+                return ResultadoCancelacion.ResultadoError(
+                    uuid,
+                    "UUID relacionado requerido",
+                    "El motivo '01' requiere especificar 'uuid_relacionado'"
+                )
             
-            # Convertir folios de dict a objetos Folio de satcfdi
-            folios_objetos = cls._convertir_folios(folios)
-            logger.info(f"Se procesarán {len(folios_objetos)} folio(s) para cancelación")
+            # Decodificar certificados de Base64
+            try:
+                cert_data = base64.b64decode(certificado_base64)
+                key_data = base64.b64decode(key_base64)
+            except Exception as e:
+                logger.error(f"Error al decodificar certificados: {e}")
+                return ResultadoCancelacion.ResultadoError(
+                    uuid,
+                    "Error al decodificar certificados",
+                    f"Los certificados deben estar en formato Base64 válido: {str(e)}"
+                )
             
-            # Crear solicitud de cancelación
-            cancelacion = SatCFDICancelacion(
-                emisor=signer,
-                folios=folios_objetos,
-                fecha=datetime.utcnow()
+            # Crear Signer con certificados
+            try:
+                signer = Signer(
+                    cert=cert_data,
+                    key=key_data,
+                    password=password_key.encode('utf-8')
+                )
+                logger.info(f"Signer creado correctamente. RFC: {signer.rfc}")
+            except Exception as e:
+                logger.error(f"Error al crear Signer: {e}")
+                return ResultadoCancelacion.ResultadoError(
+                    uuid,
+                    "Error al procesar certificados",
+                    f"No se pudo crear el Signer con los certificados proporcionados: {str(e)}"
+                )
+            
+            # Objeto folio
+            folio = Folio(
+                uuid=uuid,
+                motivo=motivo,
+                folio_sustitucion=uuid_relacionado if motivo == "01" else None
             )
             
-            # Procesar cancelación con el PAC
-            return cls._procesar_cancelacion(
-                cancelacion,
-                usuario_pac,
-                contrasena_pac,
-                pruebas
-            )
-            
-        except ValueError as e:
-            logger.error(f"Error de validación: {str(e)}")
-            return ResultadoCancelacion.ResultadoError(e)
-        except Exception as e:
-            logger.exception("Error inesperado al cancelar CFDI")
-            return ResultadoCancelacion.ResultadoError(e)
-
-    @classmethod
-    def _convertir_folios(cls, folios: List[dict]) -> List[SatCFDIFolio]:
-        """
-        Convierte una lista de diccionarios a objetos Folio de satcfdi.
-        """
-        folios_objetos = []
-        
-        for i, folio_dict in enumerate(folios):
-            if not isinstance(folio_dict, dict):
-                raise ValueError(f"Folio en posición {i} debe ser un diccionario")
-            
-            uuid = folio_dict.get('uuid')
-            motivo = folio_dict.get('motivo')
-            folio_sustitucion = folio_dict.get('folioSustitucion')
-            
-            # Validar campos requeridos
-            if not uuid:
-                raise ValueError(f"Folio en posición {i} no tiene 'uuid'")
-            if not motivo:
-                raise ValueError(f"Folio en posición {i} no tiene 'motivo'")
-            
-            # Validar que el motivo sea válido (01, 02, 03, 04)
-            if motivo not in ['01', '02', '03', '04']:
-                raise ValueError(
-                    f"Motivo '{motivo}' no válido. Debe ser: "
-                    "01 (Comprobante emitido con errores con relación), "
-                    "02 (Comprobante emitido con errores sin relación), "
-                    "03 (No se llevó a cabo la operación), "
-                    "04 (Operación nominativa relacionada en una factura global)"
+            # solicitud de cancelación usando folios
+            try:
+                cancelacion = Cancelacion(
+                    emisor=signer,
+                    folios=[folio],
+                    fecha=datetime.now()
+                )
+            except Exception as e:
+                return ResultadoCancelacion.ResultadoError(
+                    uuid,
+                    "Error al crear solicitud de cancelación",
+                    str(e)
                 )
             
-            # Si el motivo es 01, debe tener folioSustitucion
-            if motivo == '01' and not folio_sustitucion:
-                raise ValueError(
-                    f"Folio en posición {i}: El motivo '01' requiere 'folioSustitucion'"
-                )
-            
-            # Crear objeto Folio de satcfdi
-            if folio_sustitucion:
-                folio_obj = SatCFDIFolio(
-                    uuid=uuid,
-                    motivo=motivo,
-                    folio_sustitucion=folio_sustitucion
-                )
-            else:
-                folio_obj = SatCFDIFolio(
-                    uuid=uuid,
-                    motivo=motivo
-                )
-            
-            folios_objetos.append(folio_obj)
-            logger.debug(f"Folio convertido: UUID={uuid}, Motivo={motivo}")
-        
-        return folios_objetos
-
-    @classmethod
-    def _procesar_cancelacion(
-        cls,
-        cancelacion: SatCFDICancelacion,
-        usuario_pac: str,
-        contrasena_pac: str,
-        pruebas: bool = True
-    ) -> dict:
-        """
-        Procesa la cancelación con el PAC Comercio Digital.
-        """
-        try:
             # Configurar ambiente del PAC
             env = Environment.TEST if pruebas else Environment.PRODUCTION
-            logger.info(f"Procesando cancelación en ambiente: {'PRUEBAS' if pruebas else 'PRODUCCIÓN'}")
             
-            # Inicializar PAC
-            pac = ComercioDigital(
-                user=usuario_pac,
-                password=contrasena_pac,
-                environment=env
-            )
+            # Crear cliente del PAC
+            try:
+                pac = ComercioDigital(
+                    user=usuario_pac,
+                    password=password_pac,
+                    environment=env
+                )
+            except Exception as e:
+                return ResultadoCancelacion.ResultadoError(
+                    uuid,
+                    "Error al configurar cliente PAC",
+                    str(e)
+                )
             
-            # Enviar solicitud de cancelación
-            logger.info("Enviando solicitud de cancelación al PAC")
-            acuse = pac.cancel_comprobante(cancelacion)
-            
-            # Retornar resultado exitoso
-            return ResultadoCancelacion.ResultadoExito(acuse)
-            
+            # Enviar solicitud de cancelación al PAC
+            try:
+                acuse = pac.cancel_comprobante(cancelacion)
+                                
+                # Preparar datos del acuse para respuesta
+                acuse_data = {
+                    "fecha": str(acuse.fecha) if hasattr(acuse, 'fecha') else None,
+                    "folios": []
+                }
+                
+                # Extraer información de los folios del acuse
+                if hasattr(acuse, 'folios'):
+                    for folio_acuse in acuse.folios:
+                        folio_info = {
+                            "uuid": folio_acuse.uuid if hasattr(folio_acuse, 'uuid') else None,
+                            "estatus": folio_acuse.estatus if hasattr(folio_acuse, 'estatus') else None
+                        }
+                        acuse_data["folios"].append(folio_info)
+                
+                return ResultadoCancelacion.ResultadoExito(uuid, acuse_data)
+                
+            except Exception as e:                
+                # Extraer información del error
+                error_msg = str(e)
+                detalle = None
+                
+                # Intentar obtener más detalles si es un error HTTP
+                if hasattr(e, 'response'):
+                    response = e.response
+                    if hasattr(response, 'text'):
+                        detalle = response.text
+                    if hasattr(response, 'status_code'):
+                        error_msg = f"Error del PAC (Status {response.status_code}): {error_msg}"
+                
+                return ResultadoCancelacion.ResultadoError(
+                    uuid,
+                    error_msg,
+                    detalle or str(e)
+                )
+                
         except Exception as e:
-            logger.exception('Error al cancelar CFDI con el PAC')
-            return ResultadoCancelacion.ResultadoError(e)
+            return ResultadoCancelacion.ResultadoError(
+                uuid,
+                "Error inesperado en la cancelación",
+                str(e)
+            )
 
-    def cancelar(
-        self,
-        folios: List[dict],
-        cer_bytes: bytes,
-        key_bytes: bytes,
-        password: str,
-        usuario_pac: str,
-        contrasena_pac: str,
-        pruebas: bool = True
-    ) -> dict:
-        """
-        Método de instancia para cancelar CFDI.
-        Delega al método de clase.
-        """
-        return self.cancelar_cfdi(
-            folios,
-            cer_bytes,
-            key_bytes,
-            password,
-            usuario_pac,
-            contrasena_pac,
-            pruebas
-        )
 
+# Instancia del servicio para uso directo
 cancelacion_service = CancelacionService()

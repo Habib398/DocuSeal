@@ -1,5 +1,5 @@
 """
-ResultadoCancelacion.py - Formatea las respuestas de cancelación de CFDI
+ResultadoCancelacion.py - Clase para estandarizar respuestas de operaciones de cancelación
 """
 
 import logging
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class ResultadoCancelacion:
     """
-    Clase para formatear los resultados de cancelación de CFDI.
+    Clase para estandarizar las respuestas de operaciones de cancelación de CFDI.
     """
     
     _matriz_errores: Optional[Dict[str, str]] = None
@@ -47,90 +47,81 @@ class ResultadoCancelacion:
         return matriz
     
     @staticmethod
-    def ResultadoExito(acuse: Any) -> Dict[str, Any]:
+    def ResultadoExito(uuid: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Formatea un resultado exitoso de cancelación.
+        Crea una respuesta estandarizada para cancelación exitosa.
         """
-        try:
-            # Obtener el acuse XML
-            acuse_xml = None
-            if hasattr(acuse, 'xml'):
-                xml = acuse.xml
-                if isinstance(xml, (bytes, bytearray)):
-                    try:
-                        acuse_xml = xml.decode('utf-8')
-                    except Exception:
-                        acuse_xml = xml.decode('utf-8', errors='replace')
-                else:
-                    acuse_xml = xml
-            
-            # Obtener fecha del acuse si está disponible
-            fecha_cancelacion = None
-            if hasattr(acuse, 'date'):
-                fecha_cancelacion = str(acuse.date)
-            
-            # Obtener información de los folios
-            folios_info = []
-            if hasattr(acuse, 'uuids'):
-                folios_info = [{"uuid": uuid} for uuid in acuse.uuids]
-            
-            return {
-                "codigo": 0,
-                "mensaje": "Cancelación exitosa",
-                "acuse": acuse_xml,
-                "fecha_cancelacion": fecha_cancelacion,
-                "folios": folios_info
-            }
-            
-        except Exception as e:
-            logger.exception('Error al formatear resultado de cancelación exitosa')
-            return {
-                "codigo": 0,
-                "mensaje": "Cancelación exitosa (error al formatear detalles)",
-                "acuse": None
-            }
-
-    @classmethod
-    def ResultadoError(cls, exc: Exception) -> Dict[str, Any]:
-        """
-        Formatea un resultado de error de cancelación.
-        """
-        msg = str(exc)
-        codigo_cfdi = None
-        descripcion_error = None
-        cuerpo = None
-
-        try:
-            r = getattr(exc, 'response', None)
-            if r is not None:
-                # Extraer información de headers y body de la respuesta HTTP
-                headers = getattr(r, 'headers', {}) or {}
-                msg = headers.get('errmsg', msg)
-                cuerpo = getattr(r, 'text', None)
-        except Exception:
-            logger.exception('Error al extraer información de la excepción del PAC')
-
-        # Buscar el código CFDI en la matriz de errores
-        matriz = cls._cargar_matriz_errores()
         
-        # Buscar códigos CFDI en el mensaje o cuerpo
-        for codigo in matriz.keys():
-            if codigo in msg or codigo in str(cuerpo or ''):
-                codigo_cfdi = codigo
-                descripcion_error = matriz[codigo]
-                break
-        
-        # Si no se encontró código en la matriz, usar mensaje genérico
-        if not codigo_cfdi:
-            descripcion_error = msg
-            codigo_cfdi = "CANC000"
-
-        result = {
-            "errores": [{
-                "tipo": "error",
-                "codigo": codigo_cfdi,
-                "mensaje": descripcion_error
-            }]
+        return {
+            "codigo": 0,
+            "mensaje": "Cancelación exitosa",
+            "uuid": uuid,
+            "data": data
         }
-
+    
+    @classmethod
+    def ResultadoError(cls, uuid: str, error: str, detalle: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Crea una respuesta estandarizada para error en cancelación.
+        """
+        
+        # Intentar buscar código de error en la matriz
+        codigo_cfdi = None
+        descripcion_error = error
+        
+        try:
+            matriz = cls._cargar_matriz_errores()
+            
+            # Buscar códigos en el mensaje de error
+            for codigo in matriz.keys():
+                if codigo in error or (detalle and codigo in detalle):
+                    codigo_cfdi = codigo
+                    descripcion_error = matriz[codigo]
+                    break
+            
+            # Si no se encontró código específico, usar genérico
+            if not codigo_cfdi:
+                codigo_cfdi = "CAN000"  # Código genérico para cancelación
+                
+        except Exception as e:
+            logger.exception("Error al procesar código de error en matriz")
+            codigo_cfdi = "CAN000"
+        
+        result = {
+            "codigo": -1,
+            "mensaje": descripcion_error,
+            "uuid": uuid,
+            "error": error
+        }
+        
+        if detalle:
+            result["detalle"] = detalle
+            
         return result
+    
+    @classmethod
+    def ResultadoMultiple(cls, resultados: list) -> Dict[str, Any]:
+        """
+        Crea una respuesta estandarizada para múltiples cancelaciones.
+        """
+        if not resultados:
+            return {
+                "codigo": -1,
+                "mensaje": "No se procesaron cancelaciones",
+                "total": 0,
+                "exitosos": 0,
+                "errores": 0,
+                "resultados": []
+            }
+        
+        exitosos = [r for r in resultados if r.get("codigo") == 0]
+        errores = [r for r in resultados if r.get("codigo") != 0]
+        
+        return {
+            "codigo": 0 if errores == [] else -1,
+            "mensaje": f"Procesadas {len(resultados)} cancelaciones",
+            "total": len(resultados),
+            "exitosos": len(exitosos),
+            "errores": len(errores),
+            "resultados": resultados
+        }
