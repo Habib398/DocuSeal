@@ -48,6 +48,7 @@ def init_database():
             pwdCER TEXT NOT NULL DEFAULT '',
             activo BOOLEAN DEFAULT TRUE,
             claveUsuario VARCHAR(255) UNIQUE,
+            pruebas BOOLEAN DEFAULT TRUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );

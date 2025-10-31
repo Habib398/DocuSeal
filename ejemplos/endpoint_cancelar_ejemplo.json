@@ -1,0 +1,13 @@
+{
+    "folios": [
+        {
+            "uuid": "<UUID_DEL_FOLIO>",
+            "motivo": "02",
+            "folioSustitucion": null
+        },
+        {
+            "uuid": "<UUID_DEL_FOLIO>",
+            "motivo": "01"
+        }
+    ]
+}
