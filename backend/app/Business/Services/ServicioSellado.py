@@ -1,7 +1,7 @@
 import logging
 from typing import Dict, Any
-from .SellarXML import SellarXML
-from .cfdi.ComprobanteFactory import ComprobanteFactory
+from Business.SellarXML import SellarXML
+from Business.cfdi.ComprobanteFactory import ComprobanteFactory
 
 logger = logging.getLogger(__name__)
 

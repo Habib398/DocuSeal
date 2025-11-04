@@ -5,7 +5,9 @@ Maneja la lógica de negocio y coordina con la base de datos para cancelar compr
 
 import logging
 from typing import Dict, Any
-from .Cancelacion import CancelacionService
+from Business.Cancelacion import CancelacionService
+from Business.Configuration.ConfiguracionCertificados import ConfiguracionCertificados
+from DB.DBManager import DBManager
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +15,7 @@ logger = logging.getLogger(__name__)
 class ServicioCancelacion:
     """
     Servicio para operaciones de cancelación de CFDI.
-    Coordina la obtención de certificados desde BD y la cancelación con el PAC.
+    Obtencion de certificados desde BD y coordinación con el PAC.
     """
     
     @staticmethod
@@ -43,10 +45,7 @@ class ServicioCancelacion:
                 }]
             }
         
-        # Obtener certificado de la base de datos usando claveUsuario
-        from .Configuration.ConfiguracionCertificados import ConfiguracionCertificados
-        from DB.DBManager import DBManager
-        
+        # Obtener certificado de la base de datos
         try:
             db_manager = DBManager()
             config_cert = ConfiguracionCertificados(db_manager)
@@ -65,9 +64,9 @@ class ServicioCancelacion:
             # Obtener credenciales PAC y certificados de la BD
             usuario_pac = certificado.get('usuarioPAC')
             contrasena_pac = certificado.get('contrasenaPAC')
-            certificado_base64 = certificado.get('certificado')  # .cer en base64
-            llave_base64 = certificado.get('llave')  # .key en base64
-            contrasena_llave = certificado.get('contrasenaLlave')  # password de la llave
+            certificado_base64 = certificado.get('certificado')
+            llave_base64 = certificado.get('llave')
+            contrasena_llave = certificado.get('contrasenaLlave')
 
             # Validar que existan datos necesarios
             if not usuario_pac or not contrasena_pac:
@@ -117,8 +116,8 @@ class ServicioCancelacion:
         email_emisor = data.get('emailEmisor')
         email_receptor = data.get('emailReceptor')
         guardar_acuse = data.get('guardarAcuse', True)
-        
-        # Procesar cada folio
+
+        # Procesar folio
         resultados = []
         for folio in folios:
             try:
@@ -206,10 +205,10 @@ class ServicioCancelacion:
                     "detalle": str(e)
                 })
         
-        # Si solo hay un folio, retornar resultado directo
+        # retornar resultado directo si solo hay un folio
         if len(folios) == 1:
             return resultados[0]
         
-        # Si hay múltiples folios, retornar resumen
-        from .ResultadoCancelacion import ResultadoCancelacion
+        # retornar resumen si hay lista de folios
+        from ResultadoCancelacion import ResultadoCancelacion
         return ResultadoCancelacion.ResultadoMultiple(resultados)

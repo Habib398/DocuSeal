@@ -15,7 +15,7 @@ backend_path = os.path.dirname(__file__)
 sys.path.insert(0, backend_path)
 
 # Importar routers
-from routers import timbrado, sellado, utilities, status, cancelacion
+from routers import timbrado, sellado, status, cancela
 
 # OpenAPI Swagger UI
 openapi_tags = [
@@ -30,6 +30,10 @@ openapi_tags = [
     {
         "name": "Timbrado y Sellado",
         "description": "Endpoint para timbrado y sellado de CFDI"
+    },
+    {
+        "name": "Cancelación",
+        "description": "Endpoint para cancelación de CFDI mediante PAC"
     },
     {
         "name": "Status",
@@ -60,4 +64,5 @@ app.add_middleware(
 # Llamada a routers
 app.include_router(timbrado.router)
 app.include_router(sellado.router)
+app.include_router(cancela.router)
 app.include_router(status.router)

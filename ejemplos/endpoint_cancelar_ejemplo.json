@@ -1,13 +1,15 @@
 {
-    "folios": [
-        {
-            "uuid": "<UUID_DEL_FOLIO>",
-            "motivo": "02",
-            "folioSustitucion": null
-        },
-        {
-            "uuid": "<UUID_DEL_FOLIO>",
-            "motivo": "01"
-        }
-    ]
+  "claveUsuario": "f1160109-5aab-46b9-bcbe-c8f811fe70b3",
+  "folios": [
+    {
+      "uuid": "8CCE76BA-7BEA-9B4B-9071-246E54FADBA0",
+      "rfcReceptor": "BASF850506MI1",
+      "total": "20.00",
+      "tipoComprobante": "I",
+      "motivo": "02"
+    }
+  ],
+  "emailEmisor": "emisor@example.com",
+  "emailReceptor": "receptor@example.com",
+  "guardarAcuse": true
 }

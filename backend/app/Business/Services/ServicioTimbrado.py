@@ -5,7 +5,7 @@ Solo acepta XML en formato string (xml)
 
 import logging
 from typing import Dict, Any
-from .Timbrado import TimbradoService
+from Business.Timbrado import TimbradoService
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ class ServicioTimbrado:
             }
         
         # Obtener certificado de la base de datos usando claveUsuario
-        from .Configuration.ConfiguracionCertificados import ConfiguracionCertificados
+        from Configuration.ConfiguracionCertificados import ConfiguracionCertificados
         from DB.DBManager import DBManager
         
         try:
@@ -136,7 +136,7 @@ class ServicioTimbrado:
         if generar_pdf and "errores" not in resultado_timbrado:
             logger.info("Generando PDF después del timbrado")
             try:
-                from .PDF import PDF
+                from Business.PDF import PDF
                 uuid = resultado_timbrado.get("uuid", "temp")
                 xml_timbrado = resultado_timbrado.get("cuerpo", xml_input)
                 

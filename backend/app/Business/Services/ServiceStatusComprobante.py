@@ -5,7 +5,7 @@ ServiceStatusComprobante.py - Service Layer para verificar estatus de CFDI
 import logging
 from typing import Dict, Any
 import xml.etree.ElementTree as ET
-from .StatusComprobante import Verificar_status_cfdi
+from Business.StatusComprobante import Verificar_status_cfdi
 
 logger = logging.getLogger(__name__)
 

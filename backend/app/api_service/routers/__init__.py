@@ -7,6 +7,6 @@ Organiza los endpoints en módulos separados por dominio.
 from . import timbrado
 from . import sellado
 from . import utilities
-from . import cancelacion
+from . import cancela
 
-__all__ = ['timbrado', 'sellado', 'utilities', 'cancelacion']
+__all__ = ['timbrado', 'sellado', 'utilities', 'cancela']

@@ -9,10 +9,10 @@ import logging
 from typing import Dict, Any
 
 from Business.cfdi import ComprobanteFactory
-from .SellarXML import SellarXML
-from .Timbrado import TimbradoService
-from .PDF import PDF
-from .PreferenciasCliente import PreferenciasCliente
+from Business.SellarXML import SellarXML
+from Business.Timbrado import TimbradoService
+from Business.PDF import PDF
+from Business.PreferenciasCliente import PreferenciasCliente
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +69,7 @@ class ServicioTimbrarSellar:
                 }
         
         # Obtener credenciales PAC de la base de datos usando claveUsuario
-        from .Configuration.ConfiguracionCertificados import ConfiguracionCertificados
+        from Business.Configuration.ConfiguracionCertificados import ConfiguracionCertificados
         from DB.DBManager import DBManager
         
         try:

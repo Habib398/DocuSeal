@@ -1,6 +1,8 @@
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Request
 from fastapi import Body
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
 import sys
 import os
 
@@ -13,12 +15,48 @@ from Business.Configuration.ConfiguracionRegistro import ConfiguracionRegistro, 
 from Business.Configuration.ConfiguracionCertificados import ConfiguracionCertificados
 from DB.DBManager import DBManager
 
+# ==================== MIDDLEWARE DE SEGURIDAD ====================
+
+class IPRestrictionMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware para restringir el acceso solo a localhost.
+    Bloquea cualquier petición que no provenga de 127.0.0.1 o ::1 (IPv6 localhost)
+    """
+    async def dispatch(self, request: Request, call_next):
+        # Obtener la IP del cliente
+        client_ip = request.client.host if request.client else None
+        
+        # Lista de IPs permitidas (localhost en IPv4 e IPv6)
+        allowed_ips = ["127.0.0.1", "::1", "localhost"]
+        
+        # Verificar si la IP está permitida
+        if client_ip not in allowed_ips:
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "errores": [{
+                        "tipo": "error",
+                        "codigo": "AUTH001",
+                        "mensaje": "Acceso denegado. Esta API solo es accesible desde localhost."
+                    }]
+                }
+            )
+        
+        # Si la IP está permitida, continuar con la petición
+        response = await call_next(request)
+        return response
+
+# ==================== CONFIGURACIÓN DE FASTAPI ====================
+
 app = FastAPI(
     title="DocuSeal Admin API",
     version="1.0.0",
     description="API administrativa para gestión de usuarios y certificados",
     root_path="/admin/api"  # Configuración para sub-aplicación montada en /admin/api
 )
+
+# IMPORTANTE: Agregar el middleware de restricción de IP ANTES que CORS
+app.add_middleware(IPRestrictionMiddleware)
 
 # Configurar CORS para el frontend administrativo
 # Nota: Si se monta en la app principal, el CORS se maneja globalmente

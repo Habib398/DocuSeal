@@ -14,8 +14,8 @@ backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 if backend_path not in sys.path:
     sys.path.insert(0, backend_path)
 
-from Business.ServicioSellado import ServicioSellado
-from Business.ServicioTimbrarSellar import ServicioTimbrarSellar
+from Business.Services.ServicioSellado import ServicioSellado
+from Business.Services.ServicioTimbrarSellar import ServicioTimbrarSellar
 from Business.cfdi.ComprobanteFactory import ComprobanteFactory
 
 # Crear router sin tags globales para poder asignar tags específicos a cada endpoint

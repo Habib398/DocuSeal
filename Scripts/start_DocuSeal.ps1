@@ -27,22 +27,21 @@ Set-Location -Path $frontend_path
 npm run build
 Set-Location -Path $repo_root
 Write-Host "Frontend compilado exitosamente" -ForegroundColor Green
-Write-Host "El frontend estará disponible en: http://localhost:8000/admin" -ForegroundColor Yellow
 Write-Host ""
 
 # Iniciar el servidor backend unificado con uvicorn
 Write-Host "Iniciando DocuSeal API..." -ForegroundColor Green
-Write-Host ""
+Write-Host "---------------------------------------------------------------"
 Write-Host "APIs disponibles:" -ForegroundColor Cyan
-Write-Host "  - Admin API:      http://localhost:8000/admin" -ForegroundColor White
-Write-Host "  - Service API:    http://localhost:8000/service" -ForegroundColor White
+Write-Host "  - Admin API: Accede a la interfaz de administración en: http://localhost:8000/admin" -ForegroundColor White
+Write-Host "  - Service API: Accede al servicio en: http://localhost:8000/service" -ForegroundColor White
+Write-Host "---------------------------------------------------------------"
 Write-Host ""
 Write-Host "Documentación:" -ForegroundColor Cyan
-Write-Host "  - Service: http://localhost:8000/service/docs" -ForegroundColor White
-Write-Host ""
-Write-Host "IMPORTANTE: Accede a la aplicación desde: http://localhost:8000/admin" -ForegroundColor Magenta
+Write-Host "  - Service: Accede a la documentación del servicio en: http://localhost:8000/service/docs" -ForegroundColor White
+Write-Host "---------------------------------------------------------------"
 Write-Host "Presiona Ctrl+C para detener el servidor" -ForegroundColor Red
-Write-Host ""
+Write-Host "---------------------------------------------------------------"
 
 # Preferir el python del entorno virtual venv
 $venv_python = Join-Path $PSScriptRoot "..\venv\Scripts\python.exe"
