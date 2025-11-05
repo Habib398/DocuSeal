@@ -64,9 +64,9 @@ class ServicioCancelacion:
             # Obtener credenciales PAC y certificados de la BD
             usuario_pac = certificado.get('usuarioPAC')
             contrasena_pac = certificado.get('contrasenaPAC')
-            certificado_base64 = certificado.get('certificado')
-            llave_base64 = certificado.get('llave')
-            contrasena_llave = certificado.get('contrasenaLlave')
+            certificado_base64 = certificado.get('Certificado')
+            llave_base64 = certificado.get('KEY')
+            contrasena_llave = certificado.get('pwdCER')
 
             # Validar que existan datos necesarios
             if not usuario_pac or not contrasena_pac:

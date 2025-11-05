@@ -81,10 +81,10 @@ class CancelacionService:
             
             # Crear Signer con certificados
             try:
-                signer = Signer(
-                    cert=cert_data,
+                signer = Signer.load(
+                    certificate=cert_data,
                     key=key_data,
-                    password=password_key.encode('utf-8')
+                    password=password_key
                 )
                 logger.info(f"Signer creado correctamente. RFC: {signer.rfc}")
             except Exception as e:
@@ -135,7 +135,9 @@ class CancelacionService:
             
             # Enviar solicitud de cancelación al PAC
             try:
+                logger.info(f"Enviando solicitud de cancelación al PAC para UUID: {uuid}")
                 acuse = pac.cancel_comprobante(cancelacion)
+                logger.info(f"Cancelación exitosa para UUID: {uuid}")
                                 
                 # Preparar datos del acuse para respuesta
                 acuse_data = {
@@ -156,16 +158,23 @@ class CancelacionService:
                 
             except Exception as e:                
                 # Extraer información del error
-                error_msg = str(e)
+                error_msg = str(e) if str(e) else "Error desconocido del PAC"
                 detalle = None
+                logger.error(f"Error del PAC al cancelar UUID {uuid}: {error_msg}")
                 
                 # Intentar obtener más detalles si es un error HTTP
                 if hasattr(e, 'response'):
                     response = e.response
                     if hasattr(response, 'text'):
                         detalle = response.text
+                        logger.error(f"Respuesta del PAC: {detalle}")
                     if hasattr(response, 'status_code'):
                         error_msg = f"Error del PAC (Status {response.status_code}): {error_msg}"
+                        logger.error(f"Status code: {response.status_code}")
+                
+                # Si no hay mensaje de error, proporcionar uno genérico
+                if not error_msg or error_msg == "Error desconocido del PAC":
+                    error_msg = "El PAC rechazó la solicitud de cancelación. Verifique que los certificados coincidan con el CFDI original."
                 
                 return ResultadoCancelacion.ResultadoError(
                     uuid,
