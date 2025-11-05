@@ -1,6 +1,6 @@
 # DocuSeal - Arquitectura Visual
 
-## 📐 Arquitectura de Capas (4 Capas)
+## Arquitectura de Capas (4 Capas)
 
 DocuSeal implementa una **arquitectura en capas (N-Tier Architecture)** simplificada que separa las responsabilidades del sistema en **4 capas independientes y reutilizables**. Esta arquitectura promueve la modularidad, mantenibilidad y escalabilidad del sistema.
 
@@ -21,115 +21,149 @@ DocuSeal implementa una **arquitectura en capas (N-Tier Architecture)** simplifi
 
 ---
 
-## 🏗️ Diagrama Completo de Arquitectura
+## Diagrama Completo de Arquitectura
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           DOCUSEAL SYSTEM                                │
-│                    Arquitectura en Capas (N-Tier)                        │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                ┌───────────────────┴────────────────────┐
-                │                                        │
-    ┌───────────▼──────────┐                ┌───────────▼──────────┐
-    │                      │                │                      │
-    │   SERVICE API        │                │   ADMIN API          │
-    │   Puerto: 8001       │                │   Puerto: 8002       │
-    │                      │                │                      │
-    │   🌐 PÚBLICO         │                │   🔒 INTERNO         │
-    │                      │                │                      │
-    │   - /timbrar         │                │   - /api/login       │
-    │   - /sellar          │                │   - /api/register    │
-    │   - /timbrarSellar   │                │   - /api/v1/cert*    │
-    │   - /health          │                │   - /api/v1/prefs*   │
-    │                      │                │                      │
-    └──────────┬───────────┘                └───────────┬──────────┘
-               │                                        │
-               │         CAPA DE PRESENTACIÓN           │
-               │         (Presentation Layer)           │
-               │                                        │
-               └────────────────┬───────────────────────┘
-                                │
-                  ┌─────────────▼─────────────────────┐
-                  │                                   │
-                  │   BUSINESS LAYER                  │
-                  │   Lógica de Negocio               │
-                  │   (Compartida)                    │
-                  │                                   │
-                  │   - SellarXML.py                  │
-                  │   - Timbrado.py                   │
-                  │   - ValidadorCFDI.py              │
-                  │   - Correo.py                     │
-                  │   - PDF.py                        │
-                  │   - Configuraciones               │
-                  │   - Comunicación con PAC          │
-                  │                                   │
-                  └─────────────┬─────────────────────┘
-                                │
-                  ┌─────────────▼─────────────────────┐
-                  │                                   │
-                  │   DATA LAYER                      │
-                  │   Acceso y Transformación         │
-                  │   (Compartida)                    │
-                  │                                   │
-                  │   - cartaPorte.py                 │
-                  │   - ConvertirJson.py              │
-                  │   - InterpreteJson.py             │
-                  │                                   │
-                  └─────────────┬─────────────────────┘
-                                │
-                  ┌─────────────▼─────────────────────┐
-                  │                                   │
-                  │   DATABASE LAYER                  │
-                  │   Persistencia                    │
-                  │   (Compartida)                    │
-                  │                                   │
-                  │   - DBManager.py                  │
-                  │   - settings.py                   │
-                  │   - PostgreSQL                    │
-                  │                                   │
-                  └───────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                                  DOCUSEAL SYSTEM                                        │
+│                           Arquitectura en Capas (N-Tier)                                │
+│                         Sistema de Facturación Electrónica CFDI                         │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+                                            │
+                        ┌───────────────────┴─────────────────┐
+                        │                                     │
+       ┌────────────────▼───────────────┐   ┌─────────────────▼───────────┐
+       │                                │   │                             │
+       │      SERVICE API               │   │      ADMIN API              │
+       │      (FastAPI)                 │   │      (FastAPI)              │
+       │      Puerto: 8001              │   │      Puerto: 8002           │
+       │                                │   │                             │
+       │  Endpoints Públicos:           │   │  Endpoints Internos:        │
+       │  ┌─────────────────────────┐   │   │  ┌──────────────────────┐   │
+       │  │ POST /timbrar           │   │   │  │ POST /api/login      │   │
+       │  │ POST /sellar            │   │   │  │ POST /api/register   │   │
+       │  │ POST /timbrarSellar     │   │   │  │ GET /api/v1/certs    │   │
+       │  │ POST /cancelar          │   │   │  │ POST /api/v1/cert    │   │
+       │  │ POST /status            │   │   │  │ PUT /api/v1/cert/:id │   │
+       │  │ POST /procesar          │   │   │  │ DEL /api/v1/cert/:id │   │
+       │  │ GET  /health            │   │   │  │ GET /api/v1/prefs    │   │
+       │  └─────────────────────────┘   │   │  │ PUT /api/v1/prefs    │   │
+       │                                │   │  └──────────────────────┘   │
+       └───────────┬────────────────────┘   └──────────┬──────────────────┘
+                    │                                    │
+                    │                                    │
+┌───────────────────┴────────────────────────────────────┴───────────────────────────────┐
+│                                                                                        │
+│                         CAPA 1: PRESENTATION LAYER                                     │
+│                            (Exposición de Servicios)                                   │
+│                                                                                        │
+│  • Validación de Entradas         • Manejo de CORS         • Documentación Swagger     │
+│  • Serialización JSON              • Autenticación JWT      • Manejo de Errores        │
+│                                                                                        │
+└────────────────────────────────────┬───────────────────────────────────────────────────┘
+                                     │
+                                     │ Invoca servicios
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                     │
+│                         CAPA 2: BUSINESS LAYER                                      │
+│                      (Lógica de Negocio y Orquestación)                             │
+│                                                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐    │
+│  │  Servicios Principales:                                                     │    │
+│  │                                                                             │    │
+│  │  • SellarXML.py              → Sellado digital con CSD                      │    │
+│  │  • Timbrado.py               → Timbrado con PAC (Multi-PAC)                 │    │
+│  │  • Cancelacion.py            → Cancelación de CFDI                          │    │
+│  │  • ValidadorCFDI.py          → Validación de estructura SAT                 │    │
+│  │  • StatusComprobante.py      → Consulta de estatus                          │    │
+│  │  • PDF.py                    → Generación de representación impresa         │    │
+│  │  • Correo.py                 → Envío de correos electrónicos                │    │
+│  │  • PreferenciasCliente.py    → Gestión de preferencias                      │    │
+│  │  • ResultadoTimbrado.py      → Procesamiento de respuestas PAC              │    │
+│  │  • ResultadoCancelacion.py   → Procesamiento de cancelaciones               │    │
+│  │                                                                             │    │
+│  │  CFDI (Generación de Comprobantes):                                         │    │
+│  │                                                                             │    │
+│  │  • ComprobanteFactory.py     → Factory de comprobantes                      │    │
+│  │  • ConvertirJson.py          → JSON → XML CFDI                              │    │
+│  │  • Comprobantes/             → Ingreso, Egreso, Traslado, Pago, Nómina      │    │
+│  │  • Complementos/             → Carta Porte, Pagos, etc.                     │    │
+│  │                                                                             │    │
+│  │  Configuration (Configuración y Seguridad):                                 │    │
+│  │                                                                             │    │
+│  │  • ConfiguracionLogin.py     → Autenticación de usuarios                    │    │
+│  │  • ConfiguracionRegistro.py  → Registro y validación                        │    │
+│  │  • ConfiguracionCertificados.py → Gestión de CSD (.cer/.key)                │    │
+│  │  • ConfiguracionSello.py     → Configuración de sellado                     │    │
+│  │                                                                             │    │
+│  │  Services (Integración Externa):                                            │    │
+│  │                                                                             │    │
+│  │  • ServicioTimbrado.py       → Comunicación con PAC                         │    │
+│  │  • ServicioCancelacion.py    → Cancelación vía PAC                          │    │
+│  │  • ServicioSellado.py        → Proceso de sellado                           │    │
+│  │  • ServiceStatusComprobante.py → Consulta de estatus                        │    │
+│  └─────────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                     │
+└────────────────────────────────────┬────────────────────────────────────────────────┘
+                                     │
+                                     │ Transforma datos
+                                     ▼
+┌──────────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                      │
+│                         CAPA 3: DATA LAYER                                           │
+│                   (Transformación y Estructuración de Datos)                         │
+│                                                                                      │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐     │
+│  │                                                                             │     │
+│  │  • ConvertirJson.py          → Conversión JSON a XML CFDI 4.0               │     │
+│  │  • InterpreteJson.py         → Interpretación y validación de JSON          │     │
+│  │  • cartaPorte.py             → Manejo de complemento Carta Porte 3.0        │     │
+│  │  • matriz_errores.txt        → Catálogo de errores estandarizados           │     │
+│  │                                                                             │     │
+│  │  Funciones:                                                                 │     │
+│  │  Validación de esquemas    Mapeo de objetos                                 │     │
+│  │  Generación XML SAT        Transformación de formatos                       │     │
+│  │                                                                             │     │
+│  └─────────────────────────────────────────────────────────────────────────────┘     │
+│                                                                                      │
+└────────────────────────────────────┬─────────────────────────────────────────────────┘
+                                     │
+                                     │ Persiste información
+                                     ▼
+┌──────────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                      │
+│                         CAPA 4: DATABASE LAYER                                       │
+│                          (Persistencia de Datos)                                     │
+│                                                                                      │
+│  ┌──────────────────────────────────────────────────────────────────────────────┐    │
+│  │                                                                              │    │
+│  │  • DBManager.py              → CRUD y gestión de conexiones                  │    │
+│  │  • settings.py               → Configuración de PostgreSQL                   │    │
+│  │                                                                              │    │
+│  │  Base de Datos: PostgreSQL 12+                                               │    │
+│  │                                                                              │    │
+│  │  Tablas principales:                                                         │    │
+│  │  ┌──────────────────────────────────────────────────────────────┐            │    │
+│  │  │  • usuarios          → Datos de clientes registrados         │            │    │
+│  │  │  • certificados      → CSD almacenados (encriptados)         │            │    │
+│  │  │  • preferencias      → Configuraciones de cliente            │            │    │
+│  │  │  • comprobantes      → Histórico de CFDIs generados          │            │    │
+│  │  │  • logs              → Auditoría y trazabilidad              │            │    │
+│  │  └──────────────────────────────────────────────────────────────┘            │    │
+│  │                                                                              │    │
+│  │  Características:                                                            │    │
+│  │  Connection Pooling        Soft Delete                                       │    │
+│  │  Transacciones ACID         Migraciones de esquema                           │    │
+│  │                                                                              │    │
+│  └──────────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                      │
+└──────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🎯 Separación de APIs (Capa de Presentación)
-
-Las dos APIs actúan como la **Capa de Presentación** del sistema, cada una con responsabilidades distintas:
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        PRESENTATION LAYER                        │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                ┌─────────────┴──────────────┐
-                │                            │
-        ┌───────▼────────┐          ┌───────▼────────┐
-        │  SERVICE API   │          │   ADMIN API    │
-        │  Puerto: 8001  │          │  Puerto: 8002  │
-        │                │          │                │
-        │  🌐 PÚBLICO    │          │  🔒 INTERNO    │
-        └───────┬────────┘          └───────┬────────┘
-                │                            │
-                └─────────────┬──────────────┘
-                              │
-                    ┌─────────▼──────────┐
-                    │   BUSINESS LAYER   │
-                    │   (Compartido)     │
-                    └─────────┬──────────┘
-                              │
-                    ┌─────────▼──────────┐
-                    │    DATA LAYER      │
-                    │   (Compartido)     │
-                    └─────────┬──────────┘
-                              │
-                    ┌─────────▼──────────┐
-                    │   DATABASE LAYER   │
-                    │   (Compartido)     │
-                    └────────────────────┘
-```
-
-## � Descripción Detallada de Capas
+## Descripción Detallada de Capas
 
 ### Capa 1: PRESENTATION LAYER (Capa de Presentación)
 **Responsabilidad**: Exponer funcionalidades del sistema a través de APIs REST
@@ -177,11 +211,6 @@ Business/
 - ✅ Orquesta operaciones complejas
 - ✅ Maneja transacciones
 - ✅ Integración con servicios externos (PAC, correo, etc.)
-
-**Ubicación**: `backend/app/Business/`
-
-**Nota**: Esta capa ahora también maneja la comunicación con servicios externos como el PAC del SAT, integrando lo que antes era la capa de infraestructura.
-
 ---
 
 ### Capa 3: DATA LAYER (Capa de Acceso a Datos)
@@ -201,8 +230,6 @@ Data/
 - ✅ Mapeo de objetos
 - ✅ Generación de XML SAT
 
-**Ubicación**: `backend/app/Data/`
-
 ---
 
 ### Capa 4: DATABASE LAYER (Capa de Base de Datos)
@@ -213,33 +240,29 @@ Data/
 DB/
 ├── DBManager.py          # Gestor de conexiones y operaciones
 ├── settings.py           # Configuración de base de datos
-└── migrations/           # Scripts de migración
 ```
 
 **Características**:
 - ✅ CRUD operations
 - ✅ Connection pooling
 - ✅ Gestión de transacciones
-- ✅ Sistema de soft delete
-- ✅ Migraciones de esquema
 
-**Ubicación**: `backend/app/DB/`
-
-
-## 🔧 Stack Tecnológico
+## Stack Tecnológico
 
 ### Backend
 | Tecnología | Uso | Versión |
 |-----------|-----|---------|
-| **Python** | Lenguaje principal | 3.10+ |
-| **FastAPI** | Framework web | Latest |
-| **Uvicorn** | Servidor ASGI | Latest |
-| **SQLAlchemy** | ORM | Latest |
-| **PostgreSQL** | Base de datos | 12+ |
-| **bcrypt** | Hash de passwords | Latest |
-| **Cryptography** | Manejo de certificados | Latest |
-| **ReportLab** | Generación de PDFs | Latest |
-| **lxml** | Procesamiento XML | Latest |
+| **Python** | Lenguaje principal | 3.13+ |
+| **FastAPI** | Framework web REST | 0.104.0+ |
+| **Uvicorn** | Servidor ASGI | 0.24.0+ |
+| **Pydantic** | Validación de datos y schemas | 2.0.0+ |
+| **PostgreSQL** | Base de datos relacional | 12+ |
+| **psycopg2-binary** | Driver PostgreSQL | 2.9.7 |
+| **bcrypt** | Hash de contraseñas | 4.0.0+ |
+| **python-dotenv** | Variables de entorno | 1.0.0+ |
+| **satcfdi** | Librería CFDI SAT (Multi-PAC) | 4.8.1+ |
+| **lxml** | Procesamiento y manipulación XML | Latest |
+| **pdfkit** | Generación de PDFs desde HTML | 1.0.0+ |
 
 ### Frontend Clásico
 | Tecnología | Uso |
@@ -248,7 +271,7 @@ DB/
 | **JavaScript (Vanilla)** | Lógica del cliente |
 | **Fetch API** | Comunicación con backend |
 
-### Frontend React (En desarrollo)
+### Frontend React
 | Tecnología | Uso | Versión |
 |-----------|-----|---------|
 | **React** | Framework UI | 18.x |
@@ -268,7 +291,7 @@ DB/
 
 ---
 
-## 📚 Glosario de Términos
+## Glosario de Términos
 
 | Término | Definición |
 |---------|------------|
@@ -285,8 +308,3 @@ DB/
 | **Swagger** | Herramienta de documentación automática de APIs |
 
 ---
-
-
-**Última actualización**: 10 de Octubre de 2025  
-**Versión del Sistema**: 1.5.0  
-**Versión del Documento**: 2.1
