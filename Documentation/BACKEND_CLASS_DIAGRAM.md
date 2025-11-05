@@ -52,6 +52,16 @@ classDiagram
         +procesar_comprobante_endpoint(data)
     }
 
+    class CancelacionRouter {
+        +APIRouter router
+        +cancelar_endpoint(data)
+    }
+
+    class StatusRouter {
+        +APIRouter router
+        +status_endpoint(data)
+    }
+
     %% ==================== CAPA DE SERVICIOS ====================
     class ServicioTimbrado {
         <<static>>
@@ -70,6 +80,19 @@ classDiagram
     class ServicioTimbrarSellar {
         <<static>>
         +timbrar_sellar(data: dict) dict
+    }
+
+    class ServicioCancelacion {
+        <<static>>
+        +cancelar(data: dict) dict
+        -_obtener_certificado(clave_usuario)
+        -_validar_datos_entrada(data)
+    }
+
+    class ServiceStatusComprobante {
+        <<static>>
+        +verificar_estatus(data: dict) dict
+        +Verificar_timbrado(xml_string: str) bool
     }
 
     %% ==================== CAPA DE NEGOCIO - CORE ====================
@@ -99,6 +122,24 @@ classDiagram
         <<utility>>
         +ResultadoExito(doc)$ dict
         +ResultadoError(exception)$ dict
+    }
+
+    class ResultadoCancelacion {
+        <<utility>>
+        +ResultadoExito(uuid, data)$ dict
+        +ResultadoError(uuid, error, detalle)$ dict
+        +ResultadoMultiple(resultados)$ dict
+        -_cargar_matriz_errores()$ dict
+    }
+
+    class StatusComprobante {
+        <<utility>>
+        +Verificar_status_cfdi(xml: str)$ dict
+    }
+
+    class CancelacionService {
+        -dict MOTIVOS_MAP
+        +cancelar_uuid(uuid, rfc_receptor, total, tipo_comprobante, motivo, ...)$ dict
     }
 
     class PDF {
@@ -257,12 +298,16 @@ classDiagram
     ServiceAPI --> TimbradoRouter : includes
     ServiceAPI --> SelladoRouter : includes
     ServiceAPI --> UtilitiesRouter : includes
+    ServiceAPI --> CancelacionRouter : includes
+    ServiceAPI --> StatusRouter : includes
     
     %% Routers usan servicios
     TimbradoRouter --> ServicioTimbrado : uses
     SelladoRouter --> ServicioSellado : uses
     SelladoRouter --> ServicioTimbrarSellar : uses
     SelladoRouter --> ComprobanteFactory : uses
+    CancelacionRouter --> ServicioCancelacion : uses
+    StatusRouter --> ServiceStatusComprobante : uses
     
     %% Servicios usan clases de negocio
     ServicioTimbrado --> TimbradoService : uses
@@ -278,11 +323,22 @@ classDiagram
     ServicioTimbrarSellar --> PDF : uses
     ServicioTimbrarSellar --> Correo : uses
     
+    ServicioCancelacion --> CancelacionService : uses
+    ServicioCancelacion --> ConfiguracionCertificados : uses
+    ServicioCancelacion --> ResultadoCancelacion : uses
+    
+    ServiceStatusComprobante --> StatusComprobante : uses
+    
     %% Clases de negocio
     SellarXML --> DBManager : uses
     SellarXML --> ConfiguracionCertificados : uses
     
     TimbradoService --> ResultadoTimbrado : uses
+    
+    CancelacionService --> ResultadoCancelacion : uses
+    CancelacionService --> ConfiguracionCertificados : uses
+    
+    StatusComprobante --> DBManager : uses
     
     %% Factory pattern
     ComprobanteFactory --> ComprobanteIngreso : creates
@@ -319,16 +375,23 @@ classDiagram
 - **TimbradoRouter**: Endpoints para timbrado de CFDI
 - **SelladoRouter**: Endpoints para sellado de CFDI y sellado+timbrado
 - **UtilitiesRouter**: Endpoints utilitarios y health checks
+- **CancelacionRouter**: Endpoints para cancelación de CFDI
+- **StatusRouter**: Endpoints para verificación de estatus de CFDI
 
 ### 3. Capa de Servicios
 - **ServicioTimbrado**: Lógica de negocio para timbrado
 - **ServicioSellado**: Lógica de negocio para sellado
 - **ServicioTimbrarSellar**: Lógica de negocio para sellado y timbrado combinados
+- **ServicioCancelacion**: Lógica de negocio para cancelación de CFDI
+- **ServiceStatusComprobante**: Lógica de negocio para verificación de estatus
 
 ### 4. Capa de Negocio - Core
 - **SellarXML**: Sellado criptográfico de CFDI
 - **TimbradoService**: Interacción con PAC para timbrado
+- **CancelacionService**: Interacción con PAC para cancelación usando satcfdi
+- **StatusComprobante**: Verificación de estatus de CFDI con el SAT
 - **ResultadoTimbrado**: Formateo de resultados de timbrado
+- **ResultadoCancelacion**: Formateo de resultados de cancelación con matriz de errores
 - **PDF**: Generación de PDFs desde XML
 - **Correo**: Envío de correos electrónicos con adjuntos
 
