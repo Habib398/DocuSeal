@@ -7,12 +7,9 @@ DocuSeal actualmente sólo soporta **Comercio Digital** como proveedor PAC. El c
 - `backend/app/Business/Timbrado.py` (línea 28)
 - `backend/app/Business/Cancelacion.py` (línea 124)
 
-En `Timbrado.py` línea 27 existe el comentario: `# Se desea implementar varios pac (Implementar a futuro)`
-
 ## PACs Disponibles en satcfdi
 
 La librería `satcfdi` versión 4.8.1 incluye soporte para:
-
 - comerciodigital (actual)
 - diverza
 - finkok
@@ -24,7 +21,6 @@ La librería `satcfdi` versión 4.8.1 incluye soporte para:
 ## Cambios Necesarios
 
 ### 1. Base de Datos
-
 Agregar campo `tipoPAC` a la tabla `certificados_pac`:
 
 ```sql
@@ -32,21 +28,7 @@ ALTER TABLE certificados_pac
 ADD COLUMN tipoPAC VARCHAR(50) DEFAULT 'comerciodigital' NOT NULL;
 ```
 
-Modificar en `backend/app/DB/settings.py`:
-
-```python
-CREATE TABLE IF NOT EXISTS certificados_pac (
-    id SERIAL PRIMARY KEY,
-    usuarioPAC VARCHAR(255) NOT NULL,
-    contrasenaPAC VARCHAR(255) NOT NULL,
-    tipoPAC VARCHAR(50) DEFAULT 'comerciodigital' NOT NULL,
-    nombreEmpresa VARCHAR(255),
-    -- resto de campos existentes...
-);
-```
-
 ### 2. DBManager
-
 Actualizar `backend/app/DB/DBManager.py`:
 
 - Método `_normalize_cert_keys`: agregar `'tipoPAC': cert_dict.get('tipopac')`
@@ -54,7 +36,6 @@ Actualizar `backend/app/DB/DBManager.py`:
 - Actualizar todas las consultas SQL que insertan certificados
 
 ### 3. Factory Pattern para PACs
-
 Crear archivo `backend/app/Business/PACFactory.py`:
 
 ```python
@@ -115,7 +96,6 @@ class PACFactory:
 ```
 
 ### 4. Modificar Timbrado.py
-
 Reemplazar líneas 27-28:
 
 ```python
@@ -134,7 +114,6 @@ Agregar parámetro `tipo_pac` a los métodos:
 - `_procesar_timbrado(cls, xml, usuario_pac, contrasena_pac, pruebas, tipo_pac='comerciodigital')`
 
 ### 5. Modificar Cancelacion.py
-
 Reemplazar línea 124:
 
 ```python
@@ -159,7 +138,6 @@ pac = PACFactory.crear_pac(
 Agregar parámetro `tipo_pac` al método `cancelar_uuid`.
 
 ### 6. Servicios (Service Layer)
-
 Actualizar `backend/app/Business/Services/ServicioTimbrado.py`:
 
 ```python
@@ -179,7 +157,6 @@ resultado_timbrado = TimbradoService.timbrar_cfdi(
 Aplicar cambio similar en `ServicioCancelacion.py`.
 
 ### 7. API Admin
-
 Modificar `backend/app/api_admin/main.py` endpoint de subir certificados:
 
 - Agregar campo `tipoPAC` en el request body
@@ -187,40 +164,13 @@ Modificar `backend/app/api_admin/main.py` endpoint de subir certificados:
 - Pasar `tipoPAC` al método `insert_certificado`
 
 ### 8. Frontend
-
 Actualizar `Frontend/react-app/src/` componentes de certificados:
 
 - Agregar selector dropdown con tipos de PAC disponibles
 - Enviar `tipoPAC` en el request al subir certificados
 - Mostrar tipo de PAC en la lista de certificados
 
-## Validaciones Recomendadas
-
-1. Validar formato de credenciales según el PAC seleccionado (cada PAC puede tener requisitos diferentes)
-2. Implementar timeout y retry logic específicos por PAC
-3. Logging detallado del PAC utilizado en cada operación
-4. Manejo de errores específicos por PAC (cada uno retorna códigos diferentes)
-
-## Consideraciones de Migración
-
-1. Los certificados existentes deben mantener compatibilidad: agregar valor por defecto `'comerciodigital'`
-2. Crear script de migración para agregar columna `tipoPAC` a registros existentes
-3. Documentar diferencias en respuestas de cada PAC
-4. Probar exhaustivamente con ambiente de pruebas de cada PAC antes de producción
-
-## Orden de Implementación
-
-1. Agregar campo `tipoPAC` a base de datos (con valor por defecto)
-2. Crear `PACFactory.py`
-3. Modificar `Timbrado.py` y `Cancelacion.py`
-4. Actualizar servicios (Service Layer)
-5. Modificar API Admin
-6. Actualizar Frontend
-7. Crear documentación de uso por PAC
-8. Testing completo con cada PAC
-
 ## Notas Importantes
-
 - Cada PAC puede tener diferentes tiempos de respuesta
 - Los códigos de error varían entre PACs
 - Las credenciales de prueba deben obtenerse de cada proveedor
