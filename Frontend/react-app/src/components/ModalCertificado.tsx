@@ -8,6 +8,21 @@ interface CertificateModalProps {
   onSave: (data: CertificateFormData) => Promise<void>;
 }
 
+// Función para generar UUID compatible con navegadores antiguos y HTTP
+const generateUUID = (): string => {
+  // Intentar usar crypto.randomUUID si está disponible (HTTPS)
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  
+  // Fallback para HTTP o navegadores antiguos
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
 // Estado inicial del formulario
 const emptyFormData: CertificateFormData = {
   usuarioPAC: '',
@@ -145,8 +160,18 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
       // Asegurar que siempre haya una claveUsuario (generada automáticamente si no existía)
       const dataToSave = {
         ...formData,
-        claveUsuario: formData.claveUsuario || crypto.randomUUID(),
+        claveUsuario: formData.claveUsuario || generateUUID(),
+        // Omitir noCertificado y vigencia si están vacíos para que el backend los extraiga del CER
+        noCertificado: formData.noCertificado || undefined,
+        vigencia: formData.vigencia || undefined,
       };
+      
+      // Eliminar campos undefined antes de enviar
+      Object.keys(dataToSave).forEach(key => {
+        if (dataToSave[key as keyof typeof dataToSave] === undefined) {
+          delete dataToSave[key as keyof typeof dataToSave];
+        }
+      });
       
       await onSave(dataToSave);
       onClose();

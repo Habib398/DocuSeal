@@ -168,8 +168,8 @@ export interface CertificateFormData {
   usuarioPAC: string;
   contrasenaPAC: string;
   nombreEmpresa?: string;
-  noCertificado: string;
-  vigencia: string;
+  noCertificado?: string;  // Opcional: se extrae del CER si no se proporciona
+  vigencia?: string;  // Opcional: se extrae del CER si no se proporciona
   correo?: string;
   telefono?: string;
   CER: string;
