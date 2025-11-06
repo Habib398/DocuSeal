@@ -12,8 +12,9 @@ const API_URL = (() => {
     return '/api'; // El proxy de Vite redirigirá a localhost:8000/admin
   }
   
-  // Si estamos en localhost:8000 (servidor unificado)
-  if (currentOrigin && currentOrigin.includes('localhost:8000')) {
+  // Si estamos en cualquier origen con puerto 8000 (servidor unificado)
+  // Esto permite acceso desde localhost:8000, 192.168.x.x:8000, o cualquier IP:8000
+  if (currentOrigin && currentOrigin.includes(':8000')) {
     return currentOrigin + '/admin/api';
   }
   
@@ -22,8 +23,8 @@ const API_URL = (() => {
     return currentOrigin + '/api';
   }
   
-  // Fallback: API Admin en servidor unificado (puerto 8000)
-  return 'http://localhost:8000/admin/api';
+  // Fallback: usar origen actual + ruta relativa (funciona con cualquier IP/dominio)
+  return currentOrigin + '/admin/api';
 })();
 
 export interface LoginCredentials {

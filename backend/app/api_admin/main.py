@@ -21,28 +21,10 @@ class IPRestrictionMiddleware(BaseHTTPMiddleware):
     """
     Middleware para restringir el acceso solo a localhost.
     Bloquea cualquier petición que no provenga de 127.0.0.1 o ::1 (IPv6 localhost)
+    NOTA: Deshabilitado para permitir acceso desde cualquier equipo
     """
     async def dispatch(self, request: Request, call_next):
-        # Obtener la IP del cliente
-        client_ip = request.client.host if request.client else None
-        
-        # Lista de IPs permitidas (localhost en IPv4 e IPv6)
-        allowed_ips = ["127.0.0.1", "::1", "localhost"]
-        
-        # Verificar si la IP está permitida
-        if client_ip not in allowed_ips:
-            return JSONResponse(
-                status_code=403,
-                content={
-                    "errores": [{
-                        "tipo": "error",
-                        "codigo": "AUTH001",
-                        "mensaje": "Acceso denegado. Esta API solo es accesible desde localhost."
-                    }]
-                }
-            )
-        
-        # Si la IP está permitida, continuar con la petición
+        # Middleware deshabilitado - acceso permitido desde cualquier IP
         response = await call_next(request)
         return response
 
@@ -56,7 +38,7 @@ app = FastAPI(
 )
 
 # IMPORTANTE: Agregar el middleware de restricción de IP ANTES que CORS
-app.add_middleware(IPRestrictionMiddleware)
+# app.add_middleware(IPRestrictionMiddleware)  # Deshabilitado para permitir acceso desde cualquier equipo
 
 # Configurar CORS para el frontend administrativo
 # Nota: Si se monta en la app principal, el CORS se maneja globalmente

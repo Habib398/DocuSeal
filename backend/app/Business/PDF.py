@@ -23,16 +23,14 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 
 class PDF:
     # metodo iniciador de la clase
-    def __init__(self, xml_sellado: str, uuid: str = None):
+    def __init__(self, xml_timbrado: str):
         """
         Inicializa el generador de comprobante HTML usando satcfdi.
         
         Args:
-            xml_sellado: String con el XML del CFDI sellado
-            uuid: UUID del comprobante (opcional, se usa "temp" por defecto)
+            xml_timbrado: String con el XML del CFDI timbrado
         """
-        self.xml_sellado = xml_sellado
-        self.uuid = uuid or "temp"
+        self.xml_timbrado = xml_timbrado
         self.html_generado = None
         self.html_path = None
         
@@ -49,7 +47,7 @@ class PDF:
         """
         try:
             # Parsear el XML usando satcfdi
-            cfdi = CFDI.from_string(self.xml_sellado.encode('utf-8'))
+            cfdi = CFDI.from_string(self.xml_timbrado.encode('utf-8'))
             
             # Generar HTML usando las plantillas de satcfdi
             self.html_generado = html_str(cfdi)
@@ -104,11 +102,11 @@ class PDF:
             return None
     
     @classmethod
-    def generar_desde_datos(cls, xml_sellado: str, uuid: str = None) -> dict:
+    def generar_desde_datos(cls, xml_timbrado: str, uuid: str = None) -> dict:
         """
-        Método de clase para generar un comprobante HTML y PDF desde XML sellado.
+        Método de clase para generar un comprobante HTML y PDF desde XML timbrado.
         """
-        pdf_generator = cls(xml_sellado, uuid)
+        pdf_generator = cls(xml_timbrado, uuid)
         html_generado, html_path = pdf_generator.generar_html()
         
         resultado = {}
