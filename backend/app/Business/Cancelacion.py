@@ -81,8 +81,6 @@ class CancelacionService:
                 "TIPOC": tipo_comprobante,
                 "MOTIVO": motivo,
                 "PWDK": password_key,
-                "KEYF": key_base64,  # Key como header
-                "CERT": certificado_base64,  # Cert como header
                 "Content-Type": "text/plain"
             }
             
@@ -104,13 +102,15 @@ class CancelacionService:
             else:
                 headers["ACUS"] = "NO"
             
-            # Preparar body vacío ya que todo va en headers
-            body = ""
+            # Preparar body con certificados (KEYF y CERT concatenados)
+            # Según comportamiento de Comercio Digital, los certificados van en el body
+            body = f"{key_base64}{certificado_base64}"
             
             logger.info(f"Enviando solicitud de cancelación al PAC para UUID: {uuid}")
+            logger.info(f"Body length: {len(body)}")
             logger.info(f"Headers completos enviados:")
             for key, value in headers.items():
-                if key in ['PWDW', 'PWDK', 'KEYF', 'CERT']:
+                if key in ['PWDW', 'PWDK']:
                     logger.info(f"  {key}: [OCULTO POR SEGURIDAD - longitud: {len(value) if value else 0}]")
                 else:
                     logger.info(f"  {key}: {value}")
