@@ -67,8 +67,8 @@ class CancelacionService:
             else:
                 base_url = "https://cancela.comercio-digital.mx"
             
-            # El UUID va en la URL
-            url = f"{base_url}/cancela4/cancelarUuid/{uuid}"
+            # URL del endpoint de cancelación
+            url = f"{base_url}/cancela4/cancelarUuid"
             
             logger.info(f"Cancelando UUID {uuid} en ambiente {'PRUEBAS' if pruebas else 'PRODUCCIÓN'}")
             logger.info(f"URL: {url}")
@@ -78,6 +78,7 @@ class CancelacionService:
                 "USER": usuario_pac.replace('Ñ', '@'),  # Comercio Digital usa @ en lugar de Ñ
                 "PWDW": password_pac,
                 "TIPO1": "cfdi",  # Tipo de documento (cfdi o reten)
+                "UUID": uuid,  # UUID del comprobante a cancelar
                 "RFCR": rfc_receptor,
                 "TOTAL": str(total),
                 "TIPOC": tipo_comprobante,
