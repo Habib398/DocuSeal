@@ -67,7 +67,8 @@ class CancelacionService:
             else:
                 base_url = "https://cancela.comercio-digital.mx"
             
-            url = f"{base_url}/cancela4/cancelarUuid"
+            # El UUID va en la URL
+            url = f"{base_url}/cancela4/cancelarUuid/{uuid}"
             
             logger.info(f"Cancelando UUID {uuid} en ambiente {'PRUEBAS' if pruebas else 'PRODUCCIÓN'}")
             logger.info(f"URL: {url}")
@@ -82,7 +83,7 @@ class CancelacionService:
                 "TIPOC": tipo_comprobante,
                 "MOTIVO": motivo,
                 "PWDK": password_key,
-                "Content-Type": "application/json"
+                "Content-Type": "text/plain"  # Comercio Digital requiere text/plain
             }
             
             # Agregar email emisor si está presente (opcional)
@@ -104,11 +105,8 @@ class CancelacionService:
                 headers["ACUS"] = "NO"
             
             # Preparar body con certificados en Base64
-            body = {
-                "uuid": uuid,
-                "KEYF": key_base64,
-                "CERT": certificado_base64
-            }
+            # El UUID va en la URL, los certificados en el body como texto plano
+            body = f"{key_base64}|{certificado_base64}"
             
             logger.info(f"Enviando solicitud de cancelación al PAC para UUID: {uuid}")
             logger.debug(f"Headers (sin contraseñas): USER={usuario_pac}, RFCR={rfc_receptor}, TOTAL={total}, TIPOC={tipo_comprobante}, MOTIVO={motivo}")
@@ -117,7 +115,7 @@ class CancelacionService:
             response = requests.post(
                 url=url,
                 headers=headers,
-                json=body,
+                data=body,
                 timeout=30
             )
             
