@@ -23,6 +23,14 @@ def _normalize_cert_keys(cert_dict):
         if value is None:
             logger.warning(f"Campo {field_name} es None")
             return None
+        # Si es un memoryview (común en PostgreSQL), convertir a bytes primero
+        if isinstance(value, memoryview):
+            try:
+                value = value.tobytes()
+                logger.debug(f"Campo {field_name} convertido de memoryview a bytes, longitud: {len(value)}")
+            except Exception as e:
+                logger.error(f"Error convirtiendo memoryview a bytes para {field_name}: {e}")
+                return None
         # Si es un string que comienza con \x, es un BYTEA escapado, convertirlo a bytes primero
         if isinstance(value, str) and value.startswith('\\x'):
             try:
