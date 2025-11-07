@@ -34,6 +34,7 @@ class CancelacionService:
         certificado_base64: str,
         key_base64: str,
         password_key: str,
+        rfc_emisor: Optional[str] = None,
         uuid_relacionado: Optional[str] = None,
         email_emisor: Optional[str] = None,
         email_receptor: Optional[str] = None,
@@ -70,6 +71,25 @@ class CancelacionService:
             logger.info(f"Cancelando UUID {uuid} en ambiente {'PRUEBAS' if pruebas else 'PRODUCCIÓN'}")
             logger.info(f"URL: {url}")
             
+            # Extraer RFC emisor del certificado si no se proporcionó
+            if not rfc_emisor:
+                try:
+                    from satcfdi.models import Signer
+                    import base64 as b64
+                    
+                    cert_bytes = b64.b64decode(certificado_base64)
+                    key_bytes = b64.b64decode(key_base64)
+                    
+                    signer = Signer.load(
+                        certificate=cert_bytes,
+                        key=key_bytes,
+                        password=password_key
+                    )
+                    rfc_emisor = signer.rfc
+                    logger.info(f"RFC emisor extraído del certificado: {rfc_emisor}")
+                except Exception as e:
+                    logger.warning(f"Error al extraer RFC del certificado: {e}")
+            
             # Preparar headers según documentación de Comercio Digital
             headers = {
                 "USER": usuario_pac.replace('Ñ', '@'),
@@ -83,6 +103,10 @@ class CancelacionService:
                 "PWDK": password_key,
                 "Content-Type": "text/plain"
             }
+            
+            # Agregar RFC emisor si está disponible
+            if rfc_emisor:
+                headers["RFCE"] = rfc_emisor
             
             # Agregar email emisor si está presente (opcional)
             if email_emisor:
