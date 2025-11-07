@@ -19,21 +19,28 @@ def _normalize_cert_keys(cert_dict):
     if not cert_dict:
         return None
     
-    def encode_if_bytes(value):
+    def encode_if_bytes(value, field_name=''):
         if value is None:
+            logger.warning(f"Campo {field_name} es None")
             return None
         # Si es un string que comienza con \x, es un BYTEA escapado, convertirlo a bytes primero
         if isinstance(value, str) and value.startswith('\\x'):
             try:
                 value = bytes.fromhex(value[2:])
-            except:
+                logger.debug(f"Campo {field_name} convertido de hex a bytes, longitud: {len(value)}")
+            except Exception as e:
+                logger.error(f"Error convirtiendo hex a bytes para {field_name}: {e}")
                 return None
         # Ahora convertir bytes a base64
         if isinstance(value, bytes):
-            return base64.b64encode(value).decode('utf-8')
+            encoded = base64.b64encode(value).decode('utf-8')
+            logger.debug(f"Campo {field_name} convertido a base64, longitud: {len(encoded)}")
+            return encoded
         elif isinstance(value, str):
+            logger.debug(f"Campo {field_name} ya es string, longitud: {len(value)}")
             return value  # Assume it's already base64
         else:
+            logger.warning(f"Campo {field_name} tipo inesperado: {type(value)}")
             return None
     
     return {
@@ -41,8 +48,8 @@ def _normalize_cert_keys(cert_dict):
         'usuarioPAC': cert_dict.get('usuariopac'),
         'contrasenaPAC': cert_dict.get('contrasenapac'),
         'nombreEmpresa': cert_dict.get('nombreempresa'),
-        'CER': encode_if_bytes(cert_dict.get('cer')),
-        'KEY': encode_if_bytes(cert_dict.get('key')),
+        'CER': encode_if_bytes(cert_dict.get('cer'), 'CER'),
+        'KEY': encode_if_bytes(cert_dict.get('key'), 'KEY'),
         'vigencia': str(cert_dict.get('vigencia')) if cert_dict.get('vigencia') else None,
         'noCertificado': cert_dict.get('nocertificado'),
         'Certificado': cert_dict.get('certificado'),

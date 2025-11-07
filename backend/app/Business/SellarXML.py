@@ -3,12 +3,16 @@ SellarXML.py - Clase para el sellado de CFDI
 Maneja el sellado criptográfico de documentos CFDI usando certificados de la base de datos.
 """
 
-from asyncio.log import logger
+import logging
 from typing import Optional
 from DB.DBManager import DBManager
 import base64
 from satcfdi.models import Signer
 from satcfdi.cfdi import CFDI
+
+# Configurar logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class SellarXML:
@@ -46,16 +50,33 @@ class SellarXML:
         certificado = config_cert.obtener_por_clave_usuario(claveUsuario)
         
         if not certificado:
+            logger.warning(f"No se encontró certificado con claveUsuario: {claveUsuario}")
             return None
+        
+        logger.info(f"Certificado encontrado para claveUsuario: {claveUsuario}")
+        logger.debug(f"Datos del certificado: {certificado.keys()}")
         
         # Decodificar CER y KEY de base64 a bytes
         cer_b64 = certificado.get('CER')
         key_b64 = certificado.get('KEY')
         
+        logger.debug(f"CER presente: {cer_b64 is not None}, KEY presente: {key_b64 is not None}")
+        if cer_b64:
+            logger.debug(f"CER longitud base64: {len(cer_b64)}")
+        if key_b64:
+            logger.debug(f"KEY longitud base64: {len(key_b64)}")
+        
         try:
             cer_bytes = base64.b64decode(cer_b64) if cer_b64 else None
             key_bytes = base64.b64decode(key_b64) if key_b64 else None
+            
+            if cer_bytes:
+                logger.debug(f"CER decodificado a bytes, longitud: {len(cer_bytes)}")
+            if key_bytes:
+                logger.debug(f"KEY decodificado a bytes, longitud: {len(key_bytes)}")
+                
         except Exception as e:
+            logger.error(f"Error decodificando CER/KEY: {str(e)}")
             raise ValueError(f"Error decodificando CER/KEY: {str(e)}")
         
         return {
