@@ -1,15 +1,13 @@
 """
 Cancelacion.py - Business Logic para operaciones de cancelación de CFDI.
+Implementación directa del Web Service de Comercio Digital.
 """
 
 import logging
 import base64
+import requests
 from typing import Dict, Any, Optional
-from datetime import datetime
-from satcfdi.pacs.comerciodigital import ComercioDigital
-from satcfdi.pacs import Environment, CancelReason
-from satcfdi.models import Signer
-from satcfdi.create.cancela.cancelacion import Cancelacion, Folio
+from xml.etree import ElementTree as ET
 
 from .ResultadoCancelacion import ResultadoCancelacion
 
@@ -17,16 +15,11 @@ logger = logging.getLogger(__name__)
 
 class CancelacionService:
     """
-    Servicio para cancelar CFDI utilizando satcfdi y el PAC Comercio Digital.
+    Servicio para cancelar CFDI utilizando el Web Service directo de Comercio Digital.
     """
     
-    # Mapeo de motivos numéricos a CancelReason
-    MOTIVOS_MAP = {
-        "01": CancelReason.COMPROBANTE_EMITIDO_CON_ERRORES_CON_RELACION,
-        "02": CancelReason.COMPROBANTE_EMITIDO_CON_ERRORES_SIN_RELACION,
-        "03": CancelReason.NO_SE_LLEVO_A_CABO_LA_OPERACION,
-        "04": CancelReason.OPERACION_NORMATIVA_RELACIONADA_EN_LA_FACTURA_GLOBAL
-    }
+    # Motivos válidos de cancelación
+    MOTIVOS_VALIDOS = ["01", "02", "03", "04"]
     
     @classmethod
     def cancelar_uuid(
@@ -48,12 +41,13 @@ class CancelacionService:
         pruebas: bool = True
     ) -> Dict[str, Any]:
         """
-        Cancela un UUID de CFDI mediante satcfdi y el PAC Comercio Digital.
+        Cancela un UUID de CFDI mediante el Web Service de Comercio Digital.
+        Implementación directa según documentación oficial del PAC.
         """
         
         try:
             # Validar motivo y UUID relacionado
-            if motivo not in cls.MOTIVOS_MAP:
+            if motivo not in cls.MOTIVOS_VALIDOS:
                 return ResultadoCancelacion.ResultadoError(
                     uuid,
                     "Motivo inválido",
@@ -67,122 +61,135 @@ class CancelacionService:
                     "El motivo '01' requiere especificar 'uuid_relacionado'"
                 )
             
-            # Decodificar certificados de Base64
-            try:
-                cert_data = base64.b64decode(certificado_base64)
-                key_data = base64.b64decode(key_base64)
-            except Exception as e:
-                logger.error(f"Error al decodificar certificados: {e}")
-                return ResultadoCancelacion.ResultadoError(
-                    uuid,
-                    "Error al decodificar certificados",
-                    f"Los certificados deben estar en formato Base64 válido: {str(e)}"
-                )
+            # Determinar URL según ambiente
+            if pruebas:
+                base_url = "https://pruebas.comercio-digital.mx"
+            else:
+                base_url = "https://cancela.comercio-digital.mx"
             
-            # Crear Signer con certificados
-            try:
-                signer = Signer.load(
-                    certificate=cert_data,
-                    key=key_data,
-                    password=password_key
-                )
-                logger.info(f"Signer creado correctamente. RFC: {signer.rfc}")
-            except Exception as e:
-                logger.error(f"Error al crear Signer: {e}")
-                return ResultadoCancelacion.ResultadoError(
-                    uuid,
-                    "Error al procesar certificados",
-                    f"No se pudo crear el Signer con los certificados proporcionados: {str(e)}"
-                )
+            url = f"{base_url}/cancela4/cancelarUuid"
             
-            # Objeto folio
-            folio = Folio(
-                uuid=uuid,
-                motivo=motivo,
-                folio_sustitucion=uuid_relacionado if motivo == "01" else None
+            logger.info(f"Cancelando UUID {uuid} en ambiente {'PRUEBAS' if pruebas else 'PRODUCCIÓN'}")
+            logger.info(f"URL: {url}")
+            
+            # Preparar headers según documentación de Comercio Digital
+            headers = {
+                "USER": usuario_pac.replace('Ñ', '@'),  # Comercio Digital usa @ en lugar de Ñ
+                "PWDW": password_pac,
+                "TIPO1": "cfdi",  # Tipo de documento (cfdi o reten)
+                "RFCR": rfc_receptor,
+                "TOTAL": str(total),
+                "TIPOC": tipo_comprobante,
+                "MOTIVO": motivo,
+                "PWDK": password_key,
+                "Content-Type": "application/json"
+            }
+            
+            # Agregar email emisor si está presente (opcional)
+            if email_emisor:
+                headers["EMAILE"] = email_emisor
+            
+            # Agregar email receptor si está presente (opcional)
+            if email_receptor:
+                headers["EMAILR"] = email_receptor
+            
+            # Agregar UUID relacionado solo si el motivo es 01
+            if motivo == "01" and uuid_relacionado:
+                headers["UUIDREL"] = uuid_relacionado
+            
+            # Agregar opción de guardar acuse
+            if guardar_acuse:
+                headers["ACUS"] = "SI"
+            else:
+                headers["ACUS"] = "NO"
+            
+            # Preparar body con certificados en Base64
+            body = {
+                "uuid": uuid,
+                "KEYF": key_base64,
+                "CERT": certificado_base64
+            }
+            
+            logger.info(f"Enviando solicitud de cancelación al PAC para UUID: {uuid}")
+            logger.debug(f"Headers (sin contraseñas): USER={usuario_pac}, RFCR={rfc_receptor}, TOTAL={total}, TIPOC={tipo_comprobante}, MOTIVO={motivo}")
+            
+            # Realizar petición HTTP al PAC
+            response = requests.post(
+                url=url,
+                headers=headers,
+                json=body,
+                timeout=30
             )
             
-            # solicitud de cancelación usando folios
-            try:
-                cancelacion = Cancelacion(
-                    emisor=signer,
-                    folios=[folio],
-                    fecha=datetime.now()
-                )
-            except Exception as e:
-                return ResultadoCancelacion.ResultadoError(
-                    uuid,
-                    "Error al crear solicitud de cancelación",
-                    str(e)
-                )
+            logger.info(f"Respuesta del PAC - Status Code: {response.status_code}")
             
-            # Configurar ambiente del PAC
-            env = Environment.TEST if pruebas else Environment.PRODUCTION
-            
-            # Crear cliente del PAC
-            try:
-                pac = ComercioDigital(
-                    user=usuario_pac,
-                    password=password_pac,
-                    environment=env
-                )
-            except Exception as e:
-                return ResultadoCancelacion.ResultadoError(
-                    uuid,
-                    "Error al configurar cliente PAC",
-                    str(e)
-                )
-            
-            # Enviar solicitud de cancelación al PAC
-            try:
-                logger.info(f"Enviando solicitud de cancelación al PAC para UUID: {uuid}")
-                acuse = pac.cancel_comprobante(cancelacion)
-                logger.info(f"Cancelación exitosa para UUID: {uuid}")
-                                
-                # Preparar datos del acuse para respuesta
-                acuse_data = {
-                    "fecha": str(acuse.fecha) if hasattr(acuse, 'fecha') else None,
-                    "folios": []
-                }
+            # Verificar respuesta exitosa
+            if response.status_code == 200:
+                # Comercio Digital devuelve el código en headers
+                codigo = response.headers.get('codigo', '')
                 
-                # Extraer información de los folios del acuse
-                if hasattr(acuse, 'folios'):
-                    for folio_acuse in acuse.folios:
-                        folio_info = {
-                            "uuid": folio_acuse.uuid if hasattr(folio_acuse, 'uuid') else None,
-                            "estatus": folio_acuse.estatus if hasattr(folio_acuse, 'estatus') else None
-                        }
-                        acuse_data["folios"].append(folio_info)
+                if codigo == '000':
+                    logger.info(f"Cancelación exitosa para UUID: {uuid}")
+                    
+                    # Extraer acuse de la respuesta
+                    acuse_data = {
+                        "fecha": response.headers.get('fecha'),
+                        "codigo": codigo,
+                        "mensaje": response.headers.get('msg', 'Cancelación exitosa'),
+                        "uuid": uuid,
+                        "folios": [{
+                            "uuid": uuid,
+                            "estatus": "Cancelado"
+                        }]
+                    }
+                    
+                    # Si hay contenido XML en la respuesta, agregarlo
+                    if response.content:
+                        acuse_data["acuse_xml"] = response.content.decode('utf-8', errors='ignore')
+                    
+                    return ResultadoCancelacion.ResultadoExito(uuid, acuse_data)
+                else:
+                    # El PAC devolvió un código de error
+                    error_msg = response.headers.get('errmsg', 'Error desconocido del PAC')
+                    logger.error(f"PAC rechazó cancelación. Código: {codigo}, Mensaje: {error_msg}")
+                    
+                    return ResultadoCancelacion.ResultadoError(
+                        uuid,
+                        f"Error del PAC (código {codigo})",
+                        error_msg
+                    )
+            else:
+                # Error HTTP
+                error_msg = f"Error HTTP {response.status_code}"
+                detalle = response.text if response.text else "Sin detalles adicionales"
                 
-                return ResultadoCancelacion.ResultadoExito(uuid, acuse_data)
-                
-            except Exception as e:                
-                # Extraer información del error
-                error_msg = str(e) if str(e) else "Error desconocido del PAC"
-                detalle = None
-                logger.error(f"Error del PAC al cancelar UUID {uuid}: {error_msg}")
-                
-                # Intentar obtener más detalles si es un error HTTP
-                if hasattr(e, 'response'):
-                    response = e.response
-                    if hasattr(response, 'text'):
-                        detalle = response.text
-                        logger.error(f"Respuesta del PAC: {detalle}")
-                    if hasattr(response, 'status_code'):
-                        error_msg = f"Error del PAC (Status {response.status_code}): {error_msg}"
-                        logger.error(f"Status code: {response.status_code}")
-                
-                # Si no hay mensaje de error, proporcionar uno genérico
-                if not error_msg or error_msg == "Error desconocido del PAC":
-                    error_msg = "El PAC rechazó la solicitud de cancelación. Verifique que los certificados coincidan con el CFDI original."
+                logger.error(f"Error HTTP al cancelar UUID {uuid}: {error_msg}")
+                logger.error(f"Respuesta: {detalle}")
                 
                 return ResultadoCancelacion.ResultadoError(
                     uuid,
                     error_msg,
-                    detalle or str(e)
+                    detalle
                 )
                 
+        except requests.exceptions.Timeout:
+            logger.error(f"Timeout al cancelar UUID {uuid}")
+            return ResultadoCancelacion.ResultadoError(
+                uuid,
+                "Timeout de conexión con el PAC",
+                "La solicitud excedió el tiempo de espera de 30 segundos"
+            )
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error de conexión al cancelar UUID {uuid}: {str(e)}")
+            return ResultadoCancelacion.ResultadoError(
+                uuid,
+                "Error de conexión con el PAC",
+                str(e)
+            )
+            
         except Exception as e:
+            logger.exception(f"Error inesperado al cancelar UUID {uuid}")
             return ResultadoCancelacion.ResultadoError(
                 uuid,
                 "Error inesperado en la cancelación",

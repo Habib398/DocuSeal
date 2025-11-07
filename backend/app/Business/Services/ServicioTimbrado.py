@@ -46,7 +46,7 @@ class ServicioTimbrado:
             }
         
         # Obtener certificado de la base de datos usando claveUsuario
-        from Configuration.ConfiguracionCertificados import ConfiguracionCertificados
+        from Business.Configuration.ConfiguracionCertificados import ConfiguracionCertificados
         from DB.DBManager import DBManager
         
         try:

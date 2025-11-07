@@ -1,15 +1,15 @@
 {
-  "claveUsuario": "f1160109-5aab-46b9-bcbe-c8f811fe70b3",
+  "claveUsuario": "34c7ec87-8ab0-425d-bbd1-c116009467d3",
   "folios": [
     {
-      "uuid": "8CCE76BA-7BEA-9B4B-9071-246E54FADBA0",
+      "uuid": "A3089AF7-5835-474F-B0C4-4CD317A77935",
       "rfcReceptor": "BASF850506MI1",
-      "total": "20.00",
+      "total": "5.00",
       "tipoComprobante": "I",
       "motivo": "02"
     }
   ],
   "emailEmisor": "emisor@example.com",
   "emailReceptor": "receptor@example.com",
-  "guardarAcuse": true
+  "guardarAcuse": false
 }
