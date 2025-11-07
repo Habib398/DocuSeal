@@ -90,54 +90,57 @@ class CancelacionService:
                 except Exception as e:
                     logger.warning(f"Error al extraer RFC del certificado: {e}")
             
-            # Preparar headers según documentación de Comercio Digital
+            # Preparar headers básicos
             headers = {
-                "USER": usuario_pac.replace('Ñ', '@'),
-                "PWDW": password_pac,
-                "TIPO1": "cfdi",
-                "UUID": uuid,
-                "RFCR": rfc_receptor,
-                "TOTAL": str(total),
-                "TIPOC": tipo_comprobante,
-                "MOTIVO": motivo,
-                "PWDK": password_key,
                 "Content-Type": "text/plain"
             }
             
+            # Construir el body según formato de Comercio Digital
+            # Todo va en el body como pares PARAMETRO=valor separados por saltos de línea
+            body_parts = [
+                f"USER={usuario_pac.replace('Ñ', '@')}",
+                f"PWDW={password_pac}",
+                f"TIPO1=cfdi",
+                f"UUID={uuid}",
+                f"RFCR={rfc_receptor}",
+                f"TOTAL={total}",
+                f"TIPOC={tipo_comprobante}",
+                f"MOTIVO={motivo}",
+                f"PWDK={password_key}"
+            ]
+            
             # Agregar RFC emisor si está disponible
             if rfc_emisor:
-                headers["RFCE"] = rfc_emisor
+                body_parts.append(f"RFCE={rfc_emisor}")
             
             # Agregar email emisor si está presente (opcional)
             if email_emisor:
-                headers["EMAILE"] = email_emisor
+                body_parts.append(f"EMAILE={email_emisor}")
             
             # Agregar email receptor si está presente (opcional)
             if email_receptor:
-                headers["EMAILR"] = email_receptor
+                body_parts.append(f"EMAILR={email_receptor}")
             
             # Agregar UUID relacionado solo si el motivo es 01
             if motivo == "01" and uuid_relacionado:
-                headers["UUIDREL"] = uuid_relacionado
+                body_parts.append(f"UUIDREL={uuid_relacionado}")
             
             # Agregar opción de guardar acuse
             if guardar_acuse:
-                headers["ACUS"] = "SI"
+                body_parts.append("ACUS=SI")
             else:
-                headers["ACUS"] = "NO"
+                body_parts.append("ACUS=NO")
             
-            # Preparar body con certificados (KEYF y CERT concatenados)
-            # Según comportamiento de Comercio Digital, los certificados van en el body
-            body = f"{key_base64}{certificado_base64}"
+            # Agregar certificados en Base64 al final
+            body_parts.append(f"KEYF={key_base64}")
+            body_parts.append(f"CERT={certificado_base64}")
+            
+            # Unir todas las partes con saltos de línea
+            body = "\n".join(body_parts)
             
             logger.info(f"Enviando solicitud de cancelación al PAC para UUID: {uuid}")
+            logger.info(f"Body parameters: USER, PWDW, TIPO1, UUID, RFCR, TOTAL, TIPOC, MOTIVO, PWDK, RFCE, KEYF, CERT")
             logger.info(f"Body length: {len(body)}")
-            logger.info(f"Headers completos enviados:")
-            for key, value in headers.items():
-                if key in ['PWDW', 'PWDK']:
-                    logger.info(f"  {key}: [OCULTO POR SEGURIDAD - longitud: {len(value) if value else 0}]")
-                else:
-                    logger.info(f"  {key}: {value}")
             
             # Realizar petición HTTP al PAC
             response = requests.post(
