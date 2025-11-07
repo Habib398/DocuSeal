@@ -1,0 +1,49 @@
+{
+  "datosXML": {
+    "cfdi:Comprobante": {
+      "TipoDeComprobante": "P",
+      "LugarExpedicion": "56820",
+      "Exportacion": "01",
+      "Serie": "A",
+      "Folio": "123456",
+      "cfdi:Emisor": {
+        "Rfc": "XAXX010101000",
+        "Nombre": "EMPRESA EJEMPLO SA DE CV",
+        "RegimenFiscal": "601"
+      },
+      "cfdi:Receptor": {
+        "Rfc": "KIJ0906199R1",
+        "Nombre": "KIJ, S.A DE C.V.",
+        "UsoCFDI": "CP01",
+        "DomicilioFiscalReceptor": "59820",
+        "RegimenFiscalReceptor": "601"
+      }
+    },
+    "complemento": {
+      "pago20": {
+        "Pago": {
+          "FechaPago": "2024-01-15T10:30:00",
+          "FormaDePagoP": "03",
+          "MonedaP": "MXN",
+          "TipoCambioP": "1",
+          "Monto": "1000.00",
+          "NumOperacion": "OP123456",
+          "DoctoRelacionado": {
+            "IdDocumento": "d6042dc8-d525-4e78-8d1b-092c878bd518",
+            "Serie": "A",
+            "Folio": "1001",
+            "MonedaDR": "MXN",
+            "NumParcialidad": "1",
+            "ImpSaldoAnt": "2000.00",
+            "ImpPagado": "1000.00",
+            "ImpSaldoInsoluto": "1000.00",
+            "ObjetoImpDR": "02"
+          }
+        }
+      }
+    }
+  },
+  "claveUsuario": "52b90bba-231d-416c-ac99-b6df321b7b07",
+  "enviarCorreo": false,
+  "generarPDF": false
+}

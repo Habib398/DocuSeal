@@ -1,5 +1,8 @@
 from satcfdi.create.cfd import cfdi40
-from typing import Dict, Any, List, Union
+from typing import Dict, Any, List, Union, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from satcfdi.create.cfd import pago20
 
 
 class ConvertirJson:
@@ -12,6 +15,15 @@ class ConvertirJson:
         self.cfdi_relacionados = None
     
     def convertir_a_cfdi(self, datos_json: Dict[str, Any]) -> cfdi40.Comprobante:
+        # Verificar si es un comprobante de pago
+        comprobante_data = datos_json.get('datosXML', {}).get('cfdi:Comprobante', datos_json.get('cfdi:Comprobante', {}))
+        tipo_comprobante = comprobante_data.get('TipoDeComprobante', 'I')
+        
+        # Si es un comprobante de pago, usar método especial
+        if tipo_comprobante == 'P':
+            return self._convertir_comprobante_pago(datos_json)
+        
+        # Para otros tipos de comprobante, continuar con el flujo normal
         self.datos_emisor = self._procesar_emisor(datos_json)
         self.datos_receptor = self._procesar_receptor(datos_json)
         self.conceptos = self._procesar_conceptos(datos_json)
@@ -435,8 +447,277 @@ class ConvertirJson:
                 
                 self.comprobante.complemento.carta_porte = carta_porte
             
+            # Pago 2.0 - ya procesado en _convertir_comprobante_pago
+            # No necesita procesamiento adicional aquí
+            
             # Otros complementos pueden agregarse aquí
-            # Ejemplo: Pago 2.0, Terceros, etc.
+            # Ejemplo: Terceros, etc.
+    
+    def _convertir_comprobante_pago(self, datos_json: Dict[str, Any]) -> cfdi40.Comprobante:
+        """
+        Convierte un JSON a un comprobante de pago CFDI 4.0 con complemento Pago 2.0
+        Usa el método especial Comprobante.pago() de satcfdi
+        """
+        from satcfdi.create.cfd import pago20
+        from datetime import datetime
+        from decimal import Decimal
+        
+        # Procesar emisor y receptor
+        self.datos_emisor = self._procesar_emisor(datos_json)
+        self.datos_receptor = self._procesar_receptor(datos_json)
+        
+        # Procesar atributos del comprobante
+        atributos_comprobante = self._procesar_atributos_comprobante(datos_json)
+        lugar_expedicion = atributos_comprobante.pop('lugar_expedicion')
+        
+        # Procesar el complemento de pago
+        complemento_pago = self._procesar_complemento_pago(datos_json)
+        
+        # Crear comprobante de pago usando el método especial
+        # Filtrar solo los atributos válidos para Comprobante.pago()
+        atributos_validos = {}
+        campos_permitidos = ['serie', 'folio', 'fecha', 'moneda', 'tipo_cambio', 
+                            'confirmacion', 'exportacion', 'cfdi_relacionados']
+        
+        for key in campos_permitidos:
+            if key in atributos_comprobante:
+                atributos_validos[key] = atributos_comprobante[key]
+        
+        # Procesar CFDIs relacionados si existen
+        self.cfdi_relacionados = self._procesar_cfdi_relacionados(datos_json)
+        if self.cfdi_relacionados:
+            atributos_validos['cfdi_relacionados'] = self.cfdi_relacionados
+        
+        self.comprobante = cfdi40.Comprobante.pago(
+            emisor=self.datos_emisor,
+            receptor=self.datos_receptor,
+            lugar_expedicion=lugar_expedicion,
+            complemento_pago=complemento_pago,
+            **atributos_validos
+        )
+        
+        return self.comprobante
+    
+    def _procesar_complemento_pago(self, datos_json: Dict[str, Any]) -> 'pago20.Pagos':
+        """
+        Procesa el complemento de pago 2.0 desde el JSON
+        """
+        from satcfdi.create.cfd import pago20
+        from datetime import datetime
+        from decimal import Decimal
+        
+        # Buscar el complemento de pago en diferentes ubicaciones
+        complemento_data = None
+        
+        if datos_json.get('datosXML', {}).get('complemento', {}).get('pago20'):
+            complemento_data = datos_json['datosXML']['complemento']['pago20']
+        elif datos_json.get('datosXML', {}).get('cfdi:Comprobante', {}).get('cfdi:Complemento', {}).get('pago20:Pagos'):
+            complemento_data = datos_json['datosXML']['cfdi:Comprobante']['cfdi:Complemento']['pago20:Pagos']
+        elif datos_json.get('complemento_pago'):
+            complemento_data = datos_json['complemento_pago']
+        
+        if not complemento_data:
+            raise ValueError("No se encontró el complemento de pago en el JSON")
+        
+        # Procesar los pagos
+        pagos_data = complemento_data.get('pago20:Pago') or complemento_data.get('Pago') or complemento_data.get('pago') or complemento_data.get('pagos')
+        
+        if not pagos_data:
+            raise ValueError("No se encontraron datos de pagos en el complemento")
+        
+        # Convertir a lista si es un solo pago
+        if isinstance(pagos_data, dict):
+            pagos_data = [pagos_data]
+        
+        # Procesar cada pago
+        pagos_list = []
+        for pago_data in pagos_data:
+            pago_obj = self._crear_objeto_pago(pago_data)
+            pagos_list.append(pago_obj)
+        
+        # Crear objeto Pagos
+        # Si hay un solo pago, pasarlo directamente; si hay varios, pasar la lista
+        return pago20.Pagos(
+            pago=pagos_list if len(pagos_list) > 1 else pagos_list[0]
+        )
+    
+    def _crear_objeto_pago(self, pago_data: Dict[str, Any]) -> 'pago20.Pago':
+        """
+        Crea un objeto Pago desde un diccionario
+        """
+        from satcfdi.create.cfd import pago20
+        from datetime import datetime
+        from decimal import Decimal
+        
+        # Extraer FechaPago (obligatorio)
+        fecha_pago_str = pago_data.get('FechaPago') or pago_data.get('fecha_pago')
+        if not fecha_pago_str:
+            raise ValueError("FechaPago es obligatorio en el complemento de pago")
+        
+        # Convertir string a datetime
+        if isinstance(fecha_pago_str, str):
+            # Intentar diferentes formatos de fecha
+            try:
+                fecha_pago = datetime.fromisoformat(fecha_pago_str.replace('Z', '+00:00'))
+            except:
+                try:
+                    fecha_pago = datetime.strptime(fecha_pago_str, '%Y-%m-%dT%H:%M:%S')
+                except:
+                    fecha_pago = datetime.strptime(fecha_pago_str, '%Y-%m-%d')
+        else:
+            fecha_pago = fecha_pago_str
+        
+        # Extraer FormaDePagoP (obligatorio)
+        forma_pago = pago_data.get('FormaDePagoP') or pago_data.get('forma_de_pago_p')
+        if not forma_pago:
+            raise ValueError("FormaDePagoP es obligatorio en el pago")
+        
+        # Extraer MonedaP (obligatorio)
+        moneda = pago_data.get('MonedaP') or pago_data.get('moneda_p')
+        if not moneda:
+            raise ValueError("MonedaP es obligatorio en el pago")
+        
+        # Extraer TipoCambioP (opcional, pero obligatorio si MonedaP != MXN)
+        tipo_cambio = pago_data.get('TipoCambioP') or pago_data.get('tipo_cambio_p')
+        if tipo_cambio:
+            tipo_cambio = Decimal(str(tipo_cambio))
+        
+        # Extraer Monto (opcional)
+        monto = pago_data.get('Monto') or pago_data.get('monto')
+        if monto:
+            monto = Decimal(str(monto))
+        
+        # Procesar documentos relacionados (obligatorio)
+        doctos_relacionados = self._procesar_documentos_relacionados(pago_data)
+        
+        # Construir diccionario de parámetros
+        pago_params = {
+            'fecha_pago': fecha_pago,
+            'forma_de_pago_p': forma_pago,
+            'moneda_p': moneda,
+            'docto_relacionado': doctos_relacionados
+        }
+        
+        # Agregar parámetros opcionales si existen
+        if tipo_cambio:
+            pago_params['tipo_cambio_p'] = tipo_cambio
+        if monto:
+            pago_params['monto'] = monto
+        
+        # Otros campos opcionales
+        campos_opcionales = {
+            'NumOperacion': 'num_operacion',
+            'RfcEmisorCtaOrd': 'rfc_emisor_cta_ord',
+            'NomBancoOrdExt': 'nom_banco_ord_ext',
+            'CtaOrdenante': 'cta_ordenante',
+            'RfcEmisorCtaBen': 'rfc_emisor_cta_ben',
+            'CtaBeneficiario': 'cta_beneficiario',
+            'TipoCadPago': 'tipo_cad_pago',
+            'CertPago': 'cert_pago',
+            'CadPago': 'cad_pago',
+            'SelloPago': 'sello_pago'
+        }
+        
+        for campo_json, campo_python in campos_opcionales.items():
+            valor = pago_data.get(campo_json) or pago_data.get(campo_python)
+            if valor:
+                pago_params[campo_python] = valor
+        
+        return pago20.Pago(**pago_params)
+    
+    def _procesar_documentos_relacionados(self, pago_data: Dict[str, Any]) -> Union['pago20.DoctoRelacionado', List['pago20.DoctoRelacionado']]:
+        """
+        Procesa los documentos relacionados de un pago
+        """
+        from satcfdi.create.cfd import pago20
+        from decimal import Decimal
+        
+        # Buscar documentos relacionados
+        doctos_data = (pago_data.get('pago20:DoctoRelacionado') or 
+                      pago_data.get('DoctoRelacionado') or 
+                      pago_data.get('docto_relacionado') or
+                      pago_data.get('documentos_relacionados'))
+        
+        if not doctos_data:
+            raise ValueError("Se requiere al menos un documento relacionado en el pago")
+        
+        # Convertir a lista si es un solo documento
+        if isinstance(doctos_data, dict):
+            doctos_data = [doctos_data]
+        
+        # Procesar cada documento
+        doctos_list = []
+        for docto_data in doctos_data:
+            docto_obj = self._crear_documento_relacionado(docto_data)
+            doctos_list.append(docto_obj)
+        
+        # Si hay un solo documento, retornarlo directamente; si hay varios, retornar la lista
+        return doctos_list if len(doctos_list) > 1 else doctos_list[0]
+    
+    def _crear_documento_relacionado(self, docto_data: Dict[str, Any]) -> 'pago20.DoctoRelacionado':
+        """
+        Crea un objeto DoctoRelacionado desde un diccionario
+        """
+        from satcfdi.create.cfd import pago20
+        from decimal import Decimal
+        
+        # Extraer IdDocumento (UUID - obligatorio)
+        id_documento = docto_data.get('IdDocumento') or docto_data.get('id_documento')
+        if not id_documento:
+            raise ValueError("IdDocumento (UUID) es obligatorio en el documento relacionado")
+        
+        # Extraer ImpPagado (obligatorio)
+        imp_pagado = docto_data.get('ImpPagado') or docto_data.get('imp_pagado')
+        if imp_pagado is None:
+            raise ValueError("ImpPagado es obligatorio en el documento relacionado")
+        imp_pagado = Decimal(str(imp_pagado))
+        
+        # Extraer ImpSaldoAnt (obligatorio)
+        imp_saldo_ant = docto_data.get('ImpSaldoAnt') or docto_data.get('imp_saldo_ant')
+        if imp_saldo_ant is None:
+            raise ValueError("ImpSaldoAnt es obligatorio en el documento relacionado")
+        imp_saldo_ant = Decimal(str(imp_saldo_ant))
+        
+        # Extraer ObjetoImpDR (obligatorio en CFDI 4.0)
+        objeto_imp_dr = docto_data.get('ObjetoImpDR') or docto_data.get('objeto_imp_dr')
+        if not objeto_imp_dr:
+            raise ValueError("ObjetoImpDR es obligatorio en el documento relacionado")
+        
+        # Extraer MonedaDR (obligatorio)
+        moneda_dr = docto_data.get('MonedaDR') or docto_data.get('moneda_dr')
+        if not moneda_dr:
+            raise ValueError("MonedaDR es obligatorio en el documento relacionado")
+        
+        # Construir parámetros base
+        docto_params = {
+            'id_documento': id_documento,
+            'imp_pagado': imp_pagado,
+            'imp_saldo_ant': imp_saldo_ant,
+            'objeto_imp_dr': objeto_imp_dr,
+            'moneda_dr': moneda_dr
+        }
+        
+        # Campos opcionales
+        campos_opcionales = {
+            'Serie': 'serie',
+            'Folio': 'folio',
+            'NumParcialidad': 'num_parcialidad',
+            'ImpSaldoInsoluto': 'imp_saldo_insoluto',
+            'EquivalenciaDR': 'equivalencia_dr',
+            'MetodoDePagoDR': 'metodo_de_pago_dr'
+        }
+        
+        for campo_json, campo_python in campos_opcionales.items():
+            valor = docto_data.get(campo_json) or docto_data.get(campo_python)
+            if valor is not None:
+                # Convertir valores numéricos a Decimal si es necesario
+                if campo_python in ['imp_saldo_insoluto', 'equivalencia_dr']:
+                    valor = Decimal(str(valor))
+                elif campo_python == 'num_parcialidad':
+                    valor = int(valor)
+                docto_params[campo_python] = valor
+        
+        return pago20.DoctoRelacionado(**docto_params)
     
     @staticmethod
     def validar_estructura_json(datos_json: Dict[str, Any]) -> bool:

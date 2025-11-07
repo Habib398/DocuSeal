@@ -1,0 +1,66 @@
+{
+  "datosXML": {
+    "cfdi:Comprobante": {
+      "TipoDeComprobante": "P",
+      "LugarExpedicion": "56820",
+      "Exportacion": "01",
+      "Serie": "P",
+      "Folio": "789",
+      "cfdi:Emisor": {
+        "Rfc": "XAXX010101000",
+        "Nombre": "EMPRESA EJEMPLO SA DE CV",
+        "RegimenFiscal": "601"
+      },
+      "cfdi:Receptor": {
+        "Rfc": "XEXX010101000",
+        "Nombre": "CLIENTE EJEMPLO SA DE CV",
+        "UsoCFDI": "CP01",
+        "DomicilioFiscalReceptor": "64000",
+        "RegimenFiscalReceptor": "601"
+      }
+    },
+    "complemento": {
+      "pago20": {
+        "Pago": [
+          {
+            "FechaPago": "2024-11-01T14:30:00",
+            "FormaDePagoP": "03",
+            "MonedaP": "MXN",
+            "Monto": "5800.00",
+            "NumOperacion": "TRX-20241101-001",
+            "CtaOrdenante": "1234567890",
+            "RfcEmisorCtaOrd": "XAXX010101000",
+            "CtaBeneficiario": "0987654321",
+            "RfcEmisorCtaBen": "XEXX010101000",
+            "DoctoRelacionado": [
+              {
+                "IdDocumento": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+                "Serie": "A",
+                "Folio": "100",
+                "MonedaDR": "MXN",
+                "NumParcialidad": "1",
+                "ImpSaldoAnt": "11600.00",
+                "ImpPagado": "2900.00",
+                "ImpSaldoInsoluto": "8700.00",
+                "ObjetoImpDR": "02",
+                "MetodoDePagoDR": "PPD"
+              },
+              {
+                "IdDocumento": "f6e5d4c3-b2a1-4c5d-8e9f-0a1b2c3d4e5f",
+                "Serie": "A",
+                "Folio": "101",
+                "MonedaDR": "MXN",
+                "NumParcialidad": "2",
+                "ImpSaldoAnt": "5800.00",
+                "ImpPagado": "2900.00",
+                "ImpSaldoInsoluto": "2900.00",
+                "ObjetoImpDR": "02",
+                "MetodoDePagoDR": "PPD"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

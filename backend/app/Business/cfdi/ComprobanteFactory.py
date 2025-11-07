@@ -2,6 +2,7 @@ import logging
 from typing import Dict, Any, Union
 from .Comprobantes.Ingreso import ComprobanteIngreso
 from .Comprobantes.Traslados import ComprobanteTraslado
+from .Comprobantes.Pago import ComprobantePago
 
 logger = logging.getLogger(__name__)
 
@@ -10,14 +11,14 @@ class ComprobanteFactory:
 
     _TIPO_CLASSES = {
         "I": ComprobanteIngreso,
-        "T": ComprobanteTraslado
+        "T": ComprobanteTraslado,
+        "P": ComprobantePago
         # "E": ComprobanteEgreso,  # Implementar cuando se requiera
-        # "P": ComprobantePago,     # Implementar cuando se requiera
         # "N": ComprobantaNomina,   # Implementar cuando se requiera
     }
     
     @classmethod
-    def crear_comprobante(cls, datos_json: Dict[str, Any]) -> Union[ComprobanteIngreso, ComprobanteTraslado]:
+    def crear_comprobante(cls, datos_json: Dict[str, Any]) -> Union[ComprobanteIngreso, ComprobanteTraslado, ComprobantePago]:
 
         comprobante_data = datos_json.get("cfdi:Comprobante", datos_json)
         tipo = comprobante_data.get("TipoDeComprobante", "I")
@@ -29,13 +30,13 @@ class ComprobanteFactory:
         
         if clase_comprobante is None:
             # Verificar si es un tipo válido pero no implementado
-            tipos_validos = ["E", "P", "N"]
+            tipos_validos = ["E", "N"]
             if tipo in tipos_validos:
                 error_msg = f"TipoDeComprobante '{tipo}' es válido pero aún no está implementado"
                 logger.error(error_msg)
                 raise NotImplementedError(error_msg)
             else:
-                error_msg = f"TipoDeComprobante '{tipo}' no es válido. Tipos válidos: {', '.join(tipos_validos)}"
+                error_msg = f"TipoDeComprobante '{tipo}' no es válido. Tipos válidos: I, T, P, E, N"
                 logger.error(error_msg)
                 raise ValueError(error_msg)
         
