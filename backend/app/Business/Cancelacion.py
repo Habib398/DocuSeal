@@ -63,12 +63,9 @@ class CancelacionService:
             
             # Determinar URL según ambiente
             if pruebas:
-                base_url = "https://pruebas.comercio-digital.mx"
+                url = "https://pruebas.comercio-digital.mx/cancela4/cancelarUuid"
             else:
-                base_url = "https://cancela.comercio-digital.mx"
-            
-            # URL del endpoint de cancelación
-            url = f"{base_url}/cancela4/cancelarUuid"
+                url = "https://cancela.comercio-digital.mx/cancela4/cancelarUuid"
             
             logger.info(f"Cancelando UUID {uuid} en ambiente {'PRUEBAS' if pruebas else 'PRODUCCIÓN'}")
             logger.info(f"URL: {url}")
