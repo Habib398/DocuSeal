@@ -108,7 +108,12 @@ class CancelacionService:
             body = ""
             
             logger.info(f"Enviando solicitud de cancelación al PAC para UUID: {uuid}")
-            logger.debug(f"Headers (sin contraseñas): USER={usuario_pac}, RFCR={rfc_receptor}, TOTAL={total}, TIPOC={tipo_comprobante}, MOTIVO={motivo}")
+            logger.info(f"Headers completos enviados:")
+            for key, value in headers.items():
+                if key in ['PWDW', 'PWDK', 'KEYF', 'CERT']:
+                    logger.info(f"  {key}: [OCULTO POR SEGURIDAD - longitud: {len(value) if value else 0}]")
+                else:
+                    logger.info(f"  {key}: {value}")
             
             # Realizar petición HTTP al PAC
             response = requests.post(
