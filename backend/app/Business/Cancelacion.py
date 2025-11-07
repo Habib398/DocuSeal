@@ -72,16 +72,18 @@ class CancelacionService:
             
             # Preparar headers según documentación de Comercio Digital
             headers = {
-                "USER": usuario_pac.replace('Ñ', '@'),  # Comercio Digital usa @ en lugar de Ñ
+                "USER": usuario_pac.replace('Ñ', '@'),
                 "PWDW": password_pac,
-                "TIPO1": "cfdi",  # Tipo de documento (cfdi o reten)
-                "UUID": uuid,  # UUID del comprobante a cancelar
+                "TIPO1": "cfdi",
+                "UUID": uuid,
                 "RFCR": rfc_receptor,
                 "TOTAL": str(total),
                 "TIPOC": tipo_comprobante,
                 "MOTIVO": motivo,
                 "PWDK": password_key,
-                "Content-Type": "text/plain"  # Comercio Digital requiere text/plain
+                "KEYF": key_base64,  # Key como header
+                "CERT": certificado_base64,  # Cert como header
+                "Content-Type": "text/plain"
             }
             
             # Agregar email emisor si está presente (opcional)
@@ -102,9 +104,8 @@ class CancelacionService:
             else:
                 headers["ACUS"] = "NO"
             
-            # Preparar body con certificados en Base64
-            # El UUID va en la URL, los certificados en el body como texto plano
-            body = f"{key_base64}|{certificado_base64}"
+            # Preparar body vacío ya que todo va en headers
+            body = ""
             
             logger.info(f"Enviando solicitud de cancelación al PAC para UUID: {uuid}")
             logger.debug(f"Headers (sin contraseñas): USER={usuario_pac}, RFCR={rfc_receptor}, TOTAL={total}, TIPOC={tipo_comprobante}, MOTIVO={motivo}")
