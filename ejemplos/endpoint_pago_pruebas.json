@@ -1,0 +1,64 @@
+{
+  "datosXML": {
+    "cfdi:Comprobante": {
+      "TipoDeComprobante": "P",
+      "LugarExpedicion": "06300",
+      "Exportacion": "01",
+      "Serie": "CFDI/PAGOS",
+      "Folio": "01",
+      "cfdi:Emisor": {
+        "Rfc": "VITR810513SH6",
+        "Nombre": "RANULFO VILLATORO DE LA TORRE",
+        "RegimenFiscal": "612"
+      },
+      "cfdi:Receptor": {
+        "Rfc": "BASF850506MI1",
+        "Nombre": "FLORIANA BARRERA SANTES",
+        "DomicilioFiscalReceptor": "88278",
+        "RegimenFiscalReceptor": "612",
+        "UsoCFDI": "G03"
+      }
+    },
+    "complemento": {
+      "pago20": {
+        "Pago": [
+          {
+            "FechaPago": "2021-12-21T12:00:00",
+            "FormaDePagoP": "03",
+            "MonedaP": "MXN",
+            "TipoCambioP": "1",
+            "Monto": "5000",
+            "NumOperacion": "7598654321",
+            "DoctoRelacionado": [
+              {
+                "IdDocumento": "D2473405-A1C1-1248-A703-363B2376D85F",
+                "Serie": "Pago",
+                "Folio": "20",
+                "MonedaDR": "MXN",
+                "EquivalenciaDR": "1",
+                "NumParcialidad": 1,
+                "ImpSaldoAnt": "5000",
+                "ImpPagado": "5000",
+                "ObjetoImpDR": "02",
+                "ImpuestosDR": {
+                  "TrasladosDR": [
+                    {
+                      "BaseDR": "5000",
+                      "ImpuestoDR": "002",
+                      "TipoFactorDR": "Tasa",
+                      "TasaOCuotaDR": "0.160000",
+                      "ImporteDR": "800.00"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "claveUsuario": "f1160109-5aab-46b9-bcbe-c8f811fe70b3",
+  "enviarCorreo": false,
+  "generarPDF": true
+}
