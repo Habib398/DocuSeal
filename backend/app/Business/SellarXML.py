@@ -182,23 +182,49 @@ class SellarXML:
             # CASO 1: Viene como estructura JSON en "datosXML"
             if json_input and isinstance(json_input, dict):
                 
-                # Convertir JSON a XML usando ConvertirJson
-                from .cfdi.ConvertirJson import ConvertirJson
+                    # Convertir JSON a XML usando ConvertirJson
+                    from .cfdi.ConvertirJson import ConvertirJson
+                    try:
+                        converter = ConvertirJson()
+                        cfdi_obj = converter.convertir_a_cfdi(json_input)
+                        xml_element = cfdi_obj.to_xml()
+                        from lxml import etree
+                        xml_input = etree.tostring(xml_element, encoding='unicode', pretty_print=True)
+                    except Exception as e:
+                        return {
+                            "errores": [{
+                                "tipo": "error",
+                                "codigo": "SXML002",
+                                "mensaje": f"Error al convertir JSON a XML: {str(e)}"
+                            }]
+                        }            # CASO 2: Viene como XML string en "xml"
+            elif xml_string_input and isinstance(xml_string_input, str):
+                xml_input = xml_string_input.strip()
+                
+                # Verificar si es un comprobante de pago y convertir a JSON para procesar correctamente
+                from lxml import etree
                 try:
-                    converter = ConvertirJson(json_input)
-                    xml_input = converter.GenerarXmlCFDI()
+                    xml_tree = etree.fromstring(xml_input.encode('utf-8'))
+                    tipo_comprobante = xml_tree.get('TipoDeComprobante')
+                    if tipo_comprobante == 'P':
+                        # Convertir XML de pago a estructura JSON
+                        json_input = cls._xml_pago_a_json(xml_tree)
+                        # Procesar como JSON
+                        from .cfdi.ConvertirJson import ConvertirJson
+                        converter = ConvertirJson()
+                        cfdi_obj = converter.convertir_a_cfdi(json_input)
+                        xml_element = cfdi_obj.to_xml()
+                        from lxml import etree
+                        xml_input = etree.tostring(xml_element, encoding='unicode', pretty_print=True)
+                    # Para otros tipos, continuar con XML directo
                 except Exception as e:
                     return {
                         "errores": [{
                             "tipo": "error",
-                            "codigo": "SXML002",
-                            "mensaje": f"Error al convertir JSON a XML: {str(e)}"
+                            "codigo": "SXML010",
+                            "mensaje": f"Error al procesar XML de pago: {str(e)}"
                         }]
                     }
-            
-            # CASO 2: Viene como XML string en "xml"
-            elif xml_string_input and isinstance(xml_string_input, str):
-                xml_input = xml_string_input.strip()
             
             # CASO 3: No viene ninguno de los dos formatos válidos
             else:
@@ -323,3 +349,65 @@ class SellarXML:
         # Generar XML sellado
         self.xmlSellado = cfdi.xml_bytes(pretty_print=True).decode('utf-8')
         return self.xmlSellado
+    
+    @classmethod
+    def _xml_pago_a_json(cls, xml_tree) -> dict:
+        """
+        Convierte un XML de comprobante de pago a estructura JSON para procesar correctamente.
+        """
+        from lxml import etree
+        
+        # Extraer atributos del comprobante
+        comprobante_data = dict(xml_tree.attrib)
+        
+        # Extraer emisor
+        emisor_elem = xml_tree.find('.//{http://www.sat.gob.mx/cfd/4}Emisor')
+        if emisor_elem is not None:
+            comprobante_data['cfdi:Emisor'] = dict(emisor_elem.attrib)
+        
+        # Extraer receptor
+        receptor_elem = xml_tree.find('.//{http://www.sat.gob.mx/cfd/4}Receptor')
+        if receptor_elem is not None:
+            comprobante_data['cfdi:Receptor'] = dict(receptor_elem.attrib)
+        
+        # Extraer complemento de pago
+        complemento_data = {}
+        pagos_elem = xml_tree.find('.//{http://www.sat.gob.mx/Pagos20}Pagos')
+        if pagos_elem is not None:
+            pagos_data = []
+            for pago_elem in pagos_elem.findall('.//{http://www.sat.gob.mx/Pagos20}Pago'):
+                pago_dict = dict(pago_elem.attrib)
+                doctos = []
+                for docto_elem in pago_elem.findall('.//{http://www.sat.gob.mx/Pagos20}DoctoRelacionado'):
+                    docto_dict = dict(docto_elem.attrib)
+                    # Extraer ImpuestosDR si existe
+                    impuestos_elem = docto_elem.find('.//{http://www.sat.gob.mx/Pagos20}ImpuestosDR')
+                    if impuestos_elem is not None:
+                        impuestos_dict = {}
+                        traslados_elem = impuestos_elem.find('.//{http://www.sat.gob.mx/Pagos20}TrasladosDR')
+                        if traslados_elem is not None:
+                            traslados = []
+                            for traslado_elem in traslados_elem.findall('.//{http://www.sat.gob.mx/Pagos20}TrasladoDR'):
+                                traslados.append(dict(traslado_elem.attrib))
+                            if traslados:
+                                impuestos_dict['TrasladosDR'] = traslados
+                        retenciones_elem = impuestos_elem.find('.//{http://www.sat.gob.mx/Pagos20}RetencionesDR')
+                        if retenciones_elem is not None:
+                            retenciones = []
+                            for retencion_elem in retenciones_elem.findall('.//{http://www.sat.gob.mx/Pagos20}RetencionDR'):
+                                retenciones.append(dict(retencion_elem.attrib))
+                            if retenciones:
+                                impuestos_dict['RetencionesDR'] = retenciones
+                        if impuestos_dict:
+                            docto_dict['ImpuestosDR'] = impuestos_dict
+                    doctos.append(docto_dict)
+                pago_dict['DoctoRelacionado'] = doctos
+                pagos_data.append(pago_dict)
+            complemento_data['pago20'] = {'Pago': pagos_data}
+        
+        return {
+            'datosXML': {
+                'cfdi:Comprobante': comprobante_data,
+                'complemento': complemento_data
+            }
+        }

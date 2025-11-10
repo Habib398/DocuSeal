@@ -447,9 +447,6 @@ class ConvertirJson:
                 
                 self.comprobante.complemento.carta_porte = carta_porte
             
-            # Pago 2.0 - ya procesado en _convertir_comprobante_pago
-            # No necesita procesamiento adicional aquí
-            
             # Otros complementos pueden agregarse aquí
             # Ejemplo: Terceros, etc.
     
@@ -458,9 +455,6 @@ class ConvertirJson:
         Convierte un JSON a un comprobante de pago CFDI 4.0 con complemento Pago 2.0
         Usa el método especial Comprobante.pago() de satcfdi
         """
-        from satcfdi.create.cfd import pago20
-        from datetime import datetime
-        from decimal import Decimal
         
         # Procesar emisor y receptor
         self.datos_emisor = self._procesar_emisor(datos_json)
@@ -473,11 +467,8 @@ class ConvertirJson:
         # Procesar el complemento de pago
         complemento_pago = self._procesar_complemento_pago(datos_json)
         
-        # Crear comprobante de pago usando el método especial
-        # Filtrar solo los atributos válidos para Comprobante.pago()
         atributos_validos = {}
-        campos_permitidos = ['serie', 'folio', 'fecha', 'moneda', 'tipo_cambio', 
-                            'confirmacion', 'exportacion', 'cfdi_relacionados']
+        campos_permitidos = ['serie', 'folio', 'fecha', 'confirmacion', 'addenda']
         
         for key in campos_permitidos:
             if key in atributos_comprobante:
@@ -503,8 +494,6 @@ class ConvertirJson:
         Procesa el complemento de pago 2.0 desde el JSON
         """
         from satcfdi.create.cfd import pago20
-        from datetime import datetime
-        from decimal import Decimal
         
         # Buscar el complemento de pago en diferentes ubicaciones
         complemento_data = None
@@ -629,8 +618,6 @@ class ConvertirJson:
         """
         Procesa los documentos relacionados de un pago
         """
-        from satcfdi.create.cfd import pago20
-        from decimal import Decimal
         
         # Buscar documentos relacionados
         doctos_data = (pago_data.get('pago20:DoctoRelacionado') or 
@@ -697,27 +684,114 @@ class ConvertirJson:
             'moneda_dr': moneda_dr
         }
         
-        # Campos opcionales
+        # Campos opcionales según la firma de DoctoRelacionado de satcfdi
         campos_opcionales = {
             'Serie': 'serie',
             'Folio': 'folio',
             'NumParcialidad': 'num_parcialidad',
-            'ImpSaldoInsoluto': 'imp_saldo_insoluto',
-            'EquivalenciaDR': 'equivalencia_dr',
-            'MetodoDePagoDR': 'metodo_de_pago_dr'
+            'EquivalenciaDR': 'equivalencia_dr'
         }
         
         for campo_json, campo_python in campos_opcionales.items():
             valor = docto_data.get(campo_json) or docto_data.get(campo_python)
             if valor is not None:
                 # Convertir valores numéricos a Decimal si es necesario
-                if campo_python in ['imp_saldo_insoluto', 'equivalencia_dr']:
+                if campo_python == 'equivalencia_dr':
                     valor = Decimal(str(valor))
                 elif campo_python == 'num_parcialidad':
                     valor = int(valor)
                 docto_params[campo_python] = valor
         
+        # Procesar ImpuestosDR si existe
+        impuestos_dr = self._procesar_impuestos_dr(docto_data)
+        if impuestos_dr:
+            docto_params['impuestos_dr'] = impuestos_dr
+        
         return pago20.DoctoRelacionado(**docto_params)
+    
+    def _procesar_impuestos_dr(self, docto_data: Dict[str, Any]) -> Union['pago20.ImpuestosDR', None]:
+        """
+        Procesa los impuestos relacionados de un documento relacionado
+        """
+        from satcfdi.create.cfd import pago20
+        
+        impuestos_data = docto_data.get('ImpuestosDR') or docto_data.get('impuestos_dr')
+        if not impuestos_data:
+            return None
+        
+        # Procesar TrasladosDR
+        traslados_dr = None
+        if 'TrasladosDR' in impuestos_data:
+            traslados_data = impuestos_data['TrasladosDR']
+            if isinstance(traslados_data, dict):
+                traslados_data = [traslados_data]
+            traslados_list = []
+            for traslado_data in traslados_data:
+                traslado_obj = self._crear_traslado_dr(traslado_data)
+                traslados_list.append(traslado_obj)
+            traslados_dr = traslados_list if len(traslados_list) > 1 else traslados_list[0]
+        
+        # Procesar RetencionesDR (si existe)
+        retenciones_dr = None
+        if 'RetencionesDR' in impuestos_data:
+            retenciones_data = impuestos_data['RetencionesDR']
+            if isinstance(retenciones_data, dict):
+                retenciones_data = [retenciones_data]
+            retenciones_list = []
+            for retencion_data in retenciones_data:
+                retencion_obj = self._crear_retencion_dr(retencion_data)
+                retenciones_list.append(retencion_obj)
+            retenciones_dr = retenciones_list if len(retenciones_list) > 1 else retenciones_list[0]
+        
+        # Crear ImpuestosDR
+        if traslados_dr or retenciones_dr:
+            return pago20.ImpuestosDR(
+                traslados_dr=traslados_dr,
+                retenciones_dr=retenciones_dr
+            )
+        return None
+    
+    def _crear_traslado_dr(self, traslado_data: Dict[str, Any]) -> 'pago20.TrasladoDR':
+        """
+        Crea un objeto TrasladoDR desde un diccionario
+        """
+        from satcfdi.create.cfd import pago20
+        from decimal import Decimal
+        
+        base_dr = Decimal(str(traslado_data.get('BaseDR', 0)))
+        impuesto_dr = traslado_data.get('ImpuestoDR')
+        tipo_factor_dr = traslado_data.get('TipoFactorDR')
+        tasa_o_cuota_dr = Decimal(str(traslado_data.get('TasaOCuotaDR', 0)))
+        importe_dr = Decimal(str(traslado_data.get('ImporteDR', 0)))
+        
+        return pago20.TrasladoDR(
+            base_dr=base_dr,
+            impuesto_dr=impuesto_dr,
+            tipo_factor_dr=tipo_factor_dr,
+            tasa_o_cuota_dr=tasa_o_cuota_dr,
+            importe_dr=importe_dr
+        )
+    
+    def _crear_retencion_dr(self, retencion_data: Dict[str, Any]) -> 'pago20.RetencionDR':
+        """
+        Crea un objeto RetencionDR desde un diccionario
+        """
+        from satcfdi.create.cfd import pago20
+        from decimal import Decimal
+        
+        base_dr = Decimal(str(retencion_data.get('BaseDR', 0)))
+        impuesto_dr = retencion_data.get('ImpuestoDR')
+        tipo_factor_dr = retencion_data.get('TipoFactorDR')
+        tasa_o_cuota_dr = Decimal(str(retencion_data.get('TasaOCuotaDR', 0)))
+        importe_dr = Decimal(str(retencion_data.get('ImporteDR', 0)))
+        
+        return pago20.RetencionDR(
+            base_dr=base_dr,
+            impuesto_dr=impuesto_dr,
+            tipo_factor_dr=tipo_factor_dr,
+            tasa_o_cuota_dr=tasa_o_cuota_dr,
+            importe_dr=importe_dr
+        )
     
     @staticmethod
     def validar_estructura_json(datos_json: Dict[str, Any]) -> bool:

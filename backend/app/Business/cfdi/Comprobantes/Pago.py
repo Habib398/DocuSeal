@@ -13,13 +13,18 @@ logger = logging.getLogger(__name__)
 class ComprobantePago:
     """
     Clase para manejar la lógica de comprobantes tipo Pago (P).
-    Los comprobantes de pago se utilizan para relacionar pagos con facturas emitidas anteriormente.
-    Requieren el complemento Pago 2.0.
     """
     
     def __init__(self, datos_json: Dict[str, Any]):
-        self.datos = datos_json
-        self.comprobante = datos_json.get("cfdi:Comprobante", {})
+        # Normalizar la estructura de datos
+        # Si viene con datosXML en el nivel superior, ajustar
+        if "datosXML" in datos_json and "cfdi:Comprobante" not in datos_json:
+            self.datos = datos_json  # Mantener estructura completa para búsqueda de complemento
+            self.comprobante = datos_json.get("datosXML", {}).get("cfdi:Comprobante", {})
+        else:
+            self.datos = datos_json
+            self.comprobante = datos_json.get("cfdi:Comprobante", {})
+        
         self.errores: List[Dict[str, str]] = []
         self.warnings: List[Dict[str, str]] = []
     
@@ -93,25 +98,43 @@ class ComprobantePago:
         # Buscar el complemento de pago en diferentes ubicaciones posibles
         complemento_pago = None
         
-        # Buscar en datosXML->complemento
+        logger.info(f"DEBUG - Estructura completa de self.datos: {list(self.datos.keys())}")
+        
+        # Buscar en datosXML->complemento->pago20
         if self.datos.get('datosXML', {}).get('complemento', {}).get('pago20'):
             complemento_pago = self.datos['datosXML']['complemento']['pago20']
-        # Buscar en datosXML->cfdi:Complemento
-        elif self.datos.get('datosXML', {}).get('cfdi:Comprobante', {}).get('cfdi:Complemento'):
-            complemento_data = self.datos['datosXML']['cfdi:Comprobante']['cfdi:Complemento']
-            if complemento_data.get('pago20:Pagos'):
-                complemento_pago = complemento_data['pago20:Pagos']
+            logger.info("DEBUG - Complemento encontrado en datosXML->complemento->pago20")
+        
+        # Buscar directamente en complemento->pago20 (cuando ya se normalizó)
+        elif self.datos.get('complemento', {}).get('pago20'):
+            complemento_pago = self.datos['complemento']['pago20']
+            logger.info("DEBUG - Complemento encontrado en complemento->pago20")
+        
+        # Buscar en cfdi:Comprobante->cfdi:Complemento
+        elif self.datos.get('cfdi:Comprobante', {}).get('cfdi:Complemento', {}).get('pago20:Pagos'):
+            complemento_pago = self.datos['cfdi:Comprobante']['cfdi:Complemento']['pago20:Pagos']
+            logger.info("DEBUG - Complemento encontrado en cfdi:Comprobante->cfdi:Complemento->pago20:Pagos")
+        
+        # Buscar en datosXML->cfdi:Comprobante->cfdi:Complemento
+        elif self.datos.get('datosXML', {}).get('cfdi:Comprobante', {}).get('cfdi:Complemento', {}).get('pago20:Pagos'):
+            complemento_pago = self.datos['datosXML']['cfdi:Comprobante']['cfdi:Complemento']['pago20:Pagos']
+            logger.info("DEBUG - Complemento encontrado en datosXML->cfdi:Comprobante->cfdi:Complemento->pago20:Pagos")
+        
         # Buscar directamente en complemento_pago
         elif self.datos.get('complemento_pago'):
             complemento_pago = self.datos['complemento_pago']
+            logger.info("DEBUG - Complemento encontrado en complemento_pago")
         
         if not complemento_pago:
+            logger.error(f"DEBUG - No se encontró complemento de pago. Estructura de datos: {self.datos}")
             self.errores.append({
                 "tipo": "error",
                 "codigo": "PAGO006",
                 "mensaje": "El complemento de pago (Pago 2.0) es obligatorio para comprobantes tipo 'P'"
             })
             return
+        
+        logger.info(f"DEBUG - Complemento encontrado: {list(complemento_pago.keys()) if isinstance(complemento_pago, dict) else type(complemento_pago)}")
         
         # Validar que exista al menos un pago
         pagos = complemento_pago.get('pago20:Pago') or complemento_pago.get('Pago') or complemento_pago.get('pagos')
@@ -237,6 +260,16 @@ class ComprobantePago:
                 "codigo": f"PAGO017_{indice_pago}_{indice_doc}",
                 "mensaje": f"ObjetoImpDR es obligatorio en DoctoRelacionado #{indice_doc} del Pago #{indice_pago}"
             })
+       
+        # Si ObjetoImpDR es "02", ImpuestosDR es obligatorio
+        if objeto_imp == "02":
+            impuestos_dr = docto.get('ImpuestosDR') or docto.get('impuestos_dr')
+            if not impuestos_dr:
+                self.errores.append({
+                    "tipo": "error",
+                    "codigo": f"PAGO018_{indice_pago}_{indice_doc}",
+                    "mensaje": f"ImpuestosDR es obligatorio en DoctoRelacionado #{indice_doc} del Pago #{indice_pago} cuando ObjetoImpDR es '02'"
+                })
     
     def _validar_exportacion(self):
         """

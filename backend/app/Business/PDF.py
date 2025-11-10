@@ -106,7 +106,7 @@ class PDF:
         """
         Método de clase para generar un comprobante HTML y PDF desde XML timbrado.
         """
-        pdf_generator = cls(xml_timbrado, uuid)
+        pdf_generator = cls(xml_timbrado)
         html_generado, html_path = pdf_generator.generar_html()
         
         resultado = {}
