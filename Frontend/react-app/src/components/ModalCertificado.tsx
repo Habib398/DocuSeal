@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { Certificate, CertificateFormData } from '../services/apiClient';
+import * as forge from 'node-forge';
 
 interface CertificateModalProps {
   show: boolean;
@@ -47,6 +48,7 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<CertificateFormData>(emptyFormData);
   const [loading, setLoading] = useState(false);
+  const [validatingMessage, setValidatingMessage] = useState<string>('');
   const [cerFileName, setCerFileName] = useState<string>('');
   const [keyFileName, setKeyFileName] = useState<string>('');
 
@@ -153,9 +155,181 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
   // Manejar subida de archivo Certificado
   // (Removed Certificado upload — CER already covers the required certificate file)
 
+  // Función para validar certificados CSD
+  const validateCertificate = async (
+    cerBase64: string,
+    keyBase64: string,
+    password: string
+  ): Promise<void> => {
+    try {
+      // 1. Validar que los archivos no estén vacíos
+      if (!cerBase64 || !keyBase64) {
+        throw new Error('Los archivos CER y KEY son obligatorios');
+      }
+
+      // 2. Convertir base64 a formato PEM para el certificado
+      const cerPem = `-----BEGIN CERTIFICATE-----\n${cerBase64.match(/.{1,64}/g)?.join('\n')}\n-----END CERTIFICATE-----`;
+      
+      // 3. Parsear el certificado
+      let cert;
+      try {
+        cert = forge.pki.certificateFromPem(cerPem);
+      } catch (error) {
+        throw new Error('El archivo CER no es un certificado válido o está corrupto');
+      }
+
+      // 4. Verificar que sea un certificado válido del SAT
+      const subject = cert.subject.attributes;
+      
+      // Buscar el campo OU (Organizational Unit) y O (Organization)
+      const ouAttributes = subject.filter(
+        (attr) => (attr.shortName === 'OU' || attr.name === 'organizationalUnitName') && attr.value !== undefined
+      );
+      const oAttributes = subject.filter(
+        (attr) => (attr.shortName === 'O' || attr.name === 'organizationName') && attr.value !== undefined
+      );
+      
+      // Convertir los valores a string para análisis
+      const ouValues = ouAttributes.map(attr => String(attr.value).toUpperCase());
+      const oValues = oAttributes.map(attr => String(attr.value).toUpperCase());
+      const allValues = [...ouValues, ...oValues];
+      
+      // Verificar si es FIEL (estos NO deben pasar)
+      const isFIEL = allValues.some(value => 
+        value.includes('FIRMA ELECTRONICA') || 
+        value.includes('FIEL') ||
+        value.includes('FIRMA ELECTRÓNICA')
+      );
+      
+      // Verificar si es un certificado del SAT válido (CSD)
+      const isCSD = allValues.some(value => 
+        value.includes('SELLO DIGITAL') ||
+        value.includes('SUCIRSA') ||  // Códigos de autoridades certificadoras del SAT
+        value.includes('AC ') ||       // Autoridad Certificadora
+        value.includes('SAT') ||
+        value.includes('ADMINISTRACION DE SEGURIDAD DE LA INFORMACION') ||
+        value.includes('ADMINISTRACIÓN DE SEGURIDAD DE LA INFORMACIÓN')
+      );
+      
+      if (isFIEL) {
+        throw new Error(
+          'El archivo CER es un certificado FIEL (Firma Electrónica), no un CSD. ' +
+          'Para facturación electrónica necesitas un certificado de Sello Digital (CSD). ' +
+          'Son certificados diferentes emitidos por el SAT.'
+        );
+      }
+      
+      if (!isCSD) {
+        throw new Error(
+          'No se pudo identificar este certificado como un certificado válido del SAT. ' +
+          'Verifica que sea un certificado CSD emitido por el SAT para facturación electrónica. ' +
+          `Campos encontrados - OU: ${ouValues.join(', ') || 'ninguno'}, O: ${oValues.join(', ') || 'ninguno'}`
+        );
+      }
+
+      // 5. Verificar que el certificado no esté vencido
+      const now = new Date();
+      if (cert.validity.notBefore > now) {
+        throw new Error('El certificado CSD aún no es válido (fecha de inicio futura)');
+      }
+      if (cert.validity.notAfter < now) {
+        throw new Error('El certificado CSD ha expirado. Necesitas renovarlo ante el SAT.');
+      }
+
+      // 6. Intentar descifrar la KEY privada con la contraseña
+      let privateKey;
+      try {
+        // Convertir base64 a bytes
+        const keyDer = forge.util.decode64(keyBase64);
+        
+        // Intentar descifrar la clave privada
+        // Primero intentamos con PKCS#8 encriptado
+        try {
+          const keyAsn1 = forge.asn1.fromDer(keyDer);
+          privateKey = forge.pki.decryptRsaPrivateKey(forge.asn1.toDer(keyAsn1).data, password);
+        } catch (e) {
+          // Si falla, intentar con PKCS#5
+          const p8Asn1 = forge.asn1.fromDer(keyDer);
+          privateKey = forge.pki.decryptPrivateKeyInfo(p8Asn1, password);
+        }
+
+        if (!privateKey) {
+          throw new Error('decrypt_failed');
+        }
+      } catch (error) {
+        if (error instanceof Error && error.message === 'decrypt_failed') {
+          throw new Error(
+            'La contraseña ingresada no es correcta para descifrar el archivo KEY. ' +
+            'Verifica que sea la contraseña correcta de tu certificado.'
+          );
+        }
+        throw new Error(
+          'No se pudo descifrar el archivo KEY. Verifica que la contraseña sea correcta ' +
+          'y que el archivo KEY sea válido.'
+        );
+      }
+
+      // 7. Verificar que la KEY privada corresponda al certificado CER
+      // Comparar el módulo (n) de la clave pública del certificado con la clave privada
+      const publicKeyFromCert = cert.publicKey as forge.pki.rsa.PublicKey;
+      const privateKeyRsa = privateKey as forge.pki.rsa.PrivateKey;
+
+      if (!publicKeyFromCert.n.equals(privateKeyRsa.n)) {
+        throw new Error(
+          'El archivo KEY no corresponde al certificado CER. ' +
+          'Asegúrate de que ambos archivos pertenezcan al mismo certificado.'
+        );
+      }
+
+      // 8. Validación exitosa
+      // Certificado válido, continuar con el proceso de guardado
+      
+    } catch (error) {
+      // Re-lanzar el error para que sea manejado por handleSubmit
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Error desconocido al validar el certificado');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validar que todos los campos obligatorios estén llenos
+    const isEdit = !!certificate;
+    const requiredFields = isEdit ? 
+      ['usuarioPAC', 'contrasenaPAC', 'nombreEmpresa', 'correo', 'telefono', 'CER', 'KEY', 'pwdCER', 'noCertificado', 'vigencia', 'claveUsuario'] :
+      ['usuarioPAC', 'contrasenaPAC', 'nombreEmpresa', 'correo', 'telefono', 'CER', 'KEY', 'pwdCER'];
+    
+    const missingFields = requiredFields.filter(field => {
+      const value = formData[field as keyof CertificateFormData];
+      return typeof value === 'string' && value.trim() === '';
+    });
+    
+    if (missingFields.length > 0) {
+      alert(`Todos los campos son obligatorios. Los siguientes campos están vacíos: ${missingFields.join(', ')}`);
+      return;
+    }
+    
+    // Validar certificados CSD antes de guardar
     setLoading(true);
+    setValidatingMessage('Validando certificados CSD...');
+    try {
+      // Validar que los archivos CER, KEY y contraseña sean válidos
+      await validateCertificate(formData.CER, formData.KEY, formData.pwdCER);
+      setValidatingMessage('Validación exitosa. Guardando...');
+    } catch (error) {
+      setLoading(false);
+      setValidatingMessage('');
+      if (error instanceof Error) {
+        alert(`Error de validación:\n\n${error.message}`);
+      } else {
+        alert('Error desconocido al validar el certificado');
+      }
+      return;
+    }
+    
     try {
       // Asegurar que siempre haya una claveUsuario (generada automáticamente si no existía)
       const dataToSave = {
@@ -174,9 +348,11 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
       });
       
       await onSave(dataToSave);
+      setValidatingMessage('');
       onClose();
     } catch (error) {
       console.error('Error saving certificate:', error);
+      setValidatingMessage('');
     } finally {
       setLoading(false);
     }
@@ -237,7 +413,7 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
                     <div className="field-help">Nunca compartas esta información.</div>
                   </div>
                   <div className="col-md-6">
-                    <label htmlFor="nombreEmpresa" className="form-label">
+                    <label htmlFor="nombreEmpresa" className="form-label required-asterisk">
                       Nombre de la empresa
                     </label>
                     <input
@@ -248,8 +424,9 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
                       value={formData.nombreEmpresa}
                       onChange={handleChange}
                       disabled={loading}
+                      required
                     />
-                    <div className="field-help">Opcional: Nombre asociado a estos certificados.</div>
+                    <div className="field-help">Nombre asociado a estos certificados.</div>
                   </div>
                   
                   {/* Mostrar noCertificado y vigencia solo en modo edición (valores automáticos del CER) */}
@@ -318,7 +495,7 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
                   )}
                   
                   <div className="col-md-6">
-                    <label htmlFor="correo" className="form-label">
+                    <label htmlFor="correo" className="form-label required-asterisk">
                       Correo electrónico
                     </label>
                     <input
@@ -329,11 +506,12 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
                       value={formData.correo}
                       onChange={handleChange}
                       disabled={loading}
+                      required
                     />
                     <div className="field-help">Email de contacto.</div>
                   </div>
                   <div className="col-md-6">
-                    <label htmlFor="telefono" className="form-label">
+                    <label htmlFor="telefono" className="form-label required-asterisk">
                       Teléfono
                     </label>
                     <input
@@ -344,6 +522,7 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
                       value={formData.telefono}
                       onChange={handleChange}
                       disabled={loading}
+                      required
                     />
                     <div className="field-help">Número de contacto.</div>
                   </div>
@@ -460,13 +639,21 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
                 <div className="text-muted small">
                   <span className="text-danger">*</span> Campos obligatorios
                 </div>
-                <div>
-                  <button type="button" className="btn btn-outline-light" onClick={onClose} disabled={loading}>
-                    Cancelar
-                  </button>
-                  <button type="submit" className="btn btn-success" disabled={loading}>
-                    {loading ? 'Guardando...' : 'Guardar'}
-                  </button>
+                <div className="d-flex align-items-center gap-3">
+                  {validatingMessage && (
+                    <div className="text-primary small d-flex align-items-center">
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      <span>{validatingMessage}</span>
+                    </div>
+                  )}
+                  <div>
+                    <button type="button" className="btn btn-outline-light" onClick={onClose} disabled={loading}>
+                      Cancelar
+                    </button>
+                    <button type="submit" className="btn btn-success" disabled={loading}>
+                      {loading ? 'Procesando...' : 'Guardar'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </form>
