@@ -51,6 +51,14 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
   const [validatingMessage, setValidatingMessage] = useState<string>('');
   const [cerFileName, setCerFileName] = useState<string>('');
   const [keyFileName, setKeyFileName] = useState<string>('');
+  
+  // Rastrear si se modificaron los archivos o contraseña del certificado
+  const [filesModified, setFilesModified] = useState(false);
+  const [originalCertData, setOriginalCertData] = useState<{
+    CER: string;
+    KEY: string;
+    pwdCER: string;
+  } | null>(null);
 
   useEffect(() => {
     if (certificate) {
@@ -66,9 +74,21 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
       }
       
       setFormData(certificateData);
+      
+      // Guardar los datos originales del certificado para comparar
+      setOriginalCertData({
+        CER: certificate.CER || '',
+        KEY: certificate.KEY || '',
+        pwdCER: certificate.pwdCER || '',
+      });
+      
+      // Reset del flag de modificación
+      setFilesModified(false);
     } else {
       // Reset form para nuevo certificado
       setFormData(emptyFormData);
+      setOriginalCertData(null);
+      setFilesModified(false);
     }
     // Limpiar nombres de archivos al abrir/cerrar modal
     setCerFileName('');
@@ -76,9 +96,17 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
   }, [certificate, show]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const fieldId = e.target.id;
+    const newValue = e.target.value;
+    
+    // Si se modifica la contraseña del certificado, marcar como modificado
+    if (fieldId === 'pwdCER' && originalCertData && newValue !== originalCertData.pwdCER) {
+      setFilesModified(true);
+    }
+    
     setFormData({
       ...formData,
-      [e.target.id]: e.target.value,
+      [fieldId]: newValue,
     });
   };
 
@@ -127,6 +155,9 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
           CER: base64,
           Certificado: certificado, // Agregar el certificado extraído
         });
+        
+        // Marcar que los archivos fueron modificados
+        setFilesModified(true);
       } catch (error) {
         console.error('Error al convertir archivo CER:', error);
         alert('Error al procesar el archivo CER');
@@ -145,6 +176,9 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
           ...formData,
           KEY: base64,
         });
+        
+        // Marcar que los archivos fueron modificados
+        setFilesModified(true);
       } catch (error) {
         console.error('Error al convertir archivo KEY:', error);
         alert('Error al procesar el archivo KEY');
@@ -155,7 +189,7 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
   // Manejar subida de archivo Certificado
   // (Removed Certificado upload — CER already covers the required certificate file)
 
-  // Función para validar certificados CSD
+  // Función para validar certificados CSD - Validación básica y menos estricta
   const validateCertificate = async (
     cerBase64: string,
     keyBase64: string,
@@ -170,7 +204,7 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
       // 2. Convertir base64 a formato PEM para el certificado
       const cerPem = `-----BEGIN CERTIFICATE-----\n${cerBase64.match(/.{1,64}/g)?.join('\n')}\n-----END CERTIFICATE-----`;
       
-      // 3. Parsear el certificado
+      // 3. Parsear el certificado - validación básica
       let cert;
       try {
         cert = forge.pki.certificateFromPem(cerPem);
@@ -178,7 +212,7 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
         throw new Error('El archivo CER no es un certificado válido o está corrupto');
       }
 
-      // 4. Verificar que sea un certificado válido del SAT
+      // 4. Validación simplificada - Solo verificar que NO sea FIEL
       const subject = cert.subject.attributes;
       
       // Buscar el campo OU (Organizational Unit) y O (Organization)
@@ -194,36 +228,17 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
       const oValues = oAttributes.map(attr => String(attr.value).toUpperCase());
       const allValues = [...ouValues, ...oValues];
       
-      // Verificar si es FIEL (estos NO deben pasar)
+      // Solo verificar que NO sea FIEL (los FIEL no sirven para facturación)
       const isFIEL = allValues.some(value => 
         value.includes('FIRMA ELECTRONICA') || 
         value.includes('FIEL') ||
         value.includes('FIRMA ELECTRÓNICA')
       );
       
-      // Verificar si es un certificado del SAT válido (CSD)
-      const isCSD = allValues.some(value => 
-        value.includes('SELLO DIGITAL') ||
-        value.includes('SUCIRSA') ||  // Códigos de autoridades certificadoras del SAT
-        value.includes('AC ') ||       // Autoridad Certificadora
-        value.includes('SAT') ||
-        value.includes('ADMINISTRACION DE SEGURIDAD DE LA INFORMACION') ||
-        value.includes('ADMINISTRACIÓN DE SEGURIDAD DE LA INFORMACIÓN')
-      );
-      
       if (isFIEL) {
         throw new Error(
           'El archivo CER es un certificado FIEL (Firma Electrónica), no un CSD. ' +
-          'Para facturación electrónica necesitas un certificado de Sello Digital (CSD). ' +
-          'Son certificados diferentes emitidos por el SAT.'
-        );
-      }
-      
-      if (!isCSD) {
-        throw new Error(
-          'No se pudo identificar este certificado como un certificado válido del SAT. ' +
-          'Verifica que sea un certificado CSD emitido por el SAT para facturación electrónica. ' +
-          `Campos encontrados - OU: ${ouValues.join(', ') || 'ninguno'}, O: ${oValues.join(', ') || 'ninguno'}`
+          'Para facturación electrónica necesitas un certificado de Sello Digital (CSD).'
         );
       }
 
@@ -312,22 +327,32 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
       return;
     }
     
-    // Validar certificados CSD antes de guardar
     setLoading(true);
-    setValidatingMessage('Validando certificados CSD...');
-    try {
-      // Validar que los archivos CER, KEY y contraseña sean válidos
-      await validateCertificate(formData.CER, formData.KEY, formData.pwdCER);
-      setValidatingMessage('Validación exitosa. Guardando...');
-    } catch (error) {
-      setLoading(false);
-      setValidatingMessage('');
-      if (error instanceof Error) {
-        alert(`Error de validación:\n\n${error.message}`);
-      } else {
-        alert('Error desconocido al validar el certificado');
+    
+    // Solo validar certificados si:
+    // 1. Es un certificado nuevo (no hay certificate original), O
+    // 2. Se modificaron los archivos CER/KEY o la contraseña
+    const shouldValidate = !certificate || filesModified;
+    
+    if (shouldValidate) {
+      setValidatingMessage('Validando certificados CSD...');
+      try {
+        // Validar que los archivos CER, KEY y contraseña sean válidos
+        await validateCertificate(formData.CER, formData.KEY, formData.pwdCER);
+        setValidatingMessage('Validación exitosa. Guardando...');
+      } catch (error) {
+        setLoading(false);
+        setValidatingMessage('');
+        if (error instanceof Error) {
+          alert(`Error de validación:\n\n${error.message}`);
+        } else {
+          alert('Error desconocido al validar el certificado');
+        }
+        return;
       }
-      return;
+    } else {
+      // Si no se validó, solo mostrar mensaje de guardado
+      setValidatingMessage('Guardando cambios...');
     }
     
     try {
@@ -647,7 +672,7 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
                     </div>
                   )}
                   <div>
-                    <button type="button" className="btn btn-outline-light" onClick={onClose} disabled={loading}>
+                    <button type="button" className="btn btn-secondary me-2" onClick={onClose} disabled={loading}>
                       Cancelar
                     </button>
                     <button type="submit" className="btn btn-success" disabled={loading}>
