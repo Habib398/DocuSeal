@@ -10,7 +10,7 @@ DocuSeal implementa una **arquitectura en capas (N-Tier Architecture)** simplifi
 2. **Business Layer** - Lógica de negocio y servicios externos
 3. **Data Layer** - Transformación y estructuración de datos
 4. **Database Layer** - Persistencia de datos
-
+5. **Conection Layer** - Conexión y comunicación con el pac
 ### Principios de la Arquitectura de Capas
 
 1. **Separación de Responsabilidades**: Cada capa tiene una función específica y bien definida
@@ -20,92 +20,6 @@ DocuSeal implementa una **arquitectura en capas (N-Tier Architecture)** simplifi
 5. **Flujo Unidireccional**: Las capas superiores dependen de las inferiores, nunca al revés
 
 ---
-
----
-
-## Descripción Detallada de Capas
-
-### Capa 1: PRESENTATION LAYER (Capa de Presentación)
-**Responsabilidad**: Exponer funcionalidades del sistema a través de APIs REST
-
-**Componentes**:
-- **Service API** (Puerto 8001): API pública para clientes externos
-- **Admin API** (Puerto 8002): API administrativa para gestión interna
-
-**Características**:
-- ✅ Manejo de peticiones HTTP
-- ✅ Validación de entrada
-- ✅ Serialización/Deserialización JSON
-- ✅ Documentación automática (Swagger)
-- ✅ Manejo de CORS
-- ✅ Rate limiting (futuro)
-
-**Ubicación**: `backend/app/api_service/` y `backend/app/api_admin/`
-
----
-
-### Capa 2: BUSINESS LAYER (Capa de Lógica de Negocio)
-**Responsabilidad**: Contener toda la lógica de negocio, reglas del dominio y comunicación con servicios externos
-
-**Componentes principales**:
-```
-Business/
-├── SellarXML.py              # Sellado digital de comprobantes
-├── Timbrado.py               # Proceso de timbrado con PAC
-├── ValidadorCFDI.py          # Validación de estructura CFDI
-├── Correo.py                 # Envío de correos electrónicos
-├── PDF.py                    # Generación de representación impresa
-├── PreferenciasCliente.py    # Gestión de preferencias de usuario
-├── ResultadoTimbrado.py      # Procesamiento de resultados
-└── Configuration/
-    ├── ConfiguracionLogin.py        # Lógica de autenticación
-    ├── ConfiguracionRegistro.py     # Lógica de registro
-    ├── ConfiguracionCertificados.py # Gestión de certificados
-    └── ConfiguracionSello.py        # Configuración de sellado
-```
-
-**Características**:
-- ✅ Independiente de la presentación
-- ✅ Reutilizable por ambas APIs
-- ✅ Contiene validaciones de negocio
-- ✅ Orquesta operaciones complejas
-- ✅ Maneja transacciones
-- ✅ Integración con servicios externos (PAC, correo, etc.)
----
-
-### Capa 3: DATA LAYER (Capa de Acceso a Datos)
-**Responsabilidad**: Transformar y estructurar datos entre formatos
-
-**Componentes principales**:
-```
-Data/
-├── cartaPorte.py         # Manejo específico de Carta Porte
-├── ConvertirJson.py      # Conversión JSON → XML CFDI
-└── InterpreteJson.py     # Interpretación y validación de JSON
-```
-
-**Características**:
-- ✅ Transformación de datos
-- ✅ Validación de esquemas
-- ✅ Mapeo de objetos
-- ✅ Generación de XML SAT
-
----
-
-### Capa 4: DATABASE LAYER (Capa de Base de Datos)
-**Responsabilidad**: Persistencia y recuperación de datos
-
-**Componentes principales**:
-```
-DB/
-├── DBManager.py          # Gestor de conexiones y operaciones
-├── settings.py           # Configuración de base de datos
-```
-
-**Características**:
-- ✅ CRUD operations
-- ✅ Connection pooling
-- ✅ Gestión de transacciones
 
 ## Stack Tecnológico
 
