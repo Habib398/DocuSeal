@@ -58,6 +58,9 @@ class PDF:
             return self.html_generado, self.html_path
             
         except Exception as e:
+            # Log error para debugging si es necesario
+            import logging
+            logging.error(f"Error generando HTML: {type(e).__name__}: {str(e)}")
             return None, None
     
     def generar_pdf_base64(self) -> Optional[str]:
