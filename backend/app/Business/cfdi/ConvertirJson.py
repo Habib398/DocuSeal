@@ -430,22 +430,34 @@ class ConvertirJson:
         return seq_conceptos
     
     def _procesar_complementos(self, datos_json: Dict[str, Any]) -> None:
-        # Verificar si hay complementos
-        if datos_json.get('datosXML', {}).get('complemento'):
+        # Verificar si hay complementos en diferentes ubicaciones posibles
+        complemento_data = None
+        
+        # Buscar en datosXML.cfdi:Comprobante.cfdi:Complemento (nueva estructura)
+        if datos_json.get('datosXML', {}).get('cfdi:Comprobante', {}).get('cfdi:Complemento'):
+            complemento_data = datos_json['datosXML']['cfdi:Comprobante']['cfdi:Complemento']
+        # Buscar en datosXML.complemento (estructura anterior, compatibilidad)
+        elif datos_json.get('datosXML', {}).get('complemento'):
             complemento_data = datos_json['datosXML']['complemento']
+        
+        if complemento_data:
+            complementos_list = []
             
-            # Carta Porte 3.1
-            if complemento_data.get('cartaporte31'):
+            # Carta Porte 3.1 - buscar con prefijo cartaporte31:
+            carta_porte_data = complemento_data.get('cartaporte31:CartaPorte') or complemento_data.get('cartaporte31')
+            
+            if carta_porte_data:
                 from .Complementos.cartaPorte import CartaPorteBuilder
                 builder = CartaPorteBuilder()
-                carta_porte = builder.construir_desde_json(complemento_data['cartaporte31'])
-                
-                # Agregar el complemento al comprobante
-                if not hasattr(self.comprobante, 'complemento') or self.comprobante.complemento is None:
-                    from satcfdi.create.cfd import cartaporte31
-                    self.comprobante.complemento = cartaporte31.Complemento()
-                
-                self.comprobante.complemento.carta_porte = carta_porte
+                carta_porte = builder.construir_desde_json(carta_porte_data)
+                # Agregar a la lista de complementos
+                complementos_list.append(carta_porte)
+            
+            # Si hay complementos, asignarlos como una LISTA en el diccionario Complemento
+            if complementos_list:
+                # Asignar como clave del diccionario para que satcfdi lo encuentre
+                # satcfdi itera sobre el diccionario Complemento para encontrar complementos
+                self.comprobante['Complemento'] = complementos_list if len(complementos_list) > 1 else complementos_list[0]
             
             # Otros complementos pueden agregarse aquí
             # Ejemplo: Terceros, etc.

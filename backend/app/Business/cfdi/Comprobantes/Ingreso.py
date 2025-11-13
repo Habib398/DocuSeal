@@ -129,6 +129,13 @@ class ComprobanteIngreso:
         # Recalcular totales si es necesario
         self._recalcular_totales()
         
+        # Preservar complementos si existen
+        # El complemento puede venir en datosXML.cfdi:Comprobante.cfdi:Complemento
+        # o en datosXML.complemento
+        if "datosXML" in self.datos and "cfdi:Complemento" not in self.datos.get("datosXML", {}).get("cfdi:Comprobante", {}):
+            # Si no hay complemento en la estructura esperada, no hay nada que preservar
+            pass
+        
         return self.datos
     
     def _recalcular_totales(self):
@@ -153,10 +160,12 @@ class ComprobanteIngreso:
     
     def generar_xml(self) -> str:
         """
-        Genera el XML del comprobante usando ConvertirJson
+        Genera el XML del comprobante usando ConvertirJson.
+        El complemento CartaPorte se serializa automáticamente por satcfdi.
         """
         
         from ..ConvertirJson import ConvertirJson
+        from lxml import etree
         
         # Ajustar datos antes de generar
         datos_ajustados = self.ajustar_datos()
@@ -171,8 +180,14 @@ class ComprobanteIngreso:
         if no_certificado:
             xml_element.set('NoCertificado', str(no_certificado))
         
-        from lxml import etree
         xml_resultado = etree.tostring(xml_element, encoding='unicode', pretty_print=True)
+        
+        # Verificar si el complemento CartaPorte aparece en el XML generado
+        if "CartaPorte" in xml_resultado:
+            logger.info("CartaPorte detectado en el XML generado correctamente")
+        elif datos_ajustados.get("datosXML", {}).get("cfdi:Comprobante", {}).get("cfdi:Complemento", {}).get("cartaporte31:CartaPorte"):
+            logger.warning("CartaPorte esperado en los datos pero NO aparece en el XML generado")
+        
         return xml_resultado
         
 

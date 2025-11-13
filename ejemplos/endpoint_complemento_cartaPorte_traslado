@@ -43,9 +43,9 @@
         "Importe": "0",
         "ObjetoImp": "01"
       }
-    }
-  },
-      "cfdi:Complemento": {
+    },
+
+    "cfdi:Complemento": {
       "cartaporte31:CartaPorte": {
         "Version": "3.1",
         "IdCCP": "CCCb127b-f2f8-4e18-8a23-03440aa40dbf",
@@ -139,8 +139,12 @@
         "Version": "1.1"
       }
     }
+  }
 },
     "claveUsuario": "f1160109-5aab-46b9-bcbe-c8f811fe70b3",
-    "enviarCorreo": false,
-    "generarPDF": false
+    "generarPDF": true,
+    "solicito_correo": true,
+    "destinatarios":["abidjazinto@gmail.com"],
+    "asunto":"Envío de CFDI Timbrado de prueba",
+    "cuerpo":"Adjunto encontrará su CFDI timbrado de prueba."
 }

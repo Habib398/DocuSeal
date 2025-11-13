@@ -17,6 +17,10 @@ class CartaPorteBuilder:
             if not transp_internac:
                 raise ValueError("TranspInternac es obligatorio en CartaPorte")
             
+            id_ccp = carta_porte_data.get('IdCCP') or carta_porte_data.get('id_ccp')
+            if not id_ccp:
+                raise ValueError("IdCCP es obligatorio en CartaPorte")
+            
             total_dist_rec = carta_porte_data.get('TotalDistRec') or carta_porte_data.get('total_dist_rec')
             if total_dist_rec:
                 total_dist_rec = Decimal(str(total_dist_rec))
@@ -24,25 +28,27 @@ class CartaPorteBuilder:
             # Procesar Ubicaciones (obligatorio)
             ubicaciones = self._procesar_ubicaciones(carta_porte_data)
             
-            # Procesar Mercancias (obligatorio)
+            # Procesar Mercancias (obligatorio, incluye Autotransporte dentro)
             mercancias = self._procesar_mercancias(carta_porte_data)
             
-            # Crear objeto CartaPorte
+            # Procesar FiguraTransporte (opcional)
+            figura_transporte = None
+            figura_data = (carta_porte_data.get('cartaporte31:FiguraTransporte') or
+                         carta_porte_data.get('FiguraTransporte') or 
+                         carta_porte_data.get('figura_transporte'))
+            if figura_data:
+                figura_transporte = self._procesar_figura_transporte(carta_porte_data)
+            
+            # Crear objeto CartaPorte con campos obligatorios y opcionales
+            # IMPORTANTE: total_dist_rec DEBE pasarse al constructor cuando hay Autotransporte (regla SAT CP125)
             carta_porte = cartaporte31.CartaPorte(
                 transp_internac=transp_internac,
+                id_ccp=id_ccp,
                 ubicaciones=ubicaciones,
-                mercancias=mercancias
+                mercancias=mercancias,
+                total_dist_rec=total_dist_rec,  # Pasar al constructor, no asignar después
+                figura_transporte=figura_transporte  # También pasar al constructor
             )
-            
-            # Agregar atributos opcionales
-            if total_dist_rec:
-                carta_porte.total_dist_rec = total_dist_rec
-            
-            # Procesar FiguraTransporte (opcional)
-            if carta_porte_data.get('FiguraTransporte') or carta_porte_data.get('figura_transporte'):
-                figura_transporte = self._procesar_figura_transporte(carta_porte_data)
-                if figura_transporte:
-                    carta_porte.figura_transporte = figura_transporte
             
             return carta_porte
             
@@ -53,9 +59,17 @@ class CartaPorteBuilder:
         """
         Procesa la lista de ubicaciones de Carta Porte.
         """
-        ubicaciones_data = (carta_porte_data.get('Ubicaciones', {}).get('Ubicacion') or
-                           carta_porte_data.get('ubicaciones', {}).get('ubicacion') or
-                           carta_porte_data.get('ubicaciones'))
+        # Buscar con prefijo cartaporte31: primero
+        ubicaciones_container = (carta_porte_data.get('cartaporte31:Ubicaciones') or 
+                                carta_porte_data.get('Ubicaciones') or
+                                carta_porte_data.get('ubicaciones'))
+        
+        if ubicaciones_container:
+            ubicaciones_data = (ubicaciones_container.get('cartaporte31:Ubicacion') or
+                              ubicaciones_container.get('Ubicacion') or
+                              ubicaciones_container.get('ubicacion'))
+        else:
+            ubicaciones_data = None
         
         if not ubicaciones_data:
             raise ValueError("Ubicaciones es obligatorio en CartaPorte")
@@ -71,46 +85,54 @@ class CartaPorteBuilder:
             if not tipo_ubicacion:
                 raise ValueError(f"TipoUbicacion es obligatorio en Ubicacion {idx}")
             
-            # Crear objeto Ubicacion
-            ubicacion = cartaporte31.Ubicacion(
-                tipo_ubicacion=tipo_ubicacion
-            )
-            
-            # Campos condicionales según el tipo
-            id_ubicacion = ub_data.get('IDUbicacion') or ub_data.get('id_ubicacion')
-            if id_ubicacion:
-                ubicacion.id_ubicacion = id_ubicacion
-            
+            # Campos obligatorios según la API de satcfdi
             rfc_remitente_destinatario = (ub_data.get('RFCRemitenteDestinatario') or 
                                          ub_data.get('rfc_remitente_destinatario'))
-            if rfc_remitente_destinatario:
-                ubicacion.rfc_remitente_destinatario = rfc_remitente_destinatario
+            if not rfc_remitente_destinatario:
+                raise ValueError(f"RFCRemitenteDestinatario es obligatorio en Ubicacion {idx}")
             
+            fecha_hora_salida_llegada_str = (ub_data.get('FechaHoraSalidaLlegada') or 
+                                            ub_data.get('fecha_hora_salida_llegada'))
+            if not fecha_hora_salida_llegada_str:
+                raise ValueError(f"FechaHoraSalidaLlegada es obligatorio en Ubicacion {idx}")
+            
+            # Convertir fecha/hora a datetime
+            if isinstance(fecha_hora_salida_llegada_str, str):
+                try:
+                    fecha_hora_salida_llegada = datetime.fromisoformat(fecha_hora_salida_llegada_str)
+                except ValueError:
+                    fecha_hora_salida_llegada = datetime.strptime(fecha_hora_salida_llegada_str, '%Y-%m-%d %H:%M:%S')
+            else:
+                fecha_hora_salida_llegada = fecha_hora_salida_llegada_str
+            
+            # Preparar campos opcionales ANTES de crear Ubicacion
+            id_ubicacion = ub_data.get('IDUbicacion') or ub_data.get('id_ubicacion')
             nombre_remitente_destinatario = (ub_data.get('NombreRemitenteDestinatario') or 
                                             ub_data.get('nombre_remitente_destinatario'))
-            if nombre_remitente_destinatario:
-                ubicacion.nombre_remitente_destinatario = nombre_remitente_destinatario
             
-            fecha_hora_salida_llegada = (ub_data.get('FechaHoraSalidaLlegada') or 
-                                        ub_data.get('fecha_hora_salida_llegada'))
-            if fecha_hora_salida_llegada:
-                if isinstance(fecha_hora_salida_llegada, str):
-                    try:
-                        ubicacion.fecha_hora_salida_llegada = datetime.fromisoformat(fecha_hora_salida_llegada)
-                    except ValueError:
-                        ubicacion.fecha_hora_salida_llegada = datetime.strptime(fecha_hora_salida_llegada, '%Y-%m-%d %H:%M:%S')
-                else:
-                    ubicacion.fecha_hora_salida_llegada = fecha_hora_salida_llegada
-            
+            # DistanciaRecorrida - CRÍTICO para CP141 cuando hay Autotransporte
             distancia_recorrida = ub_data.get('DistanciaRecorrida') or ub_data.get('distancia_recorrida')
             if distancia_recorrida:
-                ubicacion.distancia_recorrida = Decimal(str(distancia_recorrida))
+                distancia_recorrida = Decimal(str(distancia_recorrida))
             
             # Procesar Domicilio
-            if ub_data.get('Domicilio') or ub_data.get('domicilio'):
-                domicilio_data = ub_data.get('Domicilio') or ub_data.get('domicilio')
+            domicilio = None
+            domicilio_data = (ub_data.get('cartaporte31:Domicilio') or
+                            ub_data.get('Domicilio') or 
+                            ub_data.get('domicilio'))
+            if domicilio_data:
                 domicilio = self._procesar_domicilio(domicilio_data)
-                ubicacion.domicilio = domicilio
+            
+            # Crear objeto Ubicacion con TODOS los campos en el constructor
+            ubicacion = cartaporte31.Ubicacion(
+                tipo_ubicacion=tipo_ubicacion,
+                rfc_remitente_destinatario=rfc_remitente_destinatario,
+                fecha_hora_salida_llegada=fecha_hora_salida_llegada,
+                id_ubicacion=id_ubicacion,
+                nombre_remitente_destinatario=nombre_remitente_destinatario,
+                distancia_recorrida=distancia_recorrida,  # DEBE estar en constructor para CP141
+                domicilio=domicilio
+            )
             
             ubicaciones.append(ubicacion)
         
@@ -123,18 +145,31 @@ class CartaPorteBuilder:
         """
         Procesa los datos del domicilio de una ubicación.
         """
-        # Campos obligatorios
+        # Campos obligatorios según la API de satcfdi
         pais = domicilio_data.get('Pais') or domicilio_data.get('pais')
         if not pais:
             raise ValueError("Pais es obligatorio en Domicilio")
         
-        domicilio = cartaporte31.Domicilio(pais=pais)
+        estado = domicilio_data.get('Estado') or domicilio_data.get('estado')
+        if not estado:
+            raise ValueError("Estado es obligatorio en Domicilio")
         
-        # Campos opcionales/condicionales
-        calle = domicilio_data.get('Calle') or domicilio_data.get('calle')
-        if calle:
-            domicilio.calle = calle
+        codigo_postal = domicilio_data.get('CodigoPostal') or domicilio_data.get('codigo_postal')
+        if not codigo_postal:
+            raise ValueError("CodigoPostal es obligatorio en Domicilio")
         
+        # Calle - requerido por la plantilla HTML de satcfdi aunque el SAT lo permita opcional en algunos casos
+        calle = domicilio_data.get('Calle') or domicilio_data.get('calle') or 'SIN CALLE'
+        
+        # Crear objeto Domicilio con campos obligatorios y Calle
+        domicilio = cartaporte31.Domicilio(
+            pais=pais,
+            estado=estado,
+            codigo_postal=codigo_postal,
+            calle=calle  # Incluir Calle en el constructor para evitar errores en plantilla HTML
+        )
+        
+        # Campos opcionales
         numero_exterior = domicilio_data.get('NumeroExterior') or domicilio_data.get('numero_exterior')
         if numero_exterior:
             domicilio.numero_exterior = numero_exterior
@@ -159,21 +194,15 @@ class CartaPorteBuilder:
         if municipio:
             domicilio.municipio = municipio
         
-        estado = domicilio_data.get('Estado') or domicilio_data.get('estado')
-        if estado:
-            domicilio.estado = estado
-        
-        codigo_postal = domicilio_data.get('CodigoPostal') or domicilio_data.get('codigo_postal')
-        if codigo_postal:
-            domicilio.codigo_postal = codigo_postal
-        
         return domicilio
     
     def _procesar_mercancias(self, carta_porte_data: Dict[str, Any]) -> cartaporte31.Mercancias:
         """
         Procesa la sección de Mercancías de Carta Porte.
+        NOTA: Autotransporte va DENTRO de Mercancias según satcfdi
         """
-        mercancias_data = (carta_porte_data.get('Mercancias') or 
+        mercancias_data = (carta_porte_data.get('cartaporte31:Mercancias') or
+                          carta_porte_data.get('Mercancias') or 
                           carta_porte_data.get('mercancias'))
         
         if not mercancias_data:
@@ -189,41 +218,31 @@ class CartaPorteBuilder:
         if not unidad_peso:
             raise ValueError("UnidadPeso es obligatorio en Mercancias")
         
+        num_total_mercancias = (mercancias_data.get('NumTotalMercancias') or 
+                               mercancias_data.get('num_total_mercancias'))
+        if not num_total_mercancias:
+            raise ValueError("NumTotalMercancias es obligatorio en Mercancias")
+        
         # Procesar lista de Mercancia
         mercancia_list = self._procesar_lista_mercancias(mercancias_data)
+        
+        # Procesar Autotransporte (opcional pero esperado por satcfdi)
+        autotransporte_data = (mercancias_data.get('cartaporte31:Autotransporte') or
+                              mercancias_data.get('Autotransporte') or 
+                              mercancias_data.get('autotransporte'))
+        
+        autotransporte = None
+        if autotransporte_data:
+            autotransporte = self._procesar_autotransporte(autotransporte_data)
         
         # Crear objeto Mercancias
         mercancias = cartaporte31.Mercancias(
             peso_bruto_total=Decimal(str(peso_bruto_total)),
             unidad_peso=unidad_peso,
-            mercancia=mercancia_list
+            num_total_mercancias=int(num_total_mercancias),
+            mercancia=mercancia_list,
+            autotransporte=autotransporte  # Pasar Autotransporte a Mercancias
         )
-        
-        # Campos opcionales
-        num_total_mercancias = (mercancias_data.get('NumTotalMercancias') or 
-                               mercancias_data.get('num_total_mercancias'))
-        if num_total_mercancias:
-            mercancias.num_total_mercancias = int(num_total_mercancias)
-        
-        # Procesar tipo de transporte (switch-like logic)
-        tipo_transporte = mercancias_data.get('TipoTransporte') or mercancias_data.get('tipo_transporte')
-        if tipo_transporte == 'Autotransporte' or mercancias_data.get('Autotransporte') or mercancias_data.get('autotransporte'):
-            autotransporte = self._procesar_autotransporte(mercancias_data)
-            if autotransporte:
-                mercancias.autotransporte = autotransporte
-        elif tipo_transporte == 'Aereo':
-            transporte_aereo = self._procesar_transporte_aereo(mercancias_data)
-            if transporte_aereo:
-                mercancias.transporte_aereo = transporte_aereo  # Asumiendo que la clase Mercancias lo soporta
-        elif tipo_transporte == 'Maritimo':
-            transporte_maritimo = self._procesar_transporte_maritimo(mercancias_data)
-            if transporte_maritimo:
-                mercancias.transporte_maritimo = transporte_maritimo
-        elif tipo_transporte == 'Ferroviario':
-            transporte_ferroviario = self._procesar_transporte_ferroviario(mercancias_data)
-            if transporte_ferroviario:
-                mercancias.transporte_ferroviario = transporte_ferroviario
-        # Agregar más elif para otros tipos en el futuro
         
         return mercancias
     
@@ -231,7 +250,8 @@ class CartaPorteBuilder:
         """
         Procesa la lista individual de mercancías.
         """
-        mercancia_list_data = (mercancias_data.get('Mercancia') or 
+        mercancia_list_data = (mercancias_data.get('cartaporte31:Mercancia') or
+                              mercancias_data.get('Mercancia') or 
                               mercancias_data.get('mercancia'))
         
         if not mercancia_list_data:
@@ -264,48 +284,42 @@ class CartaPorteBuilder:
             if not peso_en_kg:
                 raise ValueError(f"PesoEnKg es obligatorio en Mercancia {idx}")
             
-            # Crear objeto Mercancia
+            # Campos opcionales (preparar antes de crear objeto)
+            material_peligroso = merc_data.get('MaterialPeligroso') or merc_data.get('material_peligroso')
+            unidad = merc_data.get('Unidad') or merc_data.get('unidad')
+            valor_mercancia = merc_data.get('ValorMercancia') or merc_data.get('valor_mercancia')
+            if valor_mercancia:
+                valor_mercancia = Decimal(str(valor_mercancia))
+            moneda = merc_data.get('Moneda') or merc_data.get('moneda')
+            fraccion_arancelaria = (merc_data.get('FraccionArancelaria') or 
+                                   merc_data.get('fraccion_arancelaria'))
+            uuid_comercio_ext = merc_data.get('UUIDComercioExt') or merc_data.get('uuid_comercio_ext')
+            
+            # Crear objeto Mercancia con campos obligatorios y opcionales en constructor
+            # IMPORTANTE: material_peligroso DEBE estar en constructor para CP155
             mercancia = cartaporte31.Mercancia(
                 bienes_transp=bienh_transp,
                 descripcion=descripcion,
                 cantidad=Decimal(str(cantidad)),
                 clave_unidad=clave_unidad,
-                peso_en_kg=Decimal(str(peso_en_kg))
+                peso_en_kg=Decimal(str(peso_en_kg)),
+                material_peligroso=material_peligroso,  # CP155: Obligatorio para ciertos BienesTransp
+                unidad=unidad,
+                valor_mercancia=valor_mercancia,
+                moneda=moneda,
+                fraccion_arancelaria=fraccion_arancelaria,
+                uuid_comercio_ext=uuid_comercio_ext
             )
-            
-            # Campos opcionales
-            unidad = merc_data.get('Unidad') or merc_data.get('unidad')
-            if unidad:
-                mercancia.unidad = unidad
-            
-            valor_mercancia = merc_data.get('ValorMercancia') or merc_data.get('valor_mercancia')
-            if valor_mercancia:
-                mercancia.valor_mercancia = Decimal(str(valor_mercancia))
-            
-            moneda = merc_data.get('Moneda') or merc_data.get('moneda')
-            if moneda:
-                mercancia.moneda = moneda
-            
-            fraccion_arancelaria = (merc_data.get('FraccionArancelaria') or 
-                                   merc_data.get('fraccion_arancelaria'))
-            if fraccion_arancelaria:
-                mercancia.fraccion_arancelaria = fraccion_arancelaria
-            
-            uuid_comercio_ext = merc_data.get('UUIDComercioExt') or merc_data.get('uuid_comercio_ext')
-            if uuid_comercio_ext:
-                mercancia.uuid_comercio_ext = uuid_comercio_ext
             
             mercancia_list.append(mercancia)
         
         return mercancia_list
     
-    def _procesar_autotransporte(self, mercancias_data: Dict[str, Any]) -> Optional[cartaporte31.Autotransporte]:
+    def _procesar_autotransporte(self, autotransporte_data: Dict[str, Any]) -> Optional[cartaporte31.Autotransporte]:
         """
         Procesa la sección de Autotransporte.
+        Ahora recibe los datos del nodo Autotransporte directamente.
         """
-        autotransporte_data = (mercancias_data.get('Autotransporte') or 
-                              mercancias_data.get('autotransporte'))
-        
         if not autotransporte_data:
             return None
         
@@ -319,46 +333,57 @@ class CartaPorteBuilder:
         if not num_permiso_sct:
             raise ValueError("NumPermisoSCT es obligatorio en Autotransporte")
         
-        # Crear objeto Autotransporte
+        # Procesar IdentificacionVehicular (OBLIGATORIO EN SATCFDI)
+        id_vehicular_data = (autotransporte_data.get('cartaporte31:IdentificacionVehicular') or
+                            autotransporte_data.get('IdentificacionVehicular') or 
+                            autotransporte_data.get('identificacion_vehicular'))
+        if not id_vehicular_data:
+            raise ValueError("IdentificacionVehicular es obligatorio en Autotransporte")
+        
+        id_vehicular = self._procesar_identificacion_vehicular(id_vehicular_data)
+        
+        # Procesar Seguros (OBLIGATORIO EN SATCFDI)
+        seguros_data = (autotransporte_data.get('cartaporte31:Seguros') or
+                       autotransporte_data.get('Seguros') or 
+                       autotransporte_data.get('seguros'))
+        if not seguros_data:
+            raise ValueError("Seguros es obligatorio en Autotransporte")
+        
+        seguros = self._procesar_seguros(seguros_data)
+        
+        # Procesar Remolques ANTES de crear Autotransporte (opcional pero puede ser obligatorio según CP184)
+        remolques = None
+        remolques_data = (autotransporte_data.get('cartaporte31:Remolques') or
+                         autotransporte_data.get('Remolques') or 
+                         autotransporte_data.get('remolques'))
+        if remolques_data:
+            remolques = self._procesar_remolques(remolques_data)
+        
+        # Crear objeto Autotransporte con campos obligatorios y opcionales en constructor
+        # IMPORTANTE: remolques DEBE pasar al constructor para CP184
         autotransporte = cartaporte31.Autotransporte(
             perm_sct=perm_sct,
-            num_permiso_sct=num_permiso_sct
+            num_permiso_sct=num_permiso_sct,
+            identificacion_vehicular=id_vehicular,
+            seguros=seguros,
+            remolques=remolques  # CP184: Obligatorio para ciertas configuraciones vehiculares
         )
-        
-        # Procesar IdentificacionVehicular (condicional)
-        if autotransporte_data.get('IdentificacionVehicular') or autotransporte_data.get('identificacion_vehicular'):
-            id_vehicular_data = (autotransporte_data.get('IdentificacionVehicular') or 
-                                autotransporte_data.get('identificacion_vehicular'))
-            id_vehicular = self._procesar_identificacion_vehicular(id_vehicular_data)
-            if id_vehicular:
-                autotransporte.identificacion_vehicular = id_vehicular
-        
-        # Procesar Seguros (condicional)
-        if autotransporte_data.get('Seguros') or autotransporte_data.get('seguros'):
-            seguros_data = autotransporte_data.get('Seguros') or autotransporte_data.get('seguros')
-            seguros = self._procesar_seguros(seguros_data)
-            if seguros:
-                autotransporte.seguros = seguros
-        
-        # Procesar Remolques (opcional)
-        if autotransporte_data.get('Remolques') or autotransporte_data.get('remolques'):
-            remolques_data = autotransporte_data.get('Remolques') or autotransporte_data.get('remolques')
-            remolques = self._procesar_remolques(remolques_data)
-            if remolques:
-                autotransporte.remolques = remolques
         
         return autotransporte
     
-    def _procesar_transporte_aereo(self, mercancias_data: Dict[str, Any]) -> Optional[Any]:
-        # Aquí va la lógica de transporte aéreo
+    def _procesar_transporte_aereo(self, transporte_aereo_data: Dict[str, Any]) -> Optional[Any]:
+        """Procesa datos de transporte aéreo"""
+        # Implementar según necesidad
         raise NotImplementedError("Transporte Aereo no implementado aún")
     
-    def _procesar_transporte_maritimo(self, mercancias_data: Dict[str, Any]) -> Optional[Any]:
-        # Aquí va la lógica de transporte marítimo
+    def _procesar_transporte_maritimo(self, transporte_maritimo_data: Dict[str, Any]) -> Optional[Any]:
+        """Procesa datos de transporte marítimo"""
+        # Implementar según necesidad
         raise NotImplementedError("Transporte Maritimo no implementado aún")
     
-    def _procesar_transporte_ferroviario(self, mercancias_data: Dict[str, Any]) -> Optional[Any]:
-        # Aquí va la lógica de transporte ferroviario
+    def _procesar_transporte_ferroviario(self, transporte_ferroviario_data: Dict[str, Any]) -> Optional[Any]:
+        """Procesa datos de transporte ferroviario"""
+        # Implementar según necesidad
         raise NotImplementedError("Transporte Ferroviario no implementado aún")
     
     def _procesar_identificacion_vehicular(self, id_vehicular_data: Dict[str, Any]) -> cartaporte31.IdentificacionVehicular:
@@ -379,11 +404,17 @@ class CartaPorteBuilder:
         if not anio_modelo_vm:
             raise ValueError("AnioModeloVM es obligatorio en IdentificacionVehicular")
         
+        peso_bruto_vehicular = (id_vehicular_data.get('PesoBrutoVehicular') or 
+                               id_vehicular_data.get('peso_bruto_vehicular'))
+        if not peso_bruto_vehicular:
+            raise ValueError("PesoBrutoVehicular es obligatorio en IdentificacionVehicular")
+        
         # Crear objeto IdentificacionVehicular
         id_vehicular = cartaporte31.IdentificacionVehicular(
             config_vehicular=config_vehicular,
             placa_vm=placa_vm,
-            anio_modelo_vm=int(anio_modelo_vm)
+            anio_modelo_vm=int(anio_modelo_vm),
+            peso_bruto_vehicular=Decimal(str(peso_bruto_vehicular))
         )
         
         return id_vehicular
@@ -438,7 +469,9 @@ class CartaPorteBuilder:
         """
         Procesa la lista de remolques del Autotransporte.
         """
-        remolque_list_data = remolques_data.get('Remolque') or remolques_data.get('remolque')
+        remolque_list_data = (remolques_data.get('cartaporte31:Remolque') or
+                             remolques_data.get('Remolque') or 
+                             remolques_data.get('remolque'))
         
         if not remolque_list_data:
             return []
@@ -472,13 +505,16 @@ class CartaPorteBuilder:
         """
         Procesa la sección de FiguraTransporte.
         """
-        figura_data = (carta_porte_data.get('FiguraTransporte') or 
+        figura_data = (carta_porte_data.get('cartaporte31:FiguraTransporte') or
+                      carta_porte_data.get('FiguraTransporte') or 
                       carta_porte_data.get('figura_transporte'))
         
         if not figura_data:
             return None
         
-        tipos_figura_data = figura_data.get('TiposFigura') or figura_data.get('tipos_figura')
+        tipos_figura_data = (figura_data.get('cartaporte31:TiposFigura') or
+                           figura_data.get('TiposFigura') or 
+                           figura_data.get('tipos_figura'))
         
         if not tipos_figura_data:
             return None
@@ -494,25 +530,22 @@ class CartaPorteBuilder:
             if not tipo_figura:
                 raise ValueError(f"TipoFigura es obligatorio en TiposFigura {idx}")
             
-            rfc_figura = tipo_data.get('RFCFigura') or tipo_data.get('rfc_figura')
-            if not rfc_figura:
-                raise ValueError(f"RFCFigura es obligatorio en TiposFigura {idx}")
-            
             nombre_figura = tipo_data.get('NombreFigura') or tipo_data.get('nombre_figura')
             if not nombre_figura:
                 raise ValueError(f"NombreFigura es obligatorio en TiposFigura {idx}")
             
-            # Crear objeto TiposFigura
+            # Campos opcionales (preparar antes de crear objeto)
+            rfc_figura = tipo_data.get('RFCFigura') or tipo_data.get('rfc_figura')
+            num_licencia = tipo_data.get('NumLicencia') or tipo_data.get('num_licencia')
+            
+            # Crear objeto TiposFigura con todos los campos en constructor
+            # IMPORTANTE: Todos los campos deben pasarse al constructor para CP193
             tipo_figura_obj = cartaporte31.TiposFigura(
                 tipo_figura=tipo_figura,
+                nombre_figura=nombre_figura,
                 rfc_figura=rfc_figura,
-                nombre_figura=nombre_figura
+                num_licencia=num_licencia
             )
-            
-            # Campos opcionales
-            num_licencia = tipo_data.get('NumLicencia') or tipo_data.get('num_licencia')
-            if num_licencia:
-                tipo_figura_obj.num_licencia = num_licencia
             
             tipos_figura_list.append(tipo_figura_obj)
         

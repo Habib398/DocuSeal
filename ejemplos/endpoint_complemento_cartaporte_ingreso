@@ -83,7 +83,7 @@
               "NombreRemitenteDestinatario": "  LESS THAN TRUCKLOAD JABE   SA DE CV",
               "FechaHoraSalidaLlegada": "2025-09-25T15:04:00",
               "cartaporte31:Domicilio": {
-                "Calle": "REFUGIO VILCHIS  MANZANA 84 LOTE 29             ",
+                "Calle": "REFUGIO VILCHIS  MANZANA 84 LOTE 29",
                 "NumeroExterior": "60 ",
                 "Colonia": "3632",
                 "Localidad": "05",
@@ -115,7 +115,7 @@
           "NumTotalMercancias": "1",
           "cartaporte31:Mercancia": {
             "BienesTransp": "01010101",
-            "Descripcion": "No existe en el catÃ¡logo (Puede especificar los datos para Material Peligroso)",
+            "Descripcion": "No existe en el catalogo (Puede especificar los datos para Material Peligroso)",
             "Cantidad": "1",
             "ClaveUnidad": "H87",
             "MaterialPeligroso": "No",
@@ -166,6 +166,9 @@
   }
 },
     "claveUsuario": "f1160109-5aab-46b9-bcbe-c8f811fe70b3",
-    "enviarCorreo": false,
-    "generarPDF": true
+    "generarPDF": true,
+    "solicito_correo": true,
+    "destinatarios":["abidjazinto@gmail.com"],
+    "asunto":"Envío de CFDI Timbrado de prueba",
+    "cuerpo":"Adjunto encontrará su CFDI timbrado de prueba."
 }
