@@ -87,8 +87,7 @@ def enviar_correo_timbrado(resultado_timbrado: dict, datos_entrada: dict):
         asunto = ConfiguracionMensajes.obtener_asunto_timbrado(tipo_comprobante)
         cuerpo = ConfiguracionMensajes.obtener_cuerpo_timbrado(
             tipo_comprobante=tipo_comprobante,
-            folio=folio,
-            uuid=uuid_timbrado
+            folio=folio
         )
         
         # Obtener XML timbrado (para adjuntar)

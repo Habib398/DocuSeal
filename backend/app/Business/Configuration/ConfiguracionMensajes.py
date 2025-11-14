@@ -42,14 +42,12 @@ class ConfiguracionMensajes:
     @staticmethod
     def obtener_cuerpo_timbrado(
         tipo_comprobante: str = None,
-        folio: str = None,
-        uuid: str = None
+        folio: str = None
     ) -> str:
         """
         Genera el cuerpo para correos de CFDI timbrado.
             tipo_comprobante: Tipo de comprobante (ej: 'I', 'T', 'P')
             folio: Folio del comprobante
-            uuid: UUID del timbrado
         """
         cuerpo = "Se adjunta su comprobante fiscal digital timbrado."
         
@@ -59,9 +57,6 @@ class ConfiguracionMensajes:
         
         if folio:
             cuerpo += f"\nFolio: {folio}"
-        
-        if uuid:
-            cuerpo += f"\nUUID del timbrado: {uuid}"
         
         # Agregar firma
         cuerpo += ConfiguracionMensajes.FIRMA_CORREO_TIMBRADO
