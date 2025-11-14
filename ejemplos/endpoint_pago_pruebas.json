@@ -58,7 +58,8 @@
       }
     }
   },
-  "claveUsuario": "f1160109-5aab-46b9-bcbe-c8f811fe70b3",
-  "enviarCorreo": false,
-  "generarPDF": false
+    "claveUsuario": "f1160109-5aab-46b9-bcbe-c8f811fe70b3",
+    "generarPDF": true,
+    "solicito_correo": true,
+    "destinatarios":["abidjazinto@gmail.com"]
 }

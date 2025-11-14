@@ -11,7 +11,7 @@ from satcfdi.models import Signer
 from satcfdi.cfdi import CFDI
 
 # Configurar logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 

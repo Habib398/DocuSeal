@@ -8,6 +8,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 import sys
 import os
+import logging
+
+# Configurar logging global para suprimir INFO
+logging.basicConfig(level=logging.WARNING, force=True)
 
 # Añadir rutas al path para importaciones
 current_dir = os.path.dirname(__file__)

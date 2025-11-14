@@ -7,6 +7,7 @@ delegando toda la lógica de negocio a ServicioSellado y ServicioTimbrarSellar.
 import sys
 import os
 import logging
+import xml.etree.ElementTree as ET
 
 from fastapi import APIRouter, Body
 
@@ -19,6 +20,7 @@ from Business.Services.ServicioSellado import ServicioSellado
 from Business.Services.ServicioTimbrarSellar import ServicioTimbrarSellar
 from Business.cfdi.ComprobanteFactory import ComprobanteFactory
 from Business.Configuration.ConfiguracionCorreo import ConfiguracionCorreo
+from Business.Configuration.ConfiguracionMensajes import ConfiguracionMensajes
 from Business.Correo import Correo
 
 logger = logging.getLogger(__name__)
@@ -27,6 +29,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix=""
 )
+
+
 
 
 def enviar_correo_timbrado(resultado: dict, datos_entrada: dict):
@@ -51,14 +55,44 @@ def enviar_correo_timbrado(resultado: dict, datos_entrada: dict):
             logger.info("Timbrado no exitoso, no se envía correo")
             return None
         
-        # Obtener asunto y cuerpo, con valores por defecto
-        asunto = datos_entrada.get('asunto', 'Comprobante Timbrado')
-        cuerpo = datos_entrada.get('cuerpo', 'Se adjunta su comprobante electrónico timbrado.')
+        # Extraer datos del comprobante para personalizar el mensaje
+        tipo_comprobante = None
+        folio = None
         
-        # Obtener UUID del timbrado para incluir en el correo
+        # Intentar extraer del datosXML primero
+        datos_xml = datos_entrada.get('datosXML', {})
+        if isinstance(datos_xml, dict):
+            comprobante = datos_xml.get('cfdi:Comprobante', {})
+            tipo_comprobante = comprobante.get('TipoDeComprobante')
+            folio = comprobante.get('Folio')
+        
+        # Si no se encontró en datosXML, intentar extraer del XML string
+        if not tipo_comprobante and 'xml' in datos_entrada:
+            try:
+                xml_string = datos_entrada.get('xml', '')
+                root = ET.fromstring(xml_string)
+                
+                # Obtener TipoDeComprobante
+                tipo_comprobante = root.get('TipoDeComprobante')
+                
+                # Obtener Folio
+                folio = root.get('Folio')
+                
+                if tipo_comprobante:
+                    logger.info(f"Datos extraídos del XML: tipo={tipo_comprobante}, folio={folio}")
+            except Exception as e:
+                logger.warning(f"Error al parsear XML para extraer datos: {e}")
+        
+        # Obtener UUID del timbrado
         uuid_timbrado = resultado.get('uuid', '')
-        if uuid_timbrado:
-            cuerpo = f"{cuerpo}\n\nUUID del timbrado: {uuid_timbrado}"
+        
+        # Generar asunto y cuerpo personalizados con los datos del comprobante
+        asunto = ConfiguracionMensajes.obtener_asunto_timbrado(tipo_comprobante)
+        cuerpo = ConfiguracionMensajes.obtener_cuerpo_timbrado(
+            tipo_comprobante=tipo_comprobante,
+            folio=folio,
+            uuid=uuid_timbrado
+        )
         
         # Obtener XML timbrado (para adjuntar)
         xml_content = None
@@ -185,9 +219,13 @@ async def timbrar_sellar_endpoint(
                     "warnings": resultado["warnings"]
                 }
             )
+        # Guardar datosXML para usar en el correo antes de reemplazarlo
+        datos_xml_guardado = data["datosXML"]
         # Reemplazar datosXML con el XML generado
         data["xml"] = resultado["xml"]
         del data["datosXML"]
+    else:
+        datos_xml_guardado = None
     
     # Realizar timbrado y sellado
     resultado = ServicioTimbrarSellar.procesar(data)
@@ -196,6 +234,9 @@ async def timbrar_sellar_endpoint(
     # Nota: ServicioTimbrarSellar devuelve {'errores': [...]} si hay error
     #       o un dict sin 'errores' si es exitoso
     if 'errores' not in resultado:
+        # Restaurar datosXML en data para que enviar_correo_timbrado pueda acceder
+        if datos_xml_guardado:
+            data["datosXML"] = datos_xml_guardado
         resultado_correo = enviar_correo_timbrado(resultado, data)
         if resultado_correo:
             resultado['correo'] = resultado_correo

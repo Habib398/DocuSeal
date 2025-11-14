@@ -11,7 +11,7 @@ except ImportError:
     from settings import get_db_connection
 
 # Configurar logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 def _normalize_cert_keys(cert_dict):

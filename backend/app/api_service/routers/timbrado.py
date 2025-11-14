@@ -9,6 +9,7 @@ from fastapi import APIRouter, Body
 import sys
 import os
 import logging
+import xml.etree.ElementTree as ET
 
 # Añadir ruta del backend al path
 backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
@@ -17,6 +18,7 @@ if backend_path not in sys.path:
 
 from Business.Services.ServicioTimbrado import ServicioTimbrado
 from Business.Configuration.ConfiguracionCorreo import ConfiguracionCorreo
+from Business.Configuration.ConfiguracionMensajes import ConfiguracionMensajes
 from Business.Correo import Correo
 
 logger = logging.getLogger(__name__)
@@ -47,14 +49,47 @@ def enviar_correo_timbrado(resultado_timbrado: dict, datos_entrada: dict):
             logger.info("Timbrado no exitoso, no se envía correo")
             return None
         
-        # Obtener asunto y cuerpo, con valores por defecto
-        asunto = datos_entrada.get('asunto', 'Comprobante Timbrado')
-        cuerpo = datos_entrada.get('cuerpo', 'Se adjunta su comprobante electrónico timbrado.')
+        # Extraer datos del comprobante para personalizar el mensaje
+        tipo_comprobante = None
+        folio = None
         
-        # Obtener UUID del timbrado para incluir en el correo
+        # Intentar extraer del datosXML primero
+        datos_xml = datos_entrada.get('datosXML', {})
+        if isinstance(datos_xml, dict):
+            comprobante = datos_xml.get('cfdi:Comprobante', {})
+            tipo_comprobante = comprobante.get('TipoDeComprobante')
+            folio = comprobante.get('Folio')
+        
+        # Si no se encontró en datosXML, intentar extraer del XML string
+        if not tipo_comprobante and 'xml' in datos_entrada:
+            try:
+                xml_string = datos_entrada.get('xml', '')
+                root = ET.fromstring(xml_string)
+                
+                # Buscar los atributos en el namespace CFDI
+                namespaces = {'cfdi': 'http://www.sat.gob.mx/cfd/4'}
+                
+                # Obtener TipoDeComprobante
+                tipo_comprobante = root.get('TipoDeComprobante')
+                
+                # Obtener Folio
+                folio = root.get('Folio')
+                
+                if tipo_comprobante:
+                    logger.info(f"Datos extraídos del XML: tipo={tipo_comprobante}, folio={folio}")
+            except Exception as e:
+                logger.warning(f"Error al parsear XML para extraer datos: {e}")
+        
+        # Obtener UUID del timbrado
         uuid_timbrado = resultado_timbrado.get('uuid', '')
-        if uuid_timbrado:
-            cuerpo = f"{cuerpo}\n\nUUID del timbrado: {uuid_timbrado}"
+        
+        # Generar asunto y cuerpo personalizados con los datos del comprobante
+        asunto = ConfiguracionMensajes.obtener_asunto_timbrado(tipo_comprobante)
+        cuerpo = ConfiguracionMensajes.obtener_cuerpo_timbrado(
+            tipo_comprobante=tipo_comprobante,
+            folio=folio,
+            uuid=uuid_timbrado
+        )
         
         # Obtener XML timbrado (para adjuntar)
         xml_content = None

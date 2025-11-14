@@ -83,7 +83,5 @@
     "claveUsuario": "f1160109-5aab-46b9-bcbe-c8f811fe70b3",
     "generarPDF": true,
     "solicito_correo": true,
-    "destinatarios":["abidjazinto@gmail.com"],
-    "asunto":"Envío de CFDI Timbrado de prueba",
-    "cuerpo":"Adjunto encontrará su CFDI timbrado de prueba."
+    "destinatarios":["abidjazinto@gmail.com"]
 }
