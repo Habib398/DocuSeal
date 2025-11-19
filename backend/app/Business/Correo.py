@@ -109,7 +109,8 @@ class Correo:
         solicito_correo: bool = True,
         timbrado_exitoso: bool = True,
         xml_content: Optional[bytes] = None,
-        pdf_bytes: Optional[bytes] = None
+        pdf_bytes: Optional[bytes] = None,
+        uuid: Optional[str] = None
     ) -> Dict[str, Union[bool, str]]:
         """
         Valida y envía un correo electrónico con soporte para adjuntos.
@@ -122,6 +123,7 @@ class Correo:
             timbrado_exitoso: Si el timbrado fue exitoso
             xml_content: Contenido XML como bytes (opcional)
             pdf_bytes: Contenido PDF como bytes (opcional)
+            uuid: UUID para nombrar los archivos adjuntos (opcional)
         """
         try:
             # Primero generar y validar
@@ -154,7 +156,8 @@ class Correo:
                 cuerpo=cuerpo,
                 conectar_automatico=True,
                 xml_content=xml_content,
-                pdf_bytes=pdf_bytes
+                pdf_bytes=pdf_bytes,
+                uuid=uuid
             )
             
             if resultado_envio['exitoso']:

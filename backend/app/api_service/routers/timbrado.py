@@ -116,7 +116,7 @@ def enviar_correo_timbrado(resultado_timbrado: dict, datos_entrada: dict):
         config = ConfiguracionCorreo()
         correo = Correo(config)
         
-        # EnviarCorreo ahora soporta xml_content y pdf_bytes
+        # EnviarCorreo ahora soporta xml_content, pdf_bytes y uuid
         resultado_correo = correo.EnviarCorreo(
             para=destinatarios,
             asunto=asunto,
@@ -124,7 +124,8 @@ def enviar_correo_timbrado(resultado_timbrado: dict, datos_entrada: dict):
             solicito_correo=True,
             timbrado_exitoso=True,
             xml_content=xml_content,
-            pdf_bytes=pdf_bytes
+            pdf_bytes=pdf_bytes,
+            uuid=uuid_timbrado
         )
         
         logger.info(f"Resultado de envío de correo: {resultado_correo['exitoso']}")

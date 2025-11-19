@@ -125,18 +125,11 @@ class EmailService:
         cuerpo: str,
         conectar_automatico: bool = True,
         xml_content: Optional[bytes] = None,
-        pdf_bytes: Optional[bytes] = None
+        pdf_bytes: Optional[bytes] = None,
+        uuid: Optional[str] = None
     ) -> Dict[str, Union[bool, str]]:
         """
         Envía un correo electrónico con soporte para adjuntos XML y PDF.
-        
-        Args:
-            para: Email o lista de emails destinatarios
-            asunto: Asunto del correo
-            cuerpo: Cuerpo del correo (texto plano o HTML)
-            conectar_automatico: Si True, conecta automáticamente si no está conectado
-            xml_content: Contenido XML como bytes (opcional)
-            pdf_bytes: Contenido PDF como bytes (opcional)
         """
         try:
             # Convertir un email a lista si es necesario
@@ -180,10 +173,11 @@ class EmailService:
             # Adjuntar XML si se proporciona
             if xml_content:
                 try:
+                    nombre_xml = f'{uuid}.xml'
                     self._adjuntar_archivo(
                         mensaje=mensaje,
                         contenido=xml_content,
-                        nombre_archivo='comprobante.xml',
+                        nombre_archivo=nombre_xml,
                         tipo_mime='application/xml'
                     )
                     logger.info("Adjunto XML agregado al correo")
@@ -193,10 +187,11 @@ class EmailService:
             # Adjuntar PDF si se proporciona
             if pdf_bytes:
                 try:
+                    nombre_pdf = f'{uuid}.pdf'
                     self._adjuntar_archivo(
                         mensaje=mensaje,
                         contenido=pdf_bytes,
-                        nombre_archivo='comprobante.pdf',
+                        nombre_archivo=nombre_pdf,
                         tipo_mime='application/pdf'
                     )
                     logger.info("Adjunto PDF agregado al correo")
