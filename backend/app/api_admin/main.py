@@ -184,6 +184,101 @@ async def login_usuario(credenciales: UsuarioLoginRequest):
 
 # ==================== ENDPOINTS DE CERTIFICADOS ====================
 
+# ==================== ENDPOINT MULTI-PAC (PREPARADO PARA FUTURO) ====================
+# Descomentar cuando se active soporte multi-PAC completo
+# @app.get("/v1/pacs/tipos")
+# async def get_tipos_pac():
+#     """
+#     Obtiene la lista de tipos de PAC soportados por el sistema.
+#     
+#     Returns:
+#         Lista de tipos de PAC disponibles con información de cada uno
+#     """
+#     try:
+#         from Business.PACFactory import PACFactory
+#         
+#         tipos_disponibles = PACFactory.tipos_disponibles()
+#         
+#         # Información detallada de cada PAC
+#         pacs_info = [
+#             {
+#                 "id": "comerciodigital",
+#                 "nombre": "Comercio Digital",
+#                 "descripcion": "PAC actual del sistema (implementación personalizada)",
+#                 "soporta_timbrado": True,
+#                 "soporta_cancelacion": True,
+#                 "requiere_configuracion_especial": False,
+#                 "activo": True
+#             },
+#             {
+#                 "id": "finkok",
+#                 "nombre": "Finkok",
+#                 "descripcion": "PAC con soporte nativo en satcfdi",
+#                 "soporta_timbrado": True,
+#                 "soporta_cancelacion": True,
+#                 "requiere_configuracion_especial": False,
+#                 "activo": False  # Cambiar a True cuando esté implementado
+#             },
+#             {
+#                 "id": "diverza",
+#                 "nombre": "Diverza",
+#                 "descripcion": "PAC con soporte nativo en satcfdi",
+#                 "soporta_timbrado": True,
+#                 "soporta_cancelacion": True,
+#                 "requiere_configuracion_especial": False,
+#                 "activo": False  # Cambiar a True cuando esté implementado
+#             },
+#             {
+#                 "id": "mysuite",
+#                 "nombre": "MySuite",
+#                 "descripcion": "PAC con soporte nativo en satcfdi",
+#                 "soporta_timbrado": True,
+#                 "soporta_cancelacion": True,
+#                 "requiere_configuracion_especial": False,
+#                 "activo": False  # Cambiar a True cuando esté implementado
+#             },
+#             {
+#                 "id": "prodigia",
+#                 "nombre": "Prodigia",
+#                 "descripcion": "PAC con soporte nativo en satcfdi",
+#                 "soporta_timbrado": True,
+#                 "soporta_cancelacion": True,
+#                 "requiere_configuracion_especial": False,
+#                 "activo": False  # Cambiar a True cuando esté implementado
+#             },
+#             {
+#                 "id": "swsapien",
+#                 "nombre": "SW Sapien",
+#                 "descripcion": "PAC con soporte nativo en satcfdi",
+#                 "soporta_timbrado": True,
+#                 "soporta_cancelacion": True,
+#                 "requiere_configuracion_especial": False,
+#                 "activo": False  # Cambiar a True cuando esté implementado
+#             }
+#         ]
+#         
+#         # Filtrar solo los PACs activos para mostrar en el frontend
+#         # Para desarrollo, devolver todos
+#         return {
+#             "success": True,
+#             "pacs": pacs_info,
+#             "default": "comerciodigital"
+#         }
+#         
+#     except Exception as e:
+#         logger.error(f"Error al obtener tipos de PAC: {str(e)}")
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail={
+#                 "errores": [{
+#                     "tipo": "error",
+#                     "codigo": "PAC001",
+#                     "mensaje": f"Error al obtener tipos de PAC: {str(e)}"
+#                 }]
+#             }
+#         )
+# ==================== FIN ENDPOINT MULTI-PAC ====================
+
 @app.get("/v1/certificados/")
 async def get_all_certificados():
     """
@@ -324,11 +419,38 @@ async def create_certificado(certificado: dict = Body(...)):
     
     Args:
         certificado: Datos del certificado a crear
+            - tipoPAC (opcional): Tipo de PAC (comerciodigital, finkok, etc.)
+              Por defecto: 'comerciodigital'
     
     Returns:
         Confirmación de creación con ID del certificado
     """
     try:
+        # ==================== VALIDACIÓN MULTI-PAC (PREPARADA PARA FUTURO) ====================
+        # Descomentar cuando se active soporte multi-PAC completo
+        # tipo_pac = certificado.get('tipoPAC', 'comerciodigital').lower()
+        # 
+        # # Validar que el tipo de PAC sea válido
+        # from Business.PACFactory import PACFactory
+        # 
+        # if not PACFactory.es_pac_valido(tipo_pac):
+        #     tipos_validos = PACFactory.tipos_disponibles()
+        #     raise HTTPException(
+        #         status_code=status.HTTP_400_BAD_REQUEST,
+        #         detail={
+        #             "errores": [{
+        #                 "tipo": "error",
+        #                 "codigo": "CERT011",
+        #                 "mensaje": f"Tipo de PAC '{tipo_pac}' no es válido. Opciones: {', '.join(tipos_validos)}"
+        #             }]
+        #         }
+        #     )
+        # 
+        # # Asegurar que tipoPAC esté en los datos del certificado
+        # certificado['tipoPAC'] = tipo_pac
+        # logger.info(f"Creando certificado con PAC: {tipo_pac}")
+        # ==================== FIN VALIDACIÓN MULTI-PAC ====================
+        
         return certificados_service.crear_certificado(certificado)
     except ValueError as e:
         raise HTTPException(

@@ -49,10 +49,10 @@ $venv_python = Join-Path $PSScriptRoot "..\venv\Scripts\python.exe"
 try {
 	if (Test-Path $venv_python) {
 		Write-Host "Usando python del virtualenv: $venv_python" -ForegroundColor Green
-		& $venv_python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+		& $venv_python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload --log-level error
 	} else {
 		Write-Host "Virtualenv no encontrado, se usará el comando 'uvicorn' del sistema" -ForegroundColor Yellow
-		uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+		uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload --log-level error
 	}
 } finally {
 	Write-Host "`nServidor detenido." -ForegroundColor Green

@@ -11,7 +11,13 @@ import os
 import logging
 
 # Configurar logging global para suprimir INFO
-logging.basicConfig(level=logging.WARNING, force=True)
+logging.basicConfig(level=logging.ERROR, force=True)
+
+# Suprimir logs de uvicorn y fastapi
+logging.getLogger("uvicorn").setLevel(logging.ERROR)
+logging.getLogger("uvicorn.access").setLevel(logging.ERROR)
+logging.getLogger("uvicorn.error").setLevel(logging.ERROR)
+logging.getLogger("fastapi").setLevel(logging.ERROR)
 
 # Añadir rutas al path para importaciones
 current_dir = os.path.dirname(__file__)
