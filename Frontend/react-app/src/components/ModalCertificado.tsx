@@ -24,6 +24,40 @@ const generateUUID = (): string => {
   });
 };
 
+// Función para copiar al portapapeles con fallback para HTTP
+const copyToClipboard = async (text: string): Promise<void> => {
+  // Intentar usar la API moderna de clipboard (HTTPS o localhost)
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch (err) {
+      console.log('Clipboard API falló, usando fallback:', err);
+    }
+  }
+  
+  // Fallback para HTTP o cuando clipboard API falla
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  textArea.style.position = 'fixed';
+  textArea.style.left = '-999999px';
+  textArea.style.top = '-999999px';
+  document.body.appendChild(textArea);
+  
+  try {
+    textArea.focus();
+    textArea.select();
+    const successful = document.execCommand('copy');
+    if (!successful) {
+      throw new Error('copy command was unsuccessful');
+    }
+  } catch (err) {
+    console.error('Fallback de copiar también falló:', err);
+  } finally {
+    document.body.removeChild(textArea);
+  }
+};
+
 // Estado inicial del formulario
 const emptyFormData: CertificateFormData = {
   usuarioPAC: '',
@@ -506,8 +540,8 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
                         <button
                           className="btn btn-outline-secondary"
                           type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText(formData.claveUsuario || '');
+                          onClick={async () => {
+                            await copyToClipboard(formData.claveUsuario || '');
                             // Opcional: mostrar feedback visual
                           }}
                           title="Copiar clave"
