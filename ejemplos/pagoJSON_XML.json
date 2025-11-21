@@ -1,6 +1,7 @@
 {
 "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<cfdi:Comprobante Version=\"4.0\" TipoDeComprobante=\"P\" Fecha=\"2025-11-10T12:00:00\" LugarExpedicion=\"06300\" Exportacion=\"01\" Serie=\"CFDI/PAGOS\" Folio=\"01\" SubTotal=\"0\" Moneda=\"XXX\" Total=\"0\" xmlns:cfdi=\"http://www.sat.gob.mx/cfd/4\" xmlns:pago20=\"http://www.sat.gob.mx/Pagos20\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd http://www.sat.gob.mx/Pagos20 http://www.sat.gob.mx/sitio_internet/cfd/Pagos/Pagos20.xsd\">\n  <cfdi:Emisor Rfc=\"VITR810513SH6\" Nombre=\"RANULFO VILLATORO DE LA TORRE\" RegimenFiscal=\"612\"/>\n  <cfdi:Receptor Rfc=\"BASF850506MI1\" Nombre=\"FLORIANA BARRERA SANTES\" DomicilioFiscalReceptor=\"88278\" RegimenFiscalReceptor=\"612\" UsoCFDI=\"G03\"/>\n  <cfdi:Complemento>\n    <pago20:Pagos Version=\"2.0\">\n      <pago20:Pago FechaPago=\"2021-12-21T12:00:00\" FormaDePagoP=\"03\" MonedaP=\"MXN\" TipoCambioP=\"1\" Monto=\"5000\" NumOperacion=\"7598654321\">\n        <pago20:DoctoRelacionado IdDocumento=\"D2473405-A1C1-1248-A703-363B2376D85F\" Serie=\"Pago\" Folio=\"20\" MonedaDR=\"MXN\" EquivalenciaDR=\"1\" NumParcialidad=\"1\" ImpSaldoAnt=\"5000\" ImpPagado=\"5000\" ObjetoImpDR=\"02\">\n          <pago20:ImpuestosDR>\n            <pago20:TrasladosDR>\n              <pago20:TrasladoDR BaseDR=\"5000\" ImpuestoDR=\"002\" TipoFactorDR=\"Tasa\" TasaOCuotaDR=\"0.160000\" ImporteDR=\"800.00\"/>\n            </pago20:TrasladosDR>\n          </pago20:ImpuestosDR>\n        </pago20:DoctoRelacionado>\n      </pago20:Pago>\n    </pago20:Pagos>\n  </cfdi:Complemento>\n</cfdi:Comprobante>",
-  "claveUsuario": "f1160109-5aab-46b9-bcbe-c8f811fe70b3",
-  "enviarCorreo": false,
-  "generarPDF": false
+"claveUsuario": "52b90bba-231d-416c-ac99-b6df321b7b07",
+"generarPDF": true,
+"solicito_correo": true,
+"destinatarios":["abidjazinto@gmail.com"]
 }

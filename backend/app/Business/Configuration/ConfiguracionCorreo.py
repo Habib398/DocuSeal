@@ -12,12 +12,33 @@ class ConfiguracionCorreo:
     def __init__(self):
         """
         Inicializa la configuración leyendo del archivo .env
-        Busca el .env en la raíz del proyecto
+        Busca el .env en la raíz del proyecto DocuSeal
         """
         # Cargar variables de entorno desde .env
-        # Busca el archivo .env en la raíz del proyecto (5 niveles arriba de este archivo)
-        env_path = Path(__file__).resolve().parent.parent.parent.parent.parent / '.env'
-        load_dotenv(dotenv_path=env_path)
+        # Busca el archivo .env en múltiples ubicaciones, priorizando la raíz del proyecto:
+        # ConfiguracionCorreo.py está en: backend/app/Business/Configuration/ (5 niveles desde raíz)
+        # 1. Raíz del proyecto de DocuSeal (5 niveles arriba)
+        # 2. Working directory actual
+        # 3. Parent del working directory
+        # 4. Carpeta del usuario (AppData)
+        
+        env_paths = [
+            Path(__file__).resolve().parent.parent.parent.parent.parent / '.env',  # 5 niveles arriba a raíz del proyecto
+            Path.cwd() / '.env',  # Working directory
+            Path.cwd().parent / '.env',  # Parent de working directory
+            Path.home() / 'DocuSeal' / '.env',  # Home/DocuSeal
+        ]
+        
+        env_found = False
+        for env_path in env_paths:
+            if env_path.exists():
+                load_dotenv(dotenv_path=env_path)
+                env_found = True
+                break
+        
+        if not env_found:
+            # Si no encuentra .env, intenta cargar desde variables de entorno del sistema
+            load_dotenv()
         
         # Leer configuración desde variables de entorno
         self.host = os.getenv('EMAIL_SMTP_SERVER')

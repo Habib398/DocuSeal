@@ -1,10 +1,28 @@
 import psycopg2 # type: ignore
 import os
 from dotenv import load_dotenv
+from pathlib import Path
 
-# Cargar variables de entorno desde el archivo .env en este directorio
-env_path = os.path.join(os.path.dirname(__file__), '.env')
-load_dotenv(env_path)
+# Buscar archivo .env en múltiples ubicaciones
+# settings.py está en: backend/app/DB/settings.py (4 niveles desde raíz)
+# Necesitamos 4 niveles arriba para llegar a la raíz del proyecto
+env_paths = [
+    os.path.join(os.path.dirname(__file__), '..', '..', '..', '.env'),  # Raíz del proyecto (4 niveles arriba)
+    os.path.join(os.getcwd(), '.env'),  # Working directory
+    os.path.join(os.getcwd(), '..', '.env'),  # Parent de working directory
+    os.path.join(os.path.expanduser('~'), 'DocuSeal', '.env'),  # Home/DocuSeal
+]
+
+env_found = False
+for env_path in env_paths:
+    if os.path.exists(env_path):
+        load_dotenv(env_path)
+        env_found = True
+        break
+
+if not env_found:
+    # Si no encuentra .env, intenta cargar desde variables de entorno del sistema
+    load_dotenv()
 
 # Configuración de la base de datos PostgreSQL
 DB_CONFIG = {
