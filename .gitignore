@@ -8,7 +8,6 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -27,10 +26,6 @@ wheels/
 *.sqlite3
 *.log
 
-# Environment variables
-.env
-.env.local
-.env.*.local
 
 # IDE
 .vscode/
