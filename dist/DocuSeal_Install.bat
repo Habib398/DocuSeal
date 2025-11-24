@@ -94,7 +94,38 @@ if not exist "%~dp0.env" (
 )
 
 echo.
-echo Paso 2: Verificando NSSM...
+echo Paso 2: Inicializando Base de Datos...
+echo.
+
+REM Llamar script de inicialización de BD desde Scripts/
+set "init_db_script=%~dp0..\Scripts\init_database.ps1"
+
+if exist "%init_db_script%" (
+    color 0E
+    echo Ejecutando inicializador de base de datos...
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%init_db_script%"
+    
+    if %errorlevel% neq 0 (
+        color 0C
+        echo.
+        echo ERROR: No se pudo inicializar la base de datos
+        echo.
+        pause
+        exit /b 1
+    )
+    color 0A
+) else (
+    color 0C
+    echo ERROR: Script init_database.ps1 no encontrado en Scripts/
+    echo Se omitirá la inicialización automática de BD
+    echo Deberá crear las tablas manualmente
+    echo.
+    timeout /t 3 /nobreak >nul
+    color 0A
+)
+
+echo.
+echo Paso 3: Verificando NSSM...
 echo.
 
 REM Crear directorio temporal
@@ -139,7 +170,7 @@ if not exist "%nssm_exe%" (
 
 :config_service
 echo.
-echo Paso 3: Configurando servicio...
+echo Paso 4: Configurando servicio...
 echo.
 
 REM Detener servicio existente

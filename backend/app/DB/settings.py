@@ -102,8 +102,8 @@ def init_database():
         conn.close()
         
         print("Base de datos PostgreSQL y tablas creadas correctamente.")
-        print("✓ Tabla 'certificados_pac' creada/actualizada")
-        print("✓ Tabla 'usuarios' creada/actualizada")
+        print("[OK] Tabla 'certificados_pac' creada/actualizada")
+        print("[OK] Tabla 'usuarios' creada/actualizada")
         
     except psycopg2.Error as e:
         print(f"Error inicializando la base de datos: {e}")

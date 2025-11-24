@@ -56,6 +56,19 @@ if (-not (Test-Path $exe_path)) {
 Write-Host ""
 Write-Host "Configurando el servicio..." -ForegroundColor Yellow
 
+# Inicializar Base de Datos
+Write-Host "Inicializando base de datos..." -ForegroundColor Yellow
+& "$PSScriptRoot\init_database.ps1" -Silent
+
+if ($LASTEXITCODE -ne 0) {
+	Write-Host "ADVERTENCIA: No se pudo inicializar la base de datos automáticamente" -ForegroundColor Yellow
+	Write-Host "Verifica la configuración de PostgreSQL y el archivo .env" -ForegroundColor Yellow
+	Write-Host ""
+}
+
+Write-Host ""
+Write-Host "Configurando el servicio..." -ForegroundColor Yellow
+
 # Eliminar servicio anterior si existe
 $service_exists = Get-Service -Name $service_name -ErrorAction SilentlyContinue
 if ($service_exists) {
