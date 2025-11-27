@@ -100,17 +100,27 @@ class ComprobantePago:
         
         logger.info(f"DEBUG - Estructura completa de self.datos: {list(self.datos.keys())}")
         
-        # Buscar en datosXML->complemento->pago20
-        if self.datos.get('datosXML', {}).get('complemento', {}).get('pago20'):
+        # Buscar en datosXML->cfdi:Comprobante->complemento->pago20 (ubicación correcta del cliente)
+        if self.datos.get('datosXML', {}).get('cfdi:Comprobante', {}).get('complemento', {}).get('pago20'):
+            complemento_pago = self.datos['datosXML']['cfdi:Comprobante']['complemento']['pago20']
+            logger.info("DEBUG - Complemento encontrado en datosXML->cfdi:Comprobante->complemento->pago20")
+        
+        # Buscar en cfdi:Comprobante->complemento->pago20 (cuando ya se normalizó)
+        elif self.datos.get('cfdi:Comprobante', {}).get('complemento', {}).get('pago20'):
+            complemento_pago = self.datos['cfdi:Comprobante']['complemento']['pago20']
+            logger.info("DEBUG - Complemento encontrado en cfdi:Comprobante->complemento->pago20")
+        
+        # Buscar en datosXML->complemento->pago20 (estructura alternativa)
+        elif self.datos.get('datosXML', {}).get('complemento', {}).get('pago20'):
             complemento_pago = self.datos['datosXML']['complemento']['pago20']
             logger.info("DEBUG - Complemento encontrado en datosXML->complemento->pago20")
         
-        # Buscar directamente en complemento->pago20 (cuando ya se normalizó)
+        # Buscar directamente en complemento->pago20 (nivel raíz)
         elif self.datos.get('complemento', {}).get('pago20'):
             complemento_pago = self.datos['complemento']['pago20']
             logger.info("DEBUG - Complemento encontrado en complemento->pago20")
         
-        # Buscar en cfdi:Comprobante->cfdi:Complemento
+        # Buscar en cfdi:Comprobante->cfdi:Complemento (con prefijos XML)
         elif self.datos.get('cfdi:Comprobante', {}).get('cfdi:Complemento', {}).get('pago20:Pagos'):
             complemento_pago = self.datos['cfdi:Comprobante']['cfdi:Complemento']['pago20:Pagos']
             logger.info("DEBUG - Complemento encontrado en cfdi:Comprobante->cfdi:Complemento->pago20:Pagos")

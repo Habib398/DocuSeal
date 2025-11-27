@@ -652,10 +652,16 @@ class ConvertirJson:
         # Buscar el complemento de pago en diferentes ubicaciones
         complemento_data = None
         
-        if datos_json.get('datosXML', {}).get('complemento', {}).get('pago20'):
+        # Buscar en datosXML->cfdi:Comprobante->complemento->pago20 (ubicación del cliente)
+        if datos_json.get('datosXML', {}).get('cfdi:Comprobante', {}).get('complemento', {}).get('pago20'):
+            complemento_data = datos_json['datosXML']['cfdi:Comprobante']['complemento']['pago20']
+        # Buscar en datosXML->complemento->pago20 (estructura alternativa)
+        elif datos_json.get('datosXML', {}).get('complemento', {}).get('pago20'):
             complemento_data = datos_json['datosXML']['complemento']['pago20']
+        # Buscar en datosXML->cfdi:Comprobante->cfdi:Complemento->pago20:Pagos (con prefijos XML)
         elif datos_json.get('datosXML', {}).get('cfdi:Comprobante', {}).get('cfdi:Complemento', {}).get('pago20:Pagos'):
             complemento_data = datos_json['datosXML']['cfdi:Comprobante']['cfdi:Complemento']['pago20:Pagos']
+        # Buscar directamente en complemento_pago
         elif datos_json.get('complemento_pago'):
             complemento_data = datos_json['complemento_pago']
         
