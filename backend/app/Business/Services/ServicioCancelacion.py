@@ -45,6 +45,17 @@ class ServicioCancelacion:
                 }]
             }
         
+        # Validar que solo haya un folio
+        if len(folios) > 1:
+            return {
+                "errores": [{
+                    "tipo": "error",
+                    "codigo": "CAN008",
+                    "mensaje": "Solo se permite cancelar un folio a la vez",
+                    "detalle": f"Se recibieron {len(folios)} folios, pero solo se permite 1 por solicitud"
+                }]
+            }
+        
         # Obtener certificado de la base de datos
         try:
             db_manager = DBManager()
@@ -205,10 +216,5 @@ class ServicioCancelacion:
                     "detalle": str(e)
                 })
         
-        # retornar resultado directo si solo hay un folio
-        if len(folios) == 1:
-            return resultados[0]
-        
-        # retornar resumen si hay lista de folios
-        from ResultadoCancelacion import ResultadoCancelacion
-        return ResultadoCancelacion.ResultadoMultiple(resultados)
+        # Retornar resultado directo (siempre será un solo folio después de la validación)
+        return resultados[0]

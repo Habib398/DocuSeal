@@ -26,16 +26,16 @@ router = APIRouter(
 @router.post(
     "/cancelar/",
     summary="Cancelar CFDI",
-    description="Cancela uno o más comprobantes CFDI mediante el PAC. Se requiere claveUsuario para obtener "
+    description="Cancela un comprobante CFDI mediante el PAC. Se requiere claveUsuario para obtener "
                 "certificados y credenciales PAC desde la base de datos. Utiliza satcfdi para el proceso de "
                 "firma digital y comunicación con el PAC Comercio Digital."
 )
 async def cancelar_endpoint(
     data: dict = Body(
         ...,
-        description="JSON con claveUsuario y lista de folios a cancelar. Cada folio debe incluir: uuid, "
-                    "rfcReceptor, total, tipoComprobante, motivo y opcionalmente folioSustitucion (si motivo=01). "
-                    "Los certificados y credenciales PAC se obtienen automáticamente de la BD.",
+        description="JSON con claveUsuario y lista de folios a cancelar. Solo se permite un folio por solicitud. "
+                    "El folio debe incluir: uuid, rfcReceptor, total, tipoComprobante, motivo y opcionalmente "
+                    "folioSustitucion (si motivo=01). Los certificados y credenciales PAC se obtienen automáticamente de la BD.",
         example={
             "claveUsuario": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXX",
             "folios": [
