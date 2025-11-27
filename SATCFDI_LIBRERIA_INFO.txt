@@ -1,0 +1,370 @@
+================================================================================
+INFORMACION SOBRE LA LIBRERIA SATCFDI EN EL PROYECTO DOCUSEAL
+================================================================================
+
+FECHA DE CREACION: 27 de Noviembre de 2025
+VERSION ACTUAL DE SATCFDI: >= 4.8.1
+
+
+================================================================================
+1. UBICACION DE LA DECLARACION DE LA DEPENDENCIA
+================================================================================
+
+La libreria satcfdi esta declarada en el siguiente archivo:
+
+- requirements.txt (raiz del proyecto)
+  Linea: satcfdi>=4.8.1
+
+
+================================================================================
+2. ARCHIVOS QUE UTILIZAN LA LIBRERIA SATCFDI
+================================================================================
+
+A continuacion se listan todos los archivos del proyecto que importan y 
+utilizan funcionalidades de la libreria satcfdi:
+
+
+2.1. backend\app\Business\Timbrado.py
+--------------------------------------
+Importaciones:
+- from satcfdi.pacs import Environment, Accept
+- from satcfdi.pacs.comerciodigital import ComercioDigital
+- from satcfdi.cfdi import CFDI
+
+Funcionalidad:
+- Servicio de timbrado de CFDI
+- Conexion con PAC Comercio Digital
+- Configuracion de entornos (TEST/PRODUCTION)
+- Procesamiento de timbrado de documentos fiscales
+
+
+2.2. backend\app\Business\StatusComprobante.py
+-----------------------------------------------
+Importaciones:
+- from satcfdi.cfdi import CFDI
+- from satcfdi.pacs.sat import SAT
+
+Funcionalidad:
+- Consulta del estado de comprobantes fiscales
+- Interaccion con el PAC del SAT
+- Validacion de estatus de CFDI
+
+
+2.3. backend\app\Business\SellarXML.py
+--------------------------------------
+Importaciones:
+- from satcfdi.models import Signer
+- from satcfdi.cfdi import CFDI
+
+Funcionalidad:
+- Sellado digital de documentos CFDI
+- Carga y manejo de certificados digitales (CER/KEY)
+- Generacion de firmas digitales
+- Calculo de cadena original
+- Validacion de estructura XML
+
+
+2.4. backend\app\Business\PDF.py
+---------------------------------
+Importaciones:
+- from satcfdi.cfdi import CFDI
+- from satcfdi.render import html_str
+
+Funcionalidad:
+- Generacion de representaciones visuales en HTML
+- Conversion de CFDI a formato PDF
+- Renderizado de documentos fiscales
+
+
+2.5. backend\app\Business\ConvertirXml.py
+-----------------------------------------
+Importaciones:
+- from satcfdi.cfdi import CFDI
+- from satcfdi.exceptions import CFDIError
+
+Funcionalidad:
+- Conversion y validacion de XML
+- Manejo de excepciones especificas de CFDI
+- Procesamiento de estructuras XML de documentos fiscales
+
+
+2.6. backend\app\Business\cfdi\ConvertirJson.py
+------------------------------------------------
+Importaciones:
+- from satcfdi.create.cfd import cfdi40
+- from satcfdi.create.cfd import pago20
+
+Funcionalidad:
+- Conversion de estructuras JSON a objetos CFDI
+- Creacion de comprobantes version 4.0
+- Procesamiento de complementos de pago 2.0
+- Construccion de documentos fiscales desde datos estructurados
+
+
+2.7. backend\app\Business\cfdi\Complementos\cartaPorte.py
+----------------------------------------------------------
+Importaciones:
+- from satcfdi.cfdi import CFDI
+- from satcfdi.create.cfd import cartaporte31
+
+Funcionalidad:
+- Implementacion del complemento Carta Porte 3.1
+- Procesamiento de documentos de transporte
+- Integracion de complementos especializados al CFDI
+
+
+2.8. backend\app\Business\CancelacionPACs\CancelacionComercioDigital.py
+------------------------------------------------------------------------
+Importaciones (comentadas):
+- from satcfdi.models import Signer
+
+Funcionalidad:
+- Proceso de cancelacion de CFDI
+- Manejo de firmado para cancelaciones
+
+
+================================================================================
+3. CONFIGURACION EN PYINSTALLER
+================================================================================
+
+El archivo DocuSealService.spec incluye configuraciones especificas para 
+empaquetar satcfdi en el ejecutable:
+
+
+3.1. Archivos de datos incluidos:
+----------------------------------
+datas=[
+    ('venv/Lib/site-packages/satcfdi/catalogs', 'satcfdi/catalogs'),
+    ('venv/Lib/site-packages/satcfdi/transform/schemas', 'satcfdi/transform/schemas'),
+    ('venv/Lib/site-packages/satcfdi/render', 'satcfdi/render'),
+]
+
+NOTA: Estos archivos contienen catalogos del SAT, esquemas XSD y plantillas
+de renderizado que son necesarios en tiempo de ejecucion.
+
+
+3.2. Imports ocultos incluidos:
+--------------------------------
+hiddenimports=[
+    'satcfdi',
+    'satcfdi.pacs',
+    'satcfdi.pacs.comerciodigital',
+    'satcfdi.pacs.sat',
+    'satcfdi.cfdi',
+    'satcfdi.models',
+    'satcfdi.models.signer',
+    'satcfdi.render',
+    'satcfdi.exceptions',
+    'satcfdi.create',
+    'satcfdi.create.cfd',
+    'satcfdi.create.cfd.cfdi40',
+    'satcfdi.create.cfd.pago20',
+    'satcfdi.create.cfd.cartaporte31',
+    'satcfdi.transform',
+    'satcfdi.xelement',
+]
+
+
+================================================================================
+4. PROCEDIMIENTO PARA ACTUALIZAR LA LIBRERIA SATCFDI
+================================================================================
+
+Cuando sea necesario actualizar la libreria satcfdi a una version mas reciente,
+siga estos pasos:
+
+
+PASO 1: REVISAR CAMBIOS Y COMPATIBILIDAD
+-----------------------------------------
+Antes de actualizar, consulte:
+- Notas de lanzamiento en el repositorio oficial de satcfdi
+- Cambios en la API que puedan afectar el codigo existente
+- Nuevas dependencias requeridas
+- Cambios en los catalogos del SAT
+
+
+PASO 2: CREAR RESPALDO
+-----------------------
+Haga una copia de seguridad completa del proyecto antes de actualizar:
+- Hacer commit de todos los cambios actuales en git
+- Crear una rama de respaldo
+- Documentar la version actual de satcfdi
+
+
+PASO 3: ACTUALIZAR EN ENTORNO VIRTUAL
+--------------------------------------
+Activar el entorno virtual y actualizar la libreria:
+
+Comando en PowerShell:
+> & C:\Users\Abitt\Desktop\DespliegueV2\DocuSeal-main\venv\Scripts\Activate.ps1
+> pip install --upgrade satcfdi
+
+O para instalar una version especifica:
+> pip install satcfdi==X.X.X
+
+Verificar la version instalada:
+> pip show satcfdi
+
+
+PASO 4: ACTUALIZAR requirements.txt
+------------------------------------
+Edite el archivo requirements.txt en la raiz del proyecto:
+
+Cambiar:
+satcfdi>=4.8.1
+
+Por la nueva version, ejemplo:
+satcfdi>=5.0.0
+
+
+PASO 5: PRUEBAS DE FUNCIONALIDAD
+---------------------------------
+Ejecute pruebas completas de todas las funcionalidades que usan satcfdi:
+
+1. Sellado de XML
+   - Probar con diferentes tipos de comprobantes
+   - Verificar certificados y firmas digitales
+
+2. Timbrado
+   - Probar conexion con PAC
+   - Verificar respuestas de timbrado
+   - Validar XML timbrado
+
+3. Cancelacion
+   - Probar proceso de cancelacion
+   - Verificar acuses de cancelacion
+
+4. Conversion JSON a XML
+   - Probar con diferentes estructuras
+   - Validar complementos (Pago, Carta Porte)
+
+5. Generacion de PDF
+   - Verificar renderizado correcto
+   - Validar plantillas HTML
+
+6. Consulta de estatus
+   - Probar servicios del SAT
+   - Verificar respuestas de validacion
+
+
+PASO 6: VERIFICAR ARCHIVOS DE DATOS
+------------------------------------
+Revise si hay nuevos archivos de datos requeridos:
+
+1. Catalogos del SAT
+   - Verificar ruta: venv/Lib/site-packages/satcfdi/catalogs/
+   - Actualizar en DocuSealService.spec si es necesario
+
+2. Esquemas XSD
+   - Verificar ruta: venv/Lib/site-packages/satcfdi/transform/schemas/
+   - Actualizar en DocuSealService.spec si es necesario
+
+3. Templates de renderizado
+   - Verificar ruta: venv/Lib/site-packages/satcfdi/render/
+   - Actualizar en DocuSealService.spec si es necesario
+
+
+PASO 7: ACTUALIZAR PYINSTALLER SPEC
+------------------------------------
+Si hay cambios en la estructura de modulos de satcfdi:
+
+1. Revisar nuevos submodulos en hiddenimports
+2. Agregar nuevas rutas de datos en datas
+3. Verificar que no haya modulos deprecados
+
+
+PASO 8: COMPILAR Y PROBAR EJECUTABLE
+-------------------------------------
+Genere el ejecutable y pruebe su funcionamiento:
+
+Comando en PowerShell:
+> cd C:\Users\Abitt\Desktop\DespliegueV2\DocuSeal-main
+> pyinstaller DocuSealService.spec
+
+Pruebe el ejecutable generado en build/DocuSealService/:
+- Ejecutar el servicio
+- Probar todas las funcionalidades criticas
+- Verificar logs de errores
+
+
+PASO 9: REVISAR DEPENDENCIAS
+-----------------------------
+satcfdi puede tener sus propias dependencias que tambien deben actualizarse:
+
+- cryptography: Usada para manejo de certificados
+- lxml: Usada para procesamiento XML
+- requests: Usada para comunicacion con PACs
+
+Verificar compatibilidad de versiones:
+> pip list
+
+================================================================================
+5. PROBLEMAS COMUNES Y SOLUCIONES
+================================================================================
+
+PROBLEMA 1: Error al importar satcfdi
+--------------------------------------
+Error: ModuleNotFoundError: No module named 'satcfdi'
+
+Solucion:
+- Verificar que el entorno virtual este activado
+- Reinstalar: pip install satcfdi>=4.8.1
+- Verificar el archivo requirements.txt
+
+
+PROBLEMA 2: Error con certificados
+-----------------------------------
+Error: Error al cargar certificado o llave privada
+
+Solucion:
+- Verificar que los archivos CER y KEY esten correctamente codificados
+- Validar que la contrasena del certificado sea correcta
+- Verificar permisos de lectura de archivos
+
+
+PROBLEMA 3: Catalogos no encontrados
+-------------------------------------
+Error: FileNotFoundError: catalogos no encontrados
+
+Solucion:
+- Verificar rutas en DocuSealService.spec
+- Copiar manualmente catalogos desde venv/Lib/site-packages/satcfdi/catalogs
+- Reconstruir el ejecutable con pyinstaller
+
+
+PROBLEMA 4: Error en renderizado PDF
+-------------------------------------
+Error: Templates de renderizado no encontrados
+
+Solucion:
+- Verificar que satcfdi/render este incluido en datas del spec
+- Verificar instalacion de pdfkit y wkhtmltopdf
+- Revisar logs para identificar template faltante
+
+
+PROBLEMA 5: Error de conexion con PAC
+--------------------------------------
+Error: Timeout o error de conexion con el PAC
+
+Solucion:
+- Verificar credenciales del PAC
+- Validar configuracion de Environment (TEST/PRODUCTION)
+- Revisar conectividad de red
+- Verificar version de satcfdi compatible con el PAC
+
+
+================================================================================
+6. RECURSOS ADICIONALES
+================================================================================
+
+Documentacion oficial:
+- Repositorio: https://github.com/SAT-CFDI/python-satcfdi
+- PyPI: https://pypi.org/project/satcfdi/
+
+Contacto para soporte del proyecto DocuSeal:
+- Revisar documentacion en carpeta Documentation/
+- Consultar ESTANDARIZACION_ERRORES.md para codigos de error
+
+Archivos de configuracion relacionados:
+- requirements.txt
+- DocuSealService.spec
+- backend/DB/settings.py
