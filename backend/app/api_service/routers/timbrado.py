@@ -32,7 +32,7 @@ router = APIRouter(
 
 def enviar_correo_timbrado(resultado_timbrado: dict, datos_entrada: dict):
     """
-    Función auxiliar para enviar correo después del timbrado completo.
+    Función  para enviar correo después del timbrado completo.
     Solo se usa en endpoints que realizan TIMBRADO (generan UUID y PDF).
     """
     try:

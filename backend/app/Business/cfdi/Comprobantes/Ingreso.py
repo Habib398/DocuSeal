@@ -122,6 +122,14 @@ class ComprobanteIngreso:
         """
         logger.info("Ajustando datos para comprobante tipo Ingreso")
         
+        # DEBUG: Log de la estructura antes de ajustes
+        conceptos = self.datos.get("cfdi:Comprobante", {}).get("cfdi:Conceptos", {}).get("cfdi:Concepto", {})
+        if isinstance(conceptos, dict):
+            impuestos = conceptos.get("cfdi:Impuestos")
+            logger.info(f"=== ANTES DE AJUSTAR: Concepto tiene cfdi:Impuestos: {impuestos is not None}")
+            if impuestos:
+                logger.info(f"=== ANTES DE AJUSTAR: Impuestos keys: {list(impuestos.keys())}")
+        
         # Asegurar que TipoDeComprobante sea "I"
         if "cfdi:Comprobante" in self.datos:
             self.datos["cfdi:Comprobante"]["TipoDeComprobante"] = "I"
@@ -135,6 +143,14 @@ class ComprobanteIngreso:
         if "datosXML" in self.datos and "cfdi:Complemento" not in self.datos.get("datosXML", {}).get("cfdi:Comprobante", {}):
             # Si no hay complemento en la estructura esperada, no hay nada que preservar
             pass
+        
+        # DEBUG: Log después de ajustes
+        conceptos = self.datos.get("cfdi:Comprobante", {}).get("cfdi:Conceptos", {}).get("cfdi:Concepto", {})
+        if isinstance(conceptos, dict):
+            impuestos = conceptos.get("cfdi:Impuestos")
+            logger.info(f"=== DESPUES DE AJUSTAR: Concepto tiene cfdi:Impuestos: {impuestos is not None}")
+            if impuestos:
+                logger.info(f"=== DESPUES DE AJUSTAR: Impuestos keys: {list(impuestos.keys())}")
         
         return self.datos
     

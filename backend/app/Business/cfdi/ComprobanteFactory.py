@@ -48,15 +48,43 @@ class ComprobanteFactory:
     def procesar_comprobante(cls, datos_json: Dict[str, Any]) -> Dict[str, Any]:
         
         try:
+            # DEBUG: Verificar que llegan los impuestos
+            import sys
+            print(f"\n=== DEBUG ComprobanteFactory.procesar_comprobante() ===", file=sys.stderr)
+            print(f"datos_json keys: {list(datos_json.keys())}", file=sys.stderr)
+            
             # Crear comprobante
             comprobante = cls.crear_comprobante(datos_json)
+            
+            # Verificar que el comprobante tiene los impuestos
+            conceptos = comprobante.datos.get("cfdi:Comprobante", {}).get("cfdi:Conceptos", {}).get("cfdi:Concepto")
+            if isinstance(conceptos, dict):
+                impuestos = conceptos.get("cfdi:Impuestos")
+                print(f"Comprobante creado - Concepto tiene impuestos: {impuestos is not None}", file=sys.stderr)
             
             # Validar
             resultado_validacion = comprobante.validar()
             
+            # Verificar después de validar
+            conceptos = comprobante.datos.get("cfdi:Comprobante", {}).get("cfdi:Conceptos", {}).get("cfdi:Concepto")
+            if isinstance(conceptos, dict):
+                impuestos = conceptos.get("cfdi:Impuestos")
+                print(f"Después de validar - Concepto tiene impuestos: {impuestos is not None}", file=sys.stderr)
+            
             # Si la validación pasa, generar XML
             if resultado_validacion["valido"]:
                 xml_generado = comprobante.generar_xml()
+                
+                print(f"XML generado - length: {len(xml_generado)}", file=sys.stderr)
+                # Verificar si tiene impuestos en el XML
+                impuestos_en_concepto = xml_generado.count('<cfdi:Impuestos>')
+                print(f"XML contiene {impuestos_en_concepto} tags cfdi:Impuestos", file=sys.stderr)
+                # Buscar ObjetoImp
+                import re
+                objetoimp_matches = re.findall(r'ObjetoImp="([^"]+)"', xml_generado)
+                print(f"ObjetoImp values en XML: {objetoimp_matches}", file=sys.stderr)
+                print(f"=== FIN DEBUG ComprobanteFactory ===\n", file=sys.stderr)
+                
                 return {
                     "valido": True,
                     "xml": xml_generado,

@@ -10,10 +10,10 @@ import sys
 import os
 import logging
 
-# Configurar logging global para suprimir INFO
-logging.basicConfig(level=logging.ERROR, force=True)
+# Configurar logging global para DEBUG (investigación)
+logging.basicConfig(level=logging.INFO, force=True)
 
-# Suprimir logs de uvicorn y fastapi
+# Suprimir logs de uvicorn y fastapi excepto errors
 logging.getLogger("uvicorn").setLevel(logging.ERROR)
 logging.getLogger("uvicorn.access").setLevel(logging.ERROR)
 logging.getLogger("uvicorn.error").setLevel(logging.ERROR)

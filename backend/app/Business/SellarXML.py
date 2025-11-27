@@ -190,6 +190,26 @@ class SellarXML:
                         xml_element = cfdi_obj.to_xml()
                         from lxml import etree
                         xml_input = etree.tostring(xml_element, encoding='unicode', pretty_print=True)
+                        
+                        # DEBUG: Verificar estructura del XML generado
+                        logger.info("=== XML GENERADO POR ConvertirJson ===")
+                        logger.info(f"XML length: {len(xml_input)}")
+                        
+                        # Buscar Conceptos
+                        import re
+                        conceptos_match = re.findall(r'<cfdi:Concepto[^>]*ObjetoImp="([^"]*)"[^>]*>', xml_input)
+                        logger.info(f"ObjetoImp values en Conceptos: {conceptos_match}")
+                        
+                        # Verificar si hay Impuestos en conceptos
+                        impuestos_count = xml_input.count('<cfdi:Impuestos>')
+                        logger.info(f"cfdi:Impuestos tags encontrados: {impuestos_count}")
+                        
+                        # Muestra un snippet de los Conceptos
+                        conceptos_snippet = re.search(r'<cfdi:Conceptos>.*?</cfdi:Conceptos>', xml_input, re.DOTALL)
+                        if conceptos_snippet:
+                            snippet = conceptos_snippet.group(0)[:800]
+                            logger.info(f"Conceptos snippet (primeros 800 chars):\n{snippet}")
+                        
                     except Exception as e:
                         return {
                             "errores": [{

@@ -21,7 +21,8 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 $service_name = "DocuSealService"
 $exe_path = "C:\Users\Abitt\Desktop\DespliegueV2\DocuSeal-main\dist\DocuSealService.exe"
 $work_dir = "C:\Users\Abitt\Desktop\DespliegueV2\DocuSeal-main"
-$log_dir = "$env:LOCALAPPDATA\DocuSeal\logs"
+# Usar Roaming en lugar de Local para consistencia con NSSM
+$log_dir = "$env:APPDATA\DocuSeal\logs"
 
 # Descargar NSSM si no existe
 Write-Host "Verificando NSSM..." -ForegroundColor Yellow

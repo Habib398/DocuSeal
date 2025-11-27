@@ -153,7 +153,7 @@ EMAIL_USE_TLS=true
 ```powershell
 # Como Administrador
 Stop-Service -Name DocuSealService
-```
+```Stop-Service -Name DocuSealService
 
 ### Iniciar el Servicio
 ```powershell
@@ -170,12 +170,21 @@ Restart-Service -Name DocuSealService
 ### Ver Logs del Servicio
 Los logs se guardan en:
 ```
-C:\Users\<TuUsuario>\AppData\Local\DocuSeal\logs\
+C:\Users\<TuUsuario>\AppData\Roaming\DocuSeal\logs\
 ```
 
-Para ver los últimos logs:
+Los archivos de log son:
+- `stderr.log` - Errores y excepciones
+- `stdout.log` - Salida estándar
+
+Para ver los últimos errores:
 ```powershell
-Get-Content "C:\Users\$env:USERNAME\AppData\Local\DocuSeal\logs\service.log" -Tail 50
+Get-Content "C:\Users\$env:USERNAME\AppData\Roaming\DocuSeal\logs\stderr.log" -Tail 50
+```
+
+Para ver la salida estándar:
+```powershell
+Get-Content "C:\Users\$env:USERNAME\AppData\Roaming\DocuSeal\logs\stdout.log" -Tail 50
 ```
 
 ## Desinstalación del Servicio

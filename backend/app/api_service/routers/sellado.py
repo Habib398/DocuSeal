@@ -206,6 +206,16 @@ async def timbrar_sellar_endpoint(
         }
     )
 ):
+    # DEBUG
+    import sys
+    sys.stderr.flush()
+    print(f"\n{'='*60}", file=sys.stderr, flush=True)
+    print(f"=== ENDPOINT timbrar_sellar_endpoint CALLED ===", file=sys.stderr, flush=True)
+    print(f"data keys: {list(data.keys())}", file=sys.stderr, flush=True)
+    print(f"Has datosXML: {'datosXML' in data}", file=sys.stderr, flush=True)
+    print(f"{'='*60}\n", file=sys.stderr, flush=True)
+    sys.stderr.flush()
+    
     # Procesar comprobante si se envía datosXML
     if "datosXML" in data:
         resultado = ComprobanteFactory.procesar_comprobante(data["datosXML"])

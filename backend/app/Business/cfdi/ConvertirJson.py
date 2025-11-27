@@ -393,15 +393,20 @@ class ConvertirJson:
             if not objeto_imp:
                 raise ValueError(f"ObjetoImp es obligatorio en el concepto {idx} (CFDI 4.0)")
             
+            # Procesar impuestos del concepto (Traslados y Retenciones)
+            impuestos_concepto = self._procesar_impuestos_concepto(concepto_json, idx)
+            
             # Crear objeto Concepto con los datos extraídos
             # Nota: El importe se calcula automáticamente por satcfdi (cantidad * valor_unitario - descuento)
+            # Incluir impuestos en el constructor para que satcfdi los procese correctamente
             renglon = cfdi40.Concepto(
                 clave_prod_serv=clave_prod,
                 cantidad=cantidad,
                 clave_unidad=clave_unidad,
                 descripcion=descripcion,
                 valor_unitario=valor_unitario,
-                objeto_imp=objeto_imp
+                objeto_imp=objeto_imp,
+                impuestos=impuestos_concepto  # Pasar los impuestos directamente
             )
             
             # Campos opcionales
@@ -428,6 +433,143 @@ class ConvertirJson:
             raise ValueError("Debe haber al menos un concepto válido")
         
         return seq_conceptos
+    
+    def _procesar_impuestos_concepto(self, concepto_json: Dict[str, Any], idx_concepto: int) -> Union[cfdi40.Impuestos, None]:
+        """
+        Procesa los impuestos (Traslados y Retenciones) de un concepto
+        """
+        # Buscar impuestos en diferentes ubicaciones
+        impuestos_data = (concepto_json.get('cfdi:Impuestos') or 
+                         concepto_json.get('Impuestos') or 
+                         concepto_json.get('impuestos'))
+        
+        if not impuestos_data:
+            return None
+        
+        # Procesar Traslados
+        traslados = None
+        traslados_data = (impuestos_data.get('cfdi:Traslados', {}).get('cfdi:Traslado') or
+                         impuestos_data.get('Traslados', {}).get('Traslado') or
+                         impuestos_data.get('cfdi:Traslados') or
+                         impuestos_data.get('Traslados'))
+        
+        if traslados_data:
+            # Convertir a lista si es un solo traslado
+            if isinstance(traslados_data, dict):
+                traslados_data = [traslados_data]
+            
+            traslados_list = []
+            for traslado_data in traslados_data:
+                traslado_obj = self._crear_traslado_concepto(traslado_data, idx_concepto)
+                traslados_list.append(traslado_obj)
+            
+            traslados = traslados_list if len(traslados_list) > 1 else traslados_list[0]
+        
+        # Procesar Retenciones
+        retenciones = None
+        retenciones_data = (impuestos_data.get('cfdi:Retenciones', {}).get('cfdi:Retencion') or
+                           impuestos_data.get('Retenciones', {}).get('Retencion') or
+                           impuestos_data.get('cfdi:Retenciones') or
+                           impuestos_data.get('Retenciones'))
+        
+        if retenciones_data:
+            # Convertir a lista si es una sola retención
+            if isinstance(retenciones_data, dict):
+                retenciones_data = [retenciones_data]
+            
+            retenciones_list = []
+            for retencion_data in retenciones_data:
+                retencion_obj = self._crear_retencion_concepto(retencion_data, idx_concepto)
+                retenciones_list.append(retencion_obj)
+            
+            retenciones = retenciones_list if len(retenciones_list) > 1 else retenciones_list[0]
+        
+        # Crear objeto Impuestos solo si hay traslados o retenciones
+        if traslados or retenciones:
+            return cfdi40.Impuestos(
+                traslados=traslados,
+                retenciones=retenciones
+            )
+        
+        return None
+    
+    def _crear_traslado_concepto(self, traslado_data: Dict[str, Any], idx_concepto: int) -> cfdi40.Traslado:
+        """
+        Crea un objeto Traslado desde un diccionario (para conceptos)
+        """
+        from decimal import Decimal
+        
+        # Extraer Base (obligatorio)
+        base = traslado_data.get('Base') or traslado_data.get('base')
+        if base:
+            base = Decimal(str(base))
+        
+        # Extraer Impuesto (obligatorio)
+        impuesto = traslado_data.get('Impuesto') or traslado_data.get('impuesto')
+        if not impuesto:
+            raise ValueError(f"Impuesto es obligatorio en Traslado del concepto {idx_concepto}")
+        
+        # Extraer TipoFactor (obligatorio)
+        tipo_factor = traslado_data.get('TipoFactor') or traslado_data.get('tipo_factor')
+        if not tipo_factor:
+            raise ValueError(f"TipoFactor es obligatorio en Traslado del concepto {idx_concepto}")
+        
+        # Extraer TasaOCuota (obligatorio si TipoFactor no es Exento)
+        tasa_o_cuota = traslado_data.get('TasaOCuota') or traslado_data.get('tasa_o_cuota')
+        if tasa_o_cuota:
+            tasa_o_cuota = Decimal(str(tasa_o_cuota))
+        
+        # Extraer Importe (obligatorio)
+        importe = traslado_data.get('Importe') or traslado_data.get('importe')
+        if importe:
+            importe = Decimal(str(importe))
+        
+        return cfdi40.Traslado(
+            impuesto=impuesto,
+            tipo_factor=tipo_factor,
+            tasa_o_cuota=tasa_o_cuota,
+            importe=importe,
+            base=base
+        )
+    
+    def _crear_retencion_concepto(self, retencion_data: Dict[str, Any], idx_concepto: int) -> cfdi40.Retencion:
+        """
+        Crea un objeto Retencion desde un diccionario (para conceptos)
+        """
+        from decimal import Decimal
+        
+        # Extraer Base (obligatorio)
+        base = retencion_data.get('Base') or retencion_data.get('base')
+        if base:
+            base = Decimal(str(base))
+        
+        # Extraer Impuesto (obligatorio)
+        impuesto = retencion_data.get('Impuesto') or retencion_data.get('impuesto')
+        if not impuesto:
+            raise ValueError(f"Impuesto es obligatorio en Retencion del concepto {idx_concepto}")
+        
+        # Extraer TipoFactor (obligatorio)
+        tipo_factor = retencion_data.get('TipoFactor') or retencion_data.get('tipo_factor')
+        if not tipo_factor:
+            raise ValueError(f"TipoFactor es obligatorio en Retencion del concepto {idx_concepto}")
+        
+        # Extraer TasaOCuota (obligatorio si TipoFactor no es Exento)
+        tasa_o_cuota = retencion_data.get('TasaOCuota') or retencion_data.get('tasa_o_cuota')
+        if tasa_o_cuota:
+            tasa_o_cuota = Decimal(str(tasa_o_cuota))
+        
+        # Extraer Importe (obligatorio)
+        importe = retencion_data.get('Importe') or retencion_data.get('importe')
+        if importe:
+            importe = Decimal(str(importe))
+        
+        return cfdi40.Retencion(
+            impuesto=impuesto,
+            tipo_factor=tipo_factor,
+            tasa_o_cuota=tasa_o_cuota,
+            importe=importe,
+            base=base
+        )
     
     def _procesar_complementos(self, datos_json: Dict[str, Any]) -> None:
         # Verificar si hay complementos en diferentes ubicaciones posibles

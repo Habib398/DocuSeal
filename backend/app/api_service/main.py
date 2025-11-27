@@ -52,7 +52,6 @@ app = FastAPI(
 )
 
 # Configurar CORS permisivo para servicio público
-# Nota: Si se monta en la app principal, el CORS se maneja globalmente
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

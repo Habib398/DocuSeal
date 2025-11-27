@@ -7,7 +7,8 @@ Write-Host ""
 
 $service_name = "DocuSealService"
 $port = 8000
-$log_dir = "$env:LOCALAPPDATA\DocuSeal\logs"
+# Usar Roaming en lugar de Local para consistencia con NSSM
+$log_dir = "$env:APPDATA\DocuSeal\logs"
 
 # 1. Verificar si el servicio existe
 Write-Host "1. Verificando servicio..." -ForegroundColor Yellow
